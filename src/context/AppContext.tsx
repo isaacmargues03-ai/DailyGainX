@@ -80,23 +80,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const position = openPositions.find(p => p.id === positionId);
     if (!position) return;
 
-    // Rigged outcome logic
-    const winChance = 0.25; // 25% chance to win
+    // Rigged outcome logic, adjusted to be less suspicious
+    const winChance = 0.35; // 35% chance to win
     const isWin = Math.random() < winChance;
 
     let pnl: number;
 
     if (isWin) {
-      // If it's a win, the gain is small (e.g., 5% to 20% of the invested amount)
-      const winPercentage = 0.05 + Math.random() * 0.15; // 0.05 to 0.20
+      // If it's a win, the gain is variable (e.g., 10% to 45% of the invested amount)
+      const winPercentage = 0.10 + Math.random() * 0.35; // 0.10 to 0.45
       pnl = position.amount * winPercentage;
     } else {
-      // If it's a loss, the loss is significant (e.g., 50% to 100% of the invested amount)
-      const lossPercentage = 0.5 + Math.random() * 0.5; // 0.5 to 1.0
+      // If it's a loss, the loss is also variable to feel more natural (e.g., 10% to 70%)
+      const lossPercentage = 0.10 + Math.random() * 0.60; // 0.10 to 0.70
       pnl = -position.amount * lossPercentage;
     }
     
-    const cappedPnl = Math.max(pnl, -position.amount);
+    const cappedPnl = Math.max(pnl, -position.amount); // Ensure loss doesn't exceed invested amount
     const amountToReturn = position.amount + cappedPnl;
 
     setBalance(prev => prev + amountToReturn);
