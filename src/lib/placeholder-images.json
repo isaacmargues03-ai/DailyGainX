@@ -81,31 +81,31 @@
     {
       "id": "factory-1",
       "description": "A modern factory floor",
-      "imageUrl": "https://images.unsplash.com/photo-1580983216235-a6b4938a49ae?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxGYWN0b3J5fGVufDB8fHx8MTc3MjE4ODk3NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1543304376-1ae7c2be5e59?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBmYWN0b3J5fGVufDB8fHx8MTc3MTkxMDMzMXww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "modern factory"
     },
     {
       "id": "factory-2",
       "description": "An industrial manufacturing plant",
-      "imageUrl": "https://images.unsplash.com/photo-1611649231495-3675841432e3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxGYWN0b3J5fGVufDB8fHx8MTc3MjE4ODk3NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1734864219944-c6093131d30c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8aW5kdXN0cmlhbCUyMGZhY3Rvcnl8ZW58MHx8fHwxNzcxODk4NTQ0fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "industrial factory"
     },
     {
       "id": "factory-3",
       "description": "Automated production line in a factory",
-      "imageUrl": "https://images.unsplash.com/photo-1567099322354-8a1563638c4c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxGYWN0b3J5fGVufDB8fHx8MTc3MjE4ODk3NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1716191300006-ea66bf47e2b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxhdXRvbWF0aW9uJTIwZmFjdG9yeXxlbnwwfHx8fDE3NzE5MTIwMjF8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "automation factory"
     },
     {
       "id": "factory-4",
       "description": "Interior of a large factory warehouse",
-      "imageUrl": "https://images.unsplash.com/photo-1621935637996-25d971a1c9ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxGYWN0b3J5fGVufDB8fHx8MTc3MjE4ODk3NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1577075473856-c12a2eb249b7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8d2FyZWhvdXNlJTIwZmFjdG9yeXxlbnwwfHx8fDE3NzE5MTIwMjF8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "warehouse factory"
     },
     {
       "id": "factory-5",
       "description": "A power plant with smokestacks",
-      "imageUrl": "https://images.unsplash.com/photo-1576676399469-5d6a2a0a2d2a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwb3dlciUyMHBsYW50JTIwZmFjdG9yeXxlbnwwfHx8fDE3NzIzNjQ3MDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1750074905875-a837f1e9f92e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxwb3dlciUyMHBsYW50JTIwZmFjdG9yeXxlbnwwfHx8fDE3NzE5MTIwMjF8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "power plant factory"
     }
   ]
