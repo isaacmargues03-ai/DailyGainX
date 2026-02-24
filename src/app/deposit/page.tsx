@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/AppContext';
-import { ArrowLeft, CheckCircle, Menu } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Copy } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -35,6 +35,7 @@ export default function DepositPage() {
     const [brlAmount, setBrlAmount] = useState('');
     const [usdtAmount, setUsdtAmount] = useState(0);
     const [qrCode, setQrCode] = useState('');
+    const [pixCopyPaste, setPixCopyPaste] = useState('');
     const { toast } = useToast();
     const { addTransaction } = useAppContext();
     const { user, firestore } = useFirebase();
@@ -61,6 +62,16 @@ export default function DepositPage() {
 
         const qrCodeUrl = `https://placehold.co/256x256/EAF2F8/17202A/png?text=PIX+QR+CODE%0A${usdtAmount.toFixed(2)}+USDT`;
         setQrCode(qrCodeUrl);
+        setPixCopyPaste('00020126360014br.gov.bcb.pix0114' + Math.random().toString(36).substring(2, 15) + '5204000053039865802BR5913' + 'DailyGainX' + '6009SAO PAULO62070503***6304' + Math.random().toString(16).slice(2, 6).toUpperCase());
+    };
+
+    const copyPixKeyToClipboard = () => {
+        if (!pixCopyPaste) return;
+        navigator.clipboard.writeText(pixCopyPaste);
+        toast({
+            title: 'Copiado!',
+            description: 'A chave Pix "Copia e Cola" foi copiada para a sua área de transferência.',
+        });
     };
     
     const handleConfirmPayment = () => {
@@ -72,6 +83,7 @@ export default function DepositPage() {
             getDoc(userDocRef)
                 .then((userDoc) => {
                     const userData = userDoc.data();
+                    // Make sure user data exists before proceeding
                     if (userDoc.exists() && userData && userData.hasMadeFirstDeposit === false) {
                         // This is the first deposit, check for a referral record
                         const referralsQuery = query(collection(firestore, 'referrals'), where('referredId', '==', user.uid), where('status', '==', 'pending'));
@@ -80,13 +92,10 @@ export default function DepositPage() {
                                 // Found the referral record
                                 const referralDoc = referralSnapshot.docs[0];
                                 
-                                // Use a batch to update both user and referral docs
                                 const batch = writeBatch(firestore);
                                 
-                                // 1. Update user's first deposit status
                                 batch.update(userDocRef, { hasMadeFirstDeposit: true });
                                 
-                                // 2. Update the referral status to 'rewarded'
                                 batch.update(referralDoc.ref, { status: 'rewarded' });
                                 
                                 batch.commit().then(() => {
@@ -98,7 +107,6 @@ export default function DepositPage() {
                                     console.error("Failed to update referral status:", error);
                                 });
                             } else {
-                              // Not a referred user or already rewarded, just update deposit status
                               updateDoc(userDocRef, { hasMadeFirstDeposit: true }).catch(e => console.error("Failed to update user deposit status:", e));
                             }
                         }).catch(error => {
@@ -111,7 +119,6 @@ export default function DepositPage() {
                 });
         }
     
-        // Proceed with the deposit transaction
         addTransaction({
             type: 'deposit',
             amount: usdtAmount,
@@ -124,13 +131,14 @@ export default function DepositPage() {
         });
         setBrlAmount('');
         setQrCode('');
+        setPixCopyPaste('');
     };
 
     if (qrCode) {
         return (
              <div className="flex min-h-screen w-full flex-col bg-muted/40">
                 <header className="flex items-center justify-between p-4 border-b bg-background">
-                    <Button variant="ghost" size="icon" onClick={() => setQrCode('')}>
+                    <Button variant="ghost" size="icon" onClick={() => { setQrCode(''); setPixCopyPaste(''); }}>
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <h1 className="text-lg font-semibold">Depósito</h1>
@@ -144,11 +152,11 @@ export default function DepositPage() {
                                     Pagamento via Pix
                                 </CardTitle>
                                 <CardDescription>
-                                    Escaneie o QR Code abaixo para pagar.
+                                    Escaneie o QR Code ou copie a chave abaixo para pagar.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <div className="flex flex-col items-center gap-4">
+                                <div className="flex flex-col items-center text-center gap-4">
                                     <Image 
                                         src={qrCode} 
                                         alt="Pix QR Code" 
@@ -158,7 +166,21 @@ export default function DepositPage() {
                                         data-ai-hint="qr code"
                                     />
                                     <p className="text-sm text-muted-foreground">Valor: <span className="font-bold text-foreground">{usdtAmount.toFixed(2)} USDT</span></p>
-                                    <div className="w-full space-y-2">
+                                    <div className="w-full space-y-4 pt-4 text-left">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="pix-copy-paste">Pix Copia e Cola</Label>
+                                            <div className="flex items-center space-x-2">
+                                                <Input
+                                                    id="pix-copy-paste"
+                                                    readOnly
+                                                    value={pixCopyPaste}
+                                                    className="text-sm truncate"
+                                                />
+                                                <Button variant="outline" size="icon" onClick={copyPixKeyToClipboard}>
+                                                    <Copy className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
                                         <Button onClick={handleConfirmPayment} className="w-full">
                                             Pagamento Concluído
                                         </Button>
