@@ -28,10 +28,6 @@
           "type": "string",
           "description": "The user's unique referral code to share with others."
         },
-        "referralCodeUsed": {
-          "type": "string",
-          "description": "The referral code this user entered during sign-up, if any."
-        },
         "hasMadeFirstDeposit": {
           "type": "boolean",
           "description": "Tracks if the user has completed their first deposit to trigger referral rewards."
@@ -162,6 +158,64 @@
         "status",
         "expectedReturnAmount"
       ]
+    },
+    "Referral": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Referral",
+      "type": "object",
+      "description": "Records a referral relationship between two users.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "referrerId": {
+          "type": "string",
+          "description": "The UID of the user who referred."
+        },
+        "referredId": {
+          "type": "string",
+          "description": "The UID of the user who was referred."
+        },
+        "referredName": {
+          "type": "string",
+          "description": "Name of the referred user for display."
+        },
+        "referredEmail": {
+          "type": "string",
+          "description": "Email of the referred user for display."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "rewarded"
+          ],
+          "description": "Status of the referral."
+        }
+      },
+      "required": [
+        "id",
+        "referrerId",
+        "referredId",
+        "referredName",
+        "referredEmail",
+        "status"
+      ]
+    },
+    "ReferralCodeLookup": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ReferralCodeLookup",
+      "type": "object",
+      "description": "Maps a referral code to a user ID for quick lookups.",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who owns this referral code."
+        }
+      },
+      "required": [
+        "userId"
+      ]
     }
   },
   "auth": {
@@ -250,9 +304,40 @@
             }
           ]
         }
+      },
+      {
+        "path": "/referralCodes/{code}",
+        "definition": {
+          "entityName": "ReferralCodeLookup",
+          "schema": {
+            "$ref": "#/backend/entities/ReferralCodeLookup"
+          },
+          "description": "Stores a mapping of referral codes to user IDs to allow finding a referrer without querying the entire users collection. Document ID is the referral code.",
+          "params": [
+            {
+              "name": "code",
+              "description": "The unique referral code."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/referrals/{referralId}",
+        "definition": {
+          "entityName": "Referral",
+          "schema": {
+            "$ref": "#/backend/entities/Referral"
+          },
+          "description": "Stores individual referral records. This allows referrers to query for users they've invited without exposing the main users collection.",
+          "params": [
+            {
+              "name": "referralId",
+              "description": "The unique ID of the referral record."
+            }
+          ]
+        }
       }
     ],
     "reasoning": "The recommended Firestore structure for DailyGainX prioritizes security, scalability, and debuggability by adhering to the CORE DESIGN PRINCIPLES and DESIGN STRATEGY MANDATES. All user-specific data is strictly segregated under a top-level `/users/{userId}` collection, which serves as the root of private user data.\n\n**Authorization Independence via Denormalization:**\n\n1.  **UserProfile (`/users/{userId}`):** The user's profile is directly under their UID. Authorization rules simply verify `request.auth.uid == userId`, ensuring no `get()` calls are needed for profile access.\n2.  **UserAccount (`/users/{userId}/accounts/{userAccountId}`):** User accounts are nested under the user's path. The `UserAccount` entity schema already includes a `userId` field, which effectively denormalizes ownership. Rules can check `request.auth.uid == userId` (from the path) and `request.auth.uid == resource.data.userId` for robust, independent authorization without cross-document `get()` calls.\n3.  **DepositTransaction (`/users/{userId}/accounts/{userAccountId}/depositTransactions/{depositTransactionId}`):** Deposit transactions are deeply nested. To maintain Authorization Independence, each `DepositTransaction` document will *require* an additional denormalized `ownerId` field (representing the `userId` from the top-level path) to be stored directly within the document, alongside its `accountId`. This allows rules to authorize access solely based on `request.auth.uid == ownerId` and `request.auth.uid == userId` (from the path), bypassing the need to fetch parent `UserAccount` or `UserProfile` documents.\n4.  **Investment (`/users/{userId}/investments/{investmentId}`):** Investments are nested directly under the user's path. The `Investment` entity schema includes a `userId` field, which perfectly aligns with the path's `userId` parameter. Authorization rules simply check `request.auth.uid == userId` (from the path) and `request.auth.uid == resource.data.userId`, providing complete independence.\n\n**QAPs (Rules are not Filters) Support:**\n\n*   **Structural Segregation:** By placing all user-specific data under `/users/{userId}/...`, the security posture for all documents within these subcollections is homogeneously 'private to the user'. This eliminates the need for complex filter-like rules.\n*   **Path-Based Ownership:** The hierarchical structure of `/users/{userId}/...` inherently restricts data access to the authenticated user. When a user queries `/users/{request.auth.uid}/accounts`, `/users/{request.auth.uid}/investments`, or `/users/{request.auth.uid}/accounts/{accountId}/depositTransactions`, the `userId` in the path (which is `request.auth.uid`) directly enforces ownership. This ensures that `list` operations are implicitly secure and efficient, as Firestore's security rules can grant `allow list: if request.auth.uid == userId;` without concerns about filtering results. The `request.auth.uid` must match the `{userId}` wildcard in the path, making it impossible for a user to query another user's data."
   }
 }
-    

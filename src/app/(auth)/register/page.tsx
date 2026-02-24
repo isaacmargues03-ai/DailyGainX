@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, writeBatch, collection } from 'firebase/firestore';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -38,27 +38,58 @@ export default function RegisterPage() {
 
     setIsLoading(true);
     try {
+        // Find referrer if code is provided
+        let referrerId: string | null = null;
+        if (referralCode) {
+            const referralCodeDocRef = doc(firestore, 'referralCodes', referralCode);
+            const referralCodeDoc = await getDoc(referralCodeDocRef);
+            if (referralCodeDoc.exists()) {
+                referrerId = referralCodeDoc.data().userId;
+            } else {
+                toast({ variant: 'destructive', title: 'Código de Indicação Inválido', description: 'O código que você inseriu não foi encontrado.' });
+                setIsLoading(false);
+                return;
+            }
+        }
+
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         
-        // Update user's auth profile with display name
-        await updateProfile(user, {
-            displayName: name
-        });
+        await updateProfile(user, { displayName: name });
 
-        // Generate a referral code for the new user
         const newReferralCode = user.uid.slice(0, 8).toUpperCase();
+        
+        const batch = writeBatch(firestore);
 
-        // Create user profile in Firestore
-        await setDoc(doc(firestore, "users", user.uid), {
+        // 1. Create user profile in Firestore
+        const userDocRef = doc(firestore, "users", user.uid);
+        batch.set(userDocRef, {
             id: user.uid,
             email: user.email,
             name: name,
             profilePictureUrl: user.photoURL || '',
             referralCode: newReferralCode,
-            referralCodeUsed: referralCode || null,
             hasMadeFirstDeposit: false,
         });
+
+        // 2. Create the lookup document for the new user's referral code
+        const newReferralCodeDocRef = doc(firestore, 'referralCodes', newReferralCode);
+        batch.set(newReferralCodeDocRef, { userId: user.uid });
+
+        // 3. Create the referral record if applicable
+        if (referrerId) {
+            const referralDocRef = doc(collection(firestore, 'referrals'));
+            batch.set(referralDocRef, {
+                id: referralDocRef.id,
+                referrerId: referrerId,
+                referredId: user.uid,
+                referredName: name,
+                referredEmail: email,
+                status: 'pending'
+            });
+        }
+        
+        await batch.commit();
 
         toast({
             title: 'Cadastro bem-sucedido!',

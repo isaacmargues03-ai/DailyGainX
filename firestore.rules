@@ -98,6 +98,20 @@ service cloud.firestore {
     // Collection Rules
     // =====================================================================
 
+    match /referralCodes/{code} {
+      allow get: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if false;
+    }
+
+    match /referrals/{referralId} {
+      allow get: if isSignedIn() && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
+      allow list: if isSignedIn() && (request.query.where.referrerId == request.auth.uid || request.query.where.referredId == request.auth.uid);
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.referredId;
+      allow update: if isSignedIn() && request.auth.uid == resource.data.referredId;
+      allow delete: if false;
+    }
+
     /**
      * @description Manages a user's own profile document.
      * @path /users/{userId}

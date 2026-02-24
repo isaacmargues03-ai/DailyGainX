@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Copy, Gift, User, CheckCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 
 // Based on docs/backend.json UserProfile entity
@@ -19,8 +19,14 @@ interface UserProfile {
   email: string;
   profilePictureUrl?: string;
   referralCode: string;
-  referralCodeUsed?: string;
   hasMadeFirstDeposit: boolean;
+}
+
+interface Referral {
+  id: string;
+  referredName: string;
+  referredEmail: string;
+  status: 'pending' | 'rewarded';
 }
 
 export default function ReferralsPage() {
@@ -35,14 +41,14 @@ export default function ReferralsPage() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   const referralsQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile?.referralCode) return null;
+    if (!firestore || !user) return null;
     return query(
-      collection(firestore, 'users'),
-      where('referralCodeUsed', '==', userProfile.referralCode)
+      collection(firestore, 'referrals'),
+      where('referrerId', '==', user.uid)
     );
-  }, [firestore, userProfile?.referralCode]);
+  }, [firestore, user]);
 
-  const { data: referredUsers, isLoading: isReferralsLoading } = useCollection<UserProfile>(referralsQuery);
+  const { data: referrals, isLoading: isReferralsLoading } = useCollection<Referral>(referralsQuery);
 
 
   const copyToClipboard = () => {
@@ -129,21 +135,20 @@ export default function ReferralsPage() {
                     </div>
                   </div>
                 </div>
-              ) : referredUsers && referredUsers.length > 0 ? (
+              ) : referrals && referrals.length > 0 ? (
                 <ul className="space-y-4">
-                  {referredUsers.map((referredUser) => (
-                    <li key={referredUser.id} className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                  {referrals.map((referral) => (
+                    <li key={referral.id} className="flex items-center justify-between p-3 bg-background rounded-lg border">
                       <div className="flex items-center gap-4">
                         <Avatar>
-                          <AvatarImage src={referredUser.profilePictureUrl} />
-                          <AvatarFallback>{referredUser.name.charAt(0).toUpperCase()}</AvatarFallback>
+                          <AvatarFallback>{referral.referredName.charAt(0).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-semibold">{referredUser.name}</p>
-                          <p className="text-sm text-muted-foreground">{referredUser.email}</p>
+                          <p className="font-semibold">{referral.referredName}</p>
+                          <p className="text-sm text-muted-foreground">{referral.referredEmail}</p>
                         </div>
                       </div>
-                      {referredUser.hasMadeFirstDeposit ? (
+                      {referral.status === 'rewarded' ? (
                         <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700">
                           <CheckCircle className="mr-2 h-4 w-4" />
                           Recompensa Paga
