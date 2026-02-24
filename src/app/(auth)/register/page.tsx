@@ -64,22 +64,16 @@ export default function RegisterPage() {
         
         const batch = writeBatch(firestore);
 
-        // 1. Create user profile in Firestore
-        const userDocRef = doc(firestore, "users", user.uid);
-        batch.set(userDocRef, {
+        const userProfilePayload: { [key: string]: any } = {
             id: user.uid,
             email: user.email,
             name: name,
             profilePictureUrl: user.photoURL || '',
             referralCode: newReferralCode,
             hasMadeFirstDeposit: false,
-        });
+        };
 
-        // 2. Create the lookup document for the new user's referral code
-        const newReferralCodeDocRef = doc(firestore, 'referralCodes', newReferralCode);
-        batch.set(newReferralCodeDocRef, { userId: user.uid });
-
-        // 3. Create the referral record if applicable
+        // 3. Create the referral record if applicable and add its ID to the user profile
         if (referrerId) {
             const referralDocRef = doc(collection(firestore, 'referrals'));
             batch.set(referralDocRef, {
@@ -90,7 +84,16 @@ export default function RegisterPage() {
                 referredEmail: email,
                 status: 'pending'
             });
+            userProfilePayload.referralId = referralDocRef.id;
         }
+        
+        // 1. Create user profile in Firestore
+        const userDocRef = doc(firestore, "users", user.uid);
+        batch.set(userDocRef, userProfilePayload);
+
+        // 2. Create the lookup document for the new user's referral code
+        const newReferralCodeDocRef = doc(firestore, 'referralCodes', newReferralCode);
+        batch.set(newReferralCodeDocRef, { userId: user.uid });
         
         await batch.commit();
 
