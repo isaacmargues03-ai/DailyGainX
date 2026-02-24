@@ -67,7 +67,7 @@ export default function DepositPage() {
         if (usdtAmount <= 0) return;
     
         // Referral reward logic
-        if (user) {
+        if (user && firestore) {
             const userDocRef = doc(firestore, 'users', user.uid);
             getDoc(userDocRef)
                 .then((userDoc) => {
@@ -181,9 +181,7 @@ export default function DepositPage() {
                     </Link>
                 </Button>
                 <h1 className="text-lg font-semibold">Depósito</h1>
-                <Button variant="ghost" size="icon">
-                    <Menu className="h-5 w-5" />
-                </Button>
+                <div className="w-9 h-9" />
             </header>
 
             <main className="flex-1 p-4 sm:p-6 space-y-6">
@@ -226,17 +224,17 @@ export default function DepositPage() {
                     <p><span className="font-semibold">B.</span> Você pode digitalizar o código Pix QR e depositar, por favor, termine o pagamento em <span className="font-semibold text-orange-500">30 minutos.</span></p>
                     <p className="text-orange-500 font-semibold">Por favor, reinicie o depósito após o fim do código, por favor, não salve a captura de tela e pague depois!</p>
                 </div>
+                
+                <div className="pt-4">
+                    <Button 
+                        onClick={handleGenerateQrCode} 
+                        className="w-full h-12 text-lg" 
+                        disabled={!brlAmount || parseFloat(brlAmount) < 10}
+                    >
+                        Depósito
+                    </Button>
+                </div>
             </main>
-            
-            <footer className="p-4 border-t bg-background">
-                <Button 
-                    onClick={handleGenerateQrCode} 
-                    className="w-full h-12 text-lg" 
-                    disabled={!brlAmount || parseFloat(brlAmount) < 10}
-                >
-                    Depósito
-                </Button>
-            </footer>
         </div>
     );
 }
