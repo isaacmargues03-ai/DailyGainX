@@ -22,6 +22,7 @@ const PixIcon = () => (
 export default function WithdrawPage() {
     const [amount, setAmount] = useState('');
     const [pixKey, setPixKey] = useState('');
+    const [fullName, setFullName] = useState('');
     const { toast } = useToast();
     const { balance, addTransaction, activeInvestments } = useAppContext();
 
@@ -37,11 +38,11 @@ export default function WithdrawPage() {
             return;
         }
         
-        if (!pixKey) {
+        if (!pixKey || !fullName) {
             toast({
                 variant: 'destructive',
-                title: 'Chave Pix necessária',
-                description: 'Por favor, insira sua chave Pix.',
+                title: 'Campos necessários',
+                description: 'Por favor, insira seu nome completo e sua chave Pix.',
             });
             return;
         }
@@ -78,9 +79,10 @@ export default function WithdrawPage() {
 
         setAmount('');
         setPixKey('');
+        setFullName('');
     };
 
-    const isButtonDisabled = !amount || !pixKey || parseFloat(amount) <= 0 || parseFloat(amount) > balance || activeInvestments.length === 0 || parseFloat(amount) < 5 || parseFloat(amount) > 10000;
+    const isButtonDisabled = !amount || !pixKey || !fullName || parseFloat(amount) <= 0 || parseFloat(amount) > balance || activeInvestments.length === 0 || parseFloat(amount) < 5 || parseFloat(amount) > 10000;
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -106,6 +108,15 @@ export default function WithdrawPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="full-name">Nome completo</Label>
+                                <Input
+                                    id="full-name"
+                                    placeholder="Seu nome completo"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                />
+                            </div>
                             <div className="space-y-2">
                                 <Label htmlFor="pix-key">Sua Chave CPF</Label>
                                 <Input
