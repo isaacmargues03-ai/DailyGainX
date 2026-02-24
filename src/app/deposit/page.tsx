@@ -12,7 +12,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useFirebase, useUser } from '@/firebase';
-import { doc, getDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, writeBatch } from 'firebase/firestore';
 
 
 const PixLogo = () => (
@@ -74,60 +74,10 @@ export default function DepositPage() {
         });
     };
     
-    const handleConfirmPayment = () => {
+    const handleConfirmPayment = async () => {
         if (usdtAmount <= 0) return;
-    
-        // Referral reward logic
-        if (user && firestore) {
-            const userDocRef = doc(firestore, 'users', user.uid);
-            getDoc(userDocRef)
-                .then((userDoc) => {
-                    if (userDoc.exists()) {
-                      const userData = userDoc.data();
-                      if (userData && userData.hasMadeFirstDeposit === false) {
-                        // This is the first deposit, check for a referral ID on the user's profile
-                        if (userData.referralId) {
-                            const referralDocRef = doc(firestore, 'referrals', userData.referralId);
-                            getDoc(referralDocRef).then(referralDoc => {
-                                if (referralDoc.exists() && referralDoc.data().status === 'pending') {
-                                    // Found the pending referral record, reward the referrer
-                                    const batch = writeBatch(firestore);
-                                    
-                                    // Mark user as having made first deposit
-                                    batch.update(userDocRef, { hasMadeFirstDeposit: true });
-                                    
-                                    // Update referral status to rewarded
-                                    batch.update(referralDoc.ref, { status: 'rewarded' });
-                                    
-                                    batch.commit().then(() => {
-                                        toast({
-                                            title: 'Indicação Recompensada!',
-                                            description: 'Graças a você, a pessoa que te indicou ganhou 1 USDT de bônus!',
-                                        });
-                                    }).catch(error => {
-                                        console.error("Failed to update referral status:", error);
-                                    });
-                                } else {
-                                  // Referral record not found or already rewarded, just update user
-                                  updateDoc(userDocRef, { hasMadeFirstDeposit: true }).catch(e => console.error("Failed to update user deposit status:", e));
-                                }
-                            }).catch(error => {
-                                console.error("Error fetching referral document:", error);
-                                // Still mark deposit as made even if referral fetch fails
-                                updateDoc(userDocRef, { hasMadeFirstDeposit: true }).catch(e => console.error("Failed to update user deposit status on error:", e));
-                            });
-                        } else {
-                            // No referralId, just update user deposit status
-                            updateDoc(userDocRef, { hasMadeFirstDeposit: true }).catch(e => console.error("Failed to update user deposit status:", e));
-                        }
-                      }
-                    }
-                })
-                .catch((error) => {
-                    console.error("Error fetching user data for referral check:", error);
-                });
-        }
-    
+
+        // Process the deposit transaction first to give immediate feedback to the user.
         addTransaction({
             type: 'deposit',
             amount: usdtAmount,
@@ -138,9 +88,58 @@ export default function DepositPage() {
             variant: 'success',
             title: 'DEPOSITO COM SUCESSO',
         });
+        
+        // Reset the UI state.
         setBrlAmount('');
         setQrCode('');
         setPixCopyPaste('');
+
+        // Then, handle the first deposit and referral reward logic in the background.
+        if (user && firestore) {
+            try {
+                const userDocRef = doc(firestore, 'users', user.uid);
+                const userDoc = await getDoc(userDocRef);
+
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    // Check if it's the user's very first deposit.
+                    if (userData && userData.hasMadeFirstDeposit === false) {
+                        const batch = writeBatch(firestore);
+                        
+                        // Always mark the first deposit as done for the current user.
+                        batch.update(userDocRef, { hasMadeFirstDeposit: true });
+
+                        // If the user was referred, also reward the referrer.
+                        if (userData.referralId) {
+                            const referralDocRef = doc(firestore, 'referrals', userData.referralId);
+                            const referralDoc = await getDoc(referralDocRef);
+
+                            if (referralDoc.exists() && referralDoc.data().status === 'pending') {
+                                // Update referral status to 'rewarded' to grant the 1 USDT bonus.
+                                batch.update(referralDoc.ref, { status: 'rewarded' });
+                                
+                                // Commit changes and show the bonus toast to the depositor.
+                                await batch.commit();
+                                toast({
+                                    title: 'Indicação Recompensada!',
+                                    description: 'Graças a você, a pessoa que te indicou ganhou 1 USDT de bônus!',
+                                });
+                            } else {
+                                // If referral is invalid or already rewarded, just commit the user's status update.
+                                await batch.commit();
+                            }
+                        } else {
+                            // If not referred, just commit the user's status update.
+                            await batch.commit();
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Error processing first deposit logic:", error);
+                // The main deposit already succeeded, so we just log this error.
+                // A toast could be shown here if we wanted to inform the user about the referral part failing.
+            }
+        }
     };
 
     if (qrCode) {
