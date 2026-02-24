@@ -219,7 +219,7 @@ export default function DepositPage() {
             <main className="flex-1 p-4 sm:p-6">
               <div className="container mx-auto max-w-md space-y-6">
                 <div>
-                    <Label className="text-sm font-normal text-muted-foreground">PIX elegível</Label>
+                    <Label className="text-sm font-normal text-muted-foreground">PIX</Label>
                     <div className="mt-2 flex items-center justify-between rounded-lg border-2 border-green-500 bg-card p-4">
                         <PixLogo />
                         <CheckCircle className="h-6 w-6 text-green-500" />
