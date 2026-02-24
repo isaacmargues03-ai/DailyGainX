@@ -10,7 +10,6 @@ import { useAppContext } from '@/context/AppContext';
 import { ArrowLeft, CheckCircle, Menu } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
 
 
@@ -133,58 +132,46 @@ export default function DepositPage() {
                 </Button>
             </header>
 
-            <main className="flex-1">
-                <Tabs defaultValue="rapido" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 rounded-none border-b bg-background">
-                        <TabsTrigger value="rapido" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary">Depósito rápido</TabsTrigger>
-                        <TabsTrigger value="carteiras" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary text-muted-foreground">Transferência de carteiras</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="rapido" className="p-4 sm:p-6 space-y-6">
-                        
-                        <div>
-                            <Label className="text-sm font-normal text-muted-foreground">Meios de pagamento</Label>
-                            <div className="mt-2 flex items-center justify-between rounded-lg border-2 border-green-500 bg-card p-4">
-                                <Pix1Icon />
-                                <CheckCircle className="h-6 w-6 text-green-500" />
-                            </div>
-                        </div>
+            <main className="flex-1 p-4 sm:p-6 space-y-6">
+                <div>
+                    <Label className="text-sm font-normal text-muted-foreground">Meios de pagamento</Label>
+                    <div className="mt-2 flex items-center justify-between rounded-lg border-2 border-green-500 bg-card p-4">
+                        <Pix1Icon />
+                        <CheckCircle className="h-6 w-6 text-green-500" />
+                    </div>
+                </div>
 
-                        <div className="space-y-4">
-                            <h2 className="font-semibold">Pagar</h2>
-                            <div className="relative">
-                                <Input
-                                    id="brlAmount"
-                                    type="number"
-                                    placeholder="Limite 10 ~ 10000"
-                                    value={brlAmount}
-                                    onChange={(e) => setBrlAmount(e.target.value)}
-                                    className="h-14 text-lg pl-4 pr-12 bg-muted border-none"
-                                />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">R$</span>
-                            </div>
-                            <p className="text-sm text-orange-500 text-center">(1 USDT ≈ {CONVERSION_RATE} R$)</p>
-                            <div className="relative">
-                                <Input
-                                    id="usdtAmount"
-                                    value={usdtAmount > 0 ? usdtAmount.toFixed(4) : ''}
-                                    readOnly
-                                    className="h-14 text-lg pl-4 pr-16 bg-muted border-none"
-                                    placeholder="Receberei"
-                                />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">USDT</span>
-                            </div>
-                        </div>
+                <div className="space-y-4">
+                    <h2 className="font-semibold">Pagar</h2>
+                    <div className="relative">
+                        <Input
+                            id="brlAmount"
+                            type="number"
+                            placeholder="Limite 10 ~ 10000"
+                            value={brlAmount}
+                            onChange={(e) => setBrlAmount(e.target.value)}
+                            className="h-14 text-lg pl-4 pr-12 bg-muted border-none"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">R$</span>
+                    </div>
+                    <p className="text-sm text-orange-500 text-center">(1 USDT ≈ {CONVERSION_RATE} R$)</p>
+                    <div className="relative">
+                        <Input
+                            id="usdtAmount"
+                            value={usdtAmount > 0 ? usdtAmount.toFixed(4) : ''}
+                            readOnly
+                            className="h-14 text-lg pl-4 pr-16 bg-muted border-none"
+                            placeholder="Receberei"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">USDT</span>
+                    </div>
+                </div>
 
-                        <div className="space-y-4 text-sm text-muted-foreground">
-                            <p><span className="font-semibold">A.</span> Sem taxas.</p>
-                            <p><span className="font-semibold">B.</span> Você pode digitalizar o código Pix QR e depositar, por favor, termine o pagamento em <span className="font-semibold text-orange-500">30 minutos.</span></p>
-                            <p className="text-orange-500 font-semibold">Por favor, reinicie o depósito após o fim do código, por favor, não salve a captura de tela e pague depois!</p>
-                        </div>
-                    </TabsContent>
-                    <TabsContent value="carteiras" className="p-6 text-center text-muted-foreground">
-                        <p>Funcionalidade de transferência de carteiras em breve.</p>
-                    </TabsContent>
-                </Tabs>
+                <div className="space-y-4 text-sm text-muted-foreground">
+                    <p><span className="font-semibold">A.</span> Sem taxas.</p>
+                    <p><span className="font-semibold">B.</span> Você pode digitalizar o código Pix QR e depositar, por favor, termine o pagamento em <span className="font-semibold text-orange-500">30 minutos.</span></p>
+                    <p className="text-orange-500 font-semibold">Por favor, reinicie o depósito após o fim do código, por favor, não salve a captura de tela e pague depois!</p>
+                </div>
             </main>
             
             <footer className="p-4 border-t bg-background">
