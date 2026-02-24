@@ -9,6 +9,7 @@ import {
   ArrowUpFromLine,
   Briefcase,
   ChevronRight,
+  Gift,
   History,
   LogOut,
   MessageSquare,
@@ -96,6 +97,7 @@ export default function ProfilePage() {
                 <div className="space-y-3">
                     <MenuItem href="/investments" icon={<Briefcase className="h-5 w-5"/>} text="Meus Investimentos" />
                     <MenuItem href="/history" icon={<History className="h-5 w-5"/>} text="Histórico" />
+                    <MenuItem href="/referrals" icon={<Gift className="h-5 w-5"/>} text="Indicações" />
                     <MenuItem href="/feedback" icon={<MessageSquare className="h-5 w-5"/>} text="Feedback" />
                     <MenuItem href="#" icon={<Send className="h-5 w-5"/>} text="Comunidade do Telegram" />
                 </div>

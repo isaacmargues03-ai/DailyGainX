@@ -11,6 +11,8 @@ import { ArrowLeft, CheckCircle, Menu } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { useFirebase } from '@/firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 
 const Pix1Icon = () => (
@@ -35,6 +37,7 @@ export default function DepositPage() {
     const [qrCode, setQrCode] = useState('');
     const { toast } = useToast();
     const { addTransaction } = useAppContext();
+    const { user, firestore } = useFirebase();
 
     useEffect(() => {
         const amountInBrl = parseFloat(brlAmount);
@@ -61,21 +64,48 @@ export default function DepositPage() {
     };
     
     const handleConfirmPayment = () => {
-        if (usdtAmount > 0) {
-            addTransaction({
-                type: 'deposit',
-                amount: usdtAmount,
-                method: 'Pix',
-                status: 'Completed'
-            });
-            toast({
-                title: 'Depósito Confirmado!',
-                description: `${usdtAmount.toFixed(2)} USDT adicionados ao seu saldo.`,
-            });
-            setBrlAmount('');
-            setQrCode('');
+        if (usdtAmount <= 0) return;
+    
+        // Referral reward logic
+        if (user) {
+            const userDocRef = doc(firestore, 'users', user.uid);
+            getDoc(userDocRef)
+                .then((userDoc) => {
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        if (userData.hasMadeFirstDeposit === false && userData.referralCodeUsed) {
+                            toast({
+                                title: 'Indicação Recompensada!',
+                                description: 'Graças a você, a pessoa que te indicou ganhou 1 USDT de bônus!',
+                            });
+    
+                            // Mark that the first deposit has been made
+                            updateDoc(userDocRef, { hasMadeFirstDeposit: true })
+                                .catch((error) => {
+                                    console.error("Failed to update first deposit status:", error);
+                                });
+                        }
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error fetching user data for referral check:", error);
+                });
         }
-    }
+    
+        // Proceed with the deposit transaction
+        addTransaction({
+            type: 'deposit',
+            amount: usdtAmount,
+            method: 'Pix',
+            status: 'Completed'
+        });
+        toast({
+            title: 'Depósito Confirmado!',
+            description: `${usdtAmount.toFixed(2)} USDT adicionados ao seu saldo.`,
+        });
+        setBrlAmount('');
+        setQrCode('');
+    };
 
     if (qrCode) {
         return (
@@ -191,3 +221,5 @@ export default function DepositPage() {
         </div>
     );
 }
+
+    

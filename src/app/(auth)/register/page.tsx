@@ -17,6 +17,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
   const { auth, firestore } = useFirebase();
@@ -45,12 +46,18 @@ export default function RegisterPage() {
             displayName: name
         });
 
+        // Generate a referral code for the new user
+        const newReferralCode = user.uid.slice(0, 8).toUpperCase();
+
         // Create user profile in Firestore
         await setDoc(doc(firestore, "users", user.uid), {
             id: user.uid,
             email: user.email,
             name: name,
-            profilePictureUrl: user.photoURL || ''
+            profilePictureUrl: user.photoURL || '',
+            referralCode: newReferralCode,
+            referralCodeUsed: referralCode || null,
+            hasMadeFirstDeposit: false,
         });
 
         toast({
@@ -143,6 +150,17 @@ export default function RegisterPage() {
                   disabled={isLoading}
                 />
               </div>
+               <div className="space-y-2">
+                <Label htmlFor="referral-code">Código de Indicação (Opcional)</Label>
+                <Input
+                  id="referral-code"
+                  type="text"
+                  placeholder="Código de quem te convidou"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  disabled={isLoading}
+                />
+              </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? 'Cadastrando...' : 'Cadastrar'}
               </Button>
@@ -158,3 +176,4 @@ export default function RegisterPage() {
     </Card>
   );
 }
+    
