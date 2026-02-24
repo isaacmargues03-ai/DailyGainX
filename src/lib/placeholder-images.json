@@ -62,9 +62,9 @@
     },
     {
       "id": "vale-company",
-      "description": "Portrait of a male worker, representing the instructor for Vale",
-      "imageUrl": "https://images.unsplash.com/photo-1618978119892-3e3c6a47a1c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtYWxlJTIwd29ya2VyJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzcyMjkyNTU3fDA&ixlib.rb-4.1.0&q=80&w=1080",
-      "imageHint": "male worker"
+      "description": "Portrait of Ricardo Almeida, instructor for Vale",
+      "imageUrl": "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYWxlJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzcyMjkzMjIyfDA&ixlib.rb-4.1.0&q=80&w=1080",
+      "imageHint": "male portrait"
     },
     {
       "id": "itau-company",
@@ -74,9 +74,9 @@
     },
     {
       "id": "ambev-company",
-      "description": "Portrait of a female brewery worker, representing the instructor for Ambev",
-      "imageUrl": "https://images.unsplash.com/photo-1634055278783-16a7f5c53f31?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmZW1hbGUlMjBicmV3ZXJ5JTIwd29ya2VyfGVufDB8fHx8MTc3MjI5MjYyOXww&ixlib.rb-4.1.0&q=80&w=1080",
-      "imageHint": "brewery worker"
+      "description": "Portrait of Beatriz Santos, instructor for Ambev",
+      "imageUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc3MTgzNTc1N3ww&ixlib.rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman portrait"
     },
     {
       "id": "factory-1",
