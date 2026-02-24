@@ -70,13 +70,17 @@ export default function ProfilePage() {
                     <CardContent>
                         <p className="text-3xl font-bold mb-4">{balance.toFixed(2)} USDT</p>
                         <div className="grid grid-cols-2 gap-4">
-                            <Button variant="outline" size="lg">
-                                <ArrowUpFromLine className="mr-2 h-4 w-4" />
-                                Retirada
+                            <Button variant="outline" size="lg" asChild>
+                                <Link href="/withdraw">
+                                    <ArrowUpFromLine className="mr-2 h-4 w-4" />
+                                    Retirada
+                                </Link>
                             </Button>
-                            <Button size="lg">
-                                <ArrowDownToLine className="mr-2 h-4 w-4" />
-                                Depósito
+                            <Button size="lg" asChild>
+                                <Link href="/deposit">
+                                    <ArrowDownToLine className="mr-2 h-4 w-4" />
+                                    Depósito
+                                </Link>
                             </Button>
                         </div>
                     </CardContent>
