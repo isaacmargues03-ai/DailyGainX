@@ -24,7 +24,7 @@ export default function WithdrawPage() {
     const [amount, setAmount] = useState('');
     const [pixKey, setPixKey] = useState('');
     const { toast } = useToast();
-    const { balance, setBalance } = useAppContext();
+    const { balance, addTransaction } = useAppContext();
 
     const handleWithdraw = () => {
         const withdrawAmount = parseFloat(amount);
@@ -56,7 +56,12 @@ export default function WithdrawPage() {
             return;
         }
 
-        setBalance(prev => prev - withdrawAmount);
+        addTransaction({
+            type: 'withdrawal',
+            amount: withdrawAmount,
+            method: 'Pix',
+            status: 'Completed'
+        });
 
         toast({
             title: 'Retirada Solicitada!',

@@ -34,7 +34,7 @@ export default function DepositPage() {
     const [usdtAmount, setUsdtAmount] = useState(0);
     const [qrCode, setQrCode] = useState('');
     const { toast } = useToast();
-    const { setBalance } = useAppContext();
+    const { addTransaction } = useAppContext();
 
     useEffect(() => {
         const amountInBrl = parseFloat(brlAmount);
@@ -62,7 +62,12 @@ export default function DepositPage() {
     
     const handleConfirmPayment = () => {
         if (usdtAmount > 0) {
-            setBalance(prev => prev + usdtAmount);
+            addTransaction({
+                type: 'deposit',
+                amount: usdtAmount,
+                method: 'Pix',
+                status: 'Completed'
+            });
             toast({
                 title: 'Depósito Confirmado!',
                 description: `${usdtAmount.toFixed(2)} USDT adicionados ao seu saldo.`,

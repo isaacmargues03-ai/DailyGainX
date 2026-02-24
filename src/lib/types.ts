@@ -27,3 +27,12 @@ export type ActiveInvestment = {
   imageHint: string;
   investmentTimestamp: number;
 };
+
+export type Transaction = {
+  id: string;
+  type: 'deposit' | 'withdrawal';
+  amount: number;
+  timestamp: string;
+  status: 'Completed' | 'Pending' | 'Failed';
+  method: 'Pix';
+};

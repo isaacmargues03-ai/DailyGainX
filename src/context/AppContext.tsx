@@ -1,6 +1,6 @@
 'use client';
 
-import type { Operation, OpenPosition, ActiveInvestment } from '@/lib/types';
+import type { Operation, OpenPosition, ActiveInvestment, Transaction } from '@/lib/types';
 import type { Product } from '@/lib/products';
 import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from 'react';
 
@@ -20,7 +20,6 @@ const generateData = (count: number, initialValue: number) => {
 
 interface AppContextType {
   balance: number;
-  setBalance: React.Dispatch<React.SetStateAction<number>>;
   operations: Operation[];
   addOperation: (operation: Omit<Operation, 'id' | 'timestamp'>) => void;
   openPositions: OpenPosition[];
@@ -30,6 +29,8 @@ interface AppContextType {
   lastPrice: number;
   activeInvestments: ActiveInvestment[];
   addInvestment: (product: Product, image: { imageUrl: string, imageHint: string }) => boolean;
+  transactions: Transaction[];
+  addTransaction: (transaction: Omit<Transaction, 'id' | 'timestamp'>) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -39,6 +40,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [operations, setOperations] = useState<Operation[]>([]);
   const [openPositions, setOpenPositions] = useState<OpenPosition[]>([]);
   const [activeInvestments, setActiveInvestments] = useState<ActiveInvestment[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   const initialData = useMemo(() => generateData(60, 5.4321), []);
   const [marketData, setMarketData] = useState(initialData);
@@ -64,7 +66,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const newOperation: Operation = {
       ...operation,
       id: new Date().getTime().toString(),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toLocaleString('pt-BR'),
     };
     setOperations(prev => [newOperation, ...prev]);
   };
@@ -73,7 +75,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const newPosition: OpenPosition = {
       ...position,
       id: new Date().getTime().toString(),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toLocaleString('pt-BR'),
       entryPrice: lastPrice,
     };
     setOpenPositions(prev => [newPosition, ...prev]);
@@ -136,11 +138,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  const addTransaction = (transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
+    const newTransaction: Transaction = {
+      ...transaction,
+      id: new Date().getTime().toString(),
+      timestamp: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'}),
+    };
+    
+    setTransactions(prev => [newTransaction, ...prev]);
+
+    if (newTransaction.status === 'Completed') {
+        if (newTransaction.type === 'deposit') {
+            setBalance(prev => prev + newTransaction.amount);
+        } else if (newTransaction.type === 'withdrawal') {
+            setBalance(prev => prev - newTransaction.amount);
+        }
+    }
+  };
+
 
   return (
     <AppContext.Provider value={{ 
         balance, 
-        setBalance, 
         operations, 
         addOperation, 
         openPositions, 
@@ -149,7 +168,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         marketData, 
         lastPrice,
         activeInvestments,
-        addInvestment
+        addInvestment,
+        transactions,
+        addTransaction
     }}>
       {children}
     </AppContext.Provider>
