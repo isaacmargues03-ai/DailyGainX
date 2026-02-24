@@ -14,12 +14,16 @@ import {
   LogOut,
   MessageSquare,
   Send,
+  Copy,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useAppContext } from '@/context/AppContext';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
+import { doc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 // Helper component for menu items
@@ -39,12 +43,30 @@ function MenuItem({ href, icon, text }: { href: string; icon: React.ReactNode; t
 
 export default function ProfilePage() {
   const { balance } = useAppContext();
-  const { auth, user } = useFirebase();
+  const { auth, user, firestore } = useFirebase();
   const router = useRouter();
+  const { toast } = useToast();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{referralCode: string}>(userDocRef);
 
   const handleLogout = async () => {
     await auth.signOut();
     router.push('/login');
+  };
+
+  const copyToClipboard = () => {
+    if (userProfile?.referralCode) {
+      navigator.clipboard.writeText(userProfile.referralCode);
+      toast({
+        title: 'Copiado!',
+        description: 'Seu código de indicação foi copiado para a área de transferência.',
+      });
+    }
   };
 
   const mainProfilePic = PlaceHolderImages.find(p => p.id === 'instagram-profile-pic');
@@ -66,6 +88,20 @@ export default function ProfilePage() {
                     <div>
                         <h1 className="text-xl font-bold">{displayName}</h1>
                         <p className="text-sm text-muted-foreground">@{user?.email}</p>
+                        {isProfileLoading ? (
+                            <Skeleton className="h-5 w-32 mt-2" />
+                        ) : (
+                            userProfile?.referralCode && (
+                                <div className="flex items-center gap-2 mt-2">
+                                    <span className="text-xs font-mono bg-muted px-2 py-1 rounded">
+                                        Cód. Indicação: {userProfile.referralCode}
+                                    </span>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={copyToClipboard}>
+                                        <Copy className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            )
+                        )}
                     </div>
                 </div>
 
@@ -119,5 +155,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
