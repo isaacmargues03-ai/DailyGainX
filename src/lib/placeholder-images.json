@@ -1,3 +1,16 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "user-profile",
+      "description": "User profile picture",
+      "imageUrl": "https://images.unsplash.com/photo-1613145997970-db84a7975fbb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxwcm9maWxlJTIwcGVyc29ufGVufDB8fHx8MTc3MTg3NDUzMnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "profile person"
+    },
+    {
+      "id": "investment-machine",
+      "description": "Image for an investment machine",
+      "imageUrl": "https://images.unsplash.com/photo-1744868562210-fffb7fa882d9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxzZXJ2ZXIlMjB0ZWNobm9sb2d5fGVufDB8fHx8MTc3MTg3MjA0MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "server technology"
+    }
+  ]
 }
