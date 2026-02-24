@@ -82,9 +82,10 @@ export default function DepositPage() {
             const userDocRef = doc(firestore, 'users', user.uid);
             getDoc(userDocRef)
                 .then((userDoc) => {
-                    const userData = userDoc.data();
                     // Make sure user data exists before proceeding
-                    if (userDoc.exists() && userData && userData.hasMadeFirstDeposit === false) {
+                    if (userDoc.exists()) {
+                      const userData = userDoc.data();
+                      if (userData && userData.hasMadeFirstDeposit === false) {
                         // This is the first deposit, check for a referral record
                         const referralsQuery = query(collection(firestore, 'referrals'), where('referredId', '==', user.uid), where('status', '==', 'pending'));
                         getDocs(referralsQuery).then(referralSnapshot => {
@@ -112,6 +113,7 @@ export default function DepositPage() {
                         }).catch(error => {
                             console.error("Error checking for referral:", error);
                         });
+                      }
                     }
                 })
                 .catch((error) => {
@@ -216,7 +218,7 @@ export default function DepositPage() {
 
             <main className="flex-1 p-4 sm:p-6 space-y-6">
                 <div>
-                    <Label className="text-sm font-normal text-muted-foreground">Meios de pagamento</Label>
+                    <Label className="text-sm font-normal text-muted-foreground">PIX elegível</Label>
                     <div className="mt-2 flex items-center justify-between rounded-lg border-2 border-green-500 bg-card p-4">
                         <PixLogo />
                         <CheckCircle className="h-6 w-6 text-green-500" />
