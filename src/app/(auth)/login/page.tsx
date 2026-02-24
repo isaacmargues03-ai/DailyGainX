@@ -52,13 +52,14 @@ export default function LoginPage() {
       switch (error.code) {
         case 'auth/user-not-found':
         case 'auth/wrong-password':
+        case 'auth/invalid-credential':
           description = 'Email ou senha inválidos. Por favor, tente novamente.';
           break;
         case 'auth/invalid-email':
           description = 'O formato do email é inválido.';
           break;
         default:
-          description = 'Não foi possível fazer login. Verifique suas credenciais.';
+          description = `Não foi possível fazer login. ${error.message}`;
           break;
       }
       toast({
@@ -129,5 +130,3 @@ export default function LoginPage() {
     </Card>
   );
 }
-
-    
