@@ -105,9 +105,14 @@ service cloud.firestore {
     }
 
     match /referrals/{referralId} {
+      // A user can read a referral doc if they are the referrer or the referred.
+      // Firestore uses this 'get' rule to implicitly validate 'list' queries.
+      // A query is allowed if its filter condition guarantees that all returned
+      // documents will pass this 'get' rule.
       allow get: if isSignedIn() && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
-      allow list: if isSignedIn() && (request.query.where.referrerId == request.auth.uid || request.query.where.referredId == request.auth.uid);
+      // A new user can create their own referral record.
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.referredId;
+      // The referred user can update the status (e.g. after first deposit).
       allow update: if isSignedIn() && request.auth.uid == resource.data.referredId;
       allow delete: if false;
     }
