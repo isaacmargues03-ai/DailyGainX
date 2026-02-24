@@ -4,7 +4,7 @@ import type { Operation, OpenPosition, ActiveInvestment, Transaction } from '@/l
 import type { Product } from '@/lib/products';
 import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from 'react';
 
-const INITIAL_BALANCE = 150.0;
+const INITIAL_BALANCE = 0;
 
 const generateData = (count: number, initialValue: number) => {
     let value = initialValue;
