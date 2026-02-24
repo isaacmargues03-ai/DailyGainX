@@ -188,7 +188,7 @@ export default function RegisterPage() {
                   type="text"
                   placeholder="Código de quem te convidou"
                   value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  onChange={(e) => setReferralCode(e.target.value.trim().toUpperCase())}
                   disabled={isLoading}
                 />
               </div>
