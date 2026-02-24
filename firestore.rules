@@ -99,7 +99,10 @@ service cloud.firestore {
     // =====================================================================
 
     match /referralCodes/{code} {
-      allow get: if isSignedIn();
+      // Allow public read access so that unauthenticated users on the registration
+      // page can validate a referral code before creating an account. This is safe
+      // as the document only contains the referrer's non-sensitive userId.
+      allow get: if true;
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
       allow update, delete: if false;
     }
@@ -111,7 +114,7 @@ service cloud.firestore {
       // Allow a user to LIST referrals where they are the referrer.
       // This rule is specific enough for the query engine to validate the query
       // on the referrals page: `where('referrerId', '==', user.uid)`.
-      allow list: if isSignedIn() && request.auth.uid == resource.data.referrerId;
+      allow list: if isSignedIn() && request.query.where.referrerId == request.auth.uid;
       
       // A new user can create their own referral record.
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.referredId;
@@ -192,5 +195,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
