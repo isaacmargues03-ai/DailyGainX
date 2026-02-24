@@ -254,8 +254,6 @@ export default function DepositPage() {
 
                 <div className="space-y-4 text-sm text-muted-foreground">
                     <p><span className="font-semibold">A.</span> Sem taxas.</p>
-                    <p><span className="font-semibold">B.</span> Você pode digitalizar o código Pix QR e depositar, por favor, termine o pagamento em <span className="font-semibold text-orange-500">30 minutos.</span></p>
-                    <p className="text-orange-500 font-semibold">Por favor, reinicie o depósito após o fim do código, por favor, não salve a captura de tela e pague depois!</p>
                 </div>
                 
                 <div className="pt-4">
