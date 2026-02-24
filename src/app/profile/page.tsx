@@ -17,6 +17,8 @@ import {
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useAppContext } from '@/context/AppContext';
+import { useFirebase } from '@/firebase';
+import { useRouter } from 'next/navigation';
 
 
 // Helper component for menu items
@@ -36,12 +38,17 @@ function MenuItem({ href, icon, text }: { href: string; icon: React.ReactNode; t
 
 export default function ProfilePage() {
   const { balance } = useAppContext();
-  const user = {
-    name: 'Usuário Teste',
-    username: 'usuario_teste'
+  const { auth, user } = useFirebase();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await auth.signOut();
+    router.push('/login');
   };
 
   const mainProfilePic = PlaceHolderImages.find(p => p.id === 'instagram-profile-pic');
+  const displayName = user?.displayName || user?.email?.split('@')[0] || 'Usuário';
+  const fallback = displayName.charAt(0).toUpperCase();
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -51,15 +58,13 @@ export default function ProfilePage() {
                 
                 {/* User Info Header */}
                 <div className="flex items-center gap-4 mb-6">
-                    {mainProfilePic && 
-                        <Avatar className="w-16 h-16 border-2 border-primary">
-                            <AvatarImage src={mainProfilePic.imageUrl} data-ai-hint={mainProfilePic.imageHint}/>
-                            <AvatarFallback className="text-2xl">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                    }
+                    <Avatar className="w-16 h-16 border-2 border-primary">
+                        <AvatarImage src={user?.photoURL || mainProfilePic?.imageUrl} data-ai-hint={mainProfilePic?.imageHint}/>
+                        <AvatarFallback className="text-2xl">{fallback}</AvatarFallback>
+                    </Avatar>
                     <div>
-                        <h1 className="text-xl font-bold">{user.name}</h1>
-                        <p className="text-sm text-muted-foreground">@{user.username}</p>
+                        <h1 className="text-xl font-bold">{displayName}</h1>
+                        <p className="text-sm text-muted-foreground">@{user?.email}</p>
                     </div>
                 </div>
 
@@ -96,11 +101,9 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="mt-8">
-                    <Button variant="outline" className="w-full" asChild>
-                        <Link href="/login">
-                            <LogOut className="mr-2 h-4 w-4" />
-                            Sair da conta
-                        </Link>
+                    <Button variant="outline" className="w-full" onClick={handleLogout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Sair da conta
                     </Button>
                 </div>
                 
@@ -114,3 +117,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    
