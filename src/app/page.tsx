@@ -8,8 +8,7 @@ export default function DashboardPage() {
       <main className="flex-1 bg-background">
         <div className="container mx-auto max-w-2xl px-4 py-8">
             <div className="mb-8 text-center">
-                <h1 className="text-3xl font-bold tracking-tight">Nossas Usinas</h1>
-                <p className="text-muted-foreground mt-2">Veja imagens das nossas instalações de última geração.</p>
+                <h1 className="text-3xl font-bold tracking-tight">Nossos patrocinios</h1>
             </div>
             <ImageCarousel />
         </div>
