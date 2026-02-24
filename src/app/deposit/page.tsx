@@ -135,8 +135,8 @@ export default function DepositPage() {
             status: 'Completed'
         });
         toast({
-            title: 'Depósito Confirmado!',
-            description: `${usdtAmount.toFixed(2)} USDT adicionados ao seu saldo.`,
+            variant: 'success',
+            title: 'DEPOSITO COM SUCESSO',
         });
         setBrlAmount('');
         setQrCode('');
@@ -279,4 +279,3 @@ export default function DepositPage() {
         </div>
     );
 }
-    
