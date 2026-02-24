@@ -1,0 +1,244 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user's profile information within the DailyGainX platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address, typically a Gmail account as per requirements.",
+          "format": "email"
+        },
+        "profilePictureUrl": {
+          "type": "string",
+          "description": "URL to the user's profile picture, if available.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email"
+      ]
+    },
+    "UserAccount": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserAccount",
+      "type": "object",
+      "description": "Manages a user's financial balance and currency for deposits and investments within the DailyGainX platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserAccount entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile this account belongs to. (Relationship: UserProfile 1:1 UserAccount)"
+        },
+        "balance": {
+          "type": "number",
+          "description": "The current balance of the account in the specified currency (USDT)."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the account balance (e.g., 'USDT')."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "balance",
+        "currency"
+      ]
+    },
+    "DepositTransaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DepositTransaction",
+      "type": "object",
+      "description": "Records individual deposit transactions made by a user into their account.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the DepositTransaction entity."
+        },
+        "accountId": {
+          "type": "string",
+          "description": "Reference to the UserAccount where the deposit was made. (Relationship: UserAccount 1:N DepositTransaction)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of funds deposited in USDT."
+        },
+        "depositDate": {
+          "type": "string",
+          "description": "The date and time when the deposit was initiated.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the deposit (e.g., 'pending', 'completed', 'failed')."
+        }
+      },
+      "required": [
+        "id",
+        "accountId",
+        "amount",
+        "depositDate",
+        "status"
+      ]
+    },
+    "Investment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Investment",
+      "type": "object",
+      "description": "Represents a user's investment in a specific machine, such as the 'Rogério Machine', tracking its status and returns.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Investment entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who made the investment. (Relationship: UserProfile 1:N Investment)"
+        },
+        "machineType": {
+          "type": "string",
+          "description": "The type or name of the investment machine (e.g., 'Rogério')."
+        },
+        "investedAmount": {
+          "type": "number",
+          "description": "The initial amount invested in the machine (e.g., 20 USDT for Rogério Machine)."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The date and time when the investment started.",
+          "format": "date-time"
+        },
+        "maturityDate": {
+          "type": "string",
+          "description": "The date and time when the investment matures and becomes withdrawable (e.g., 5 days after startDate).",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the investment (e.g., 'active', 'matured', 'withdrawn')."
+        },
+        "expectedReturnAmount": {
+          "type": "number",
+          "description": "The total amount expected to be returned after the investment matures, including the invested amount and profit."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "machineType",
+        "investedAmount",
+        "startDate",
+        "maturityDate",
+        "status",
+        "expectedReturnAmount"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores individual user profile data. The document ID (`userId`) must match the authenticated user's UID (`request.auth.uid`). Access is strictly limited to the authenticated user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user, corresponding to `request.auth.uid`."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/accounts/{userAccountId}",
+        "definition": {
+          "entityName": "UserAccount",
+          "schema": {
+            "$ref": "#/backend/entities/UserAccount"
+          },
+          "description": "Stores a user's financial account details. The `userAccountId` should typically match the `userId` from the parent path as it's a 1:1 relationship. Each document includes `userId` for explicit ownership, aligning with the path for authorization independence. Access is strictly limited to the authenticated user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user, corresponding to `request.auth.uid`."
+            },
+            {
+              "name": "userAccountId",
+              "description": "The unique ID of the user's account, corresponding to `UserAccount.id`."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/accounts/{userAccountId}/depositTransactions/{depositTransactionId}",
+        "definition": {
+          "entityName": "DepositTransaction",
+          "schema": {
+            "$ref": "#/backend/entities/DepositTransaction"
+          },
+          "description": "Records individual deposit transactions for a user's account. To ensure authorization independence and avoid `get()` calls in rules, each document MUST include a denormalized `ownerId` field (equal to `userId` from the parent path) in addition to its `accountId` field. Access is strictly limited to the authenticated user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user, corresponding to `request.auth.uid`."
+            },
+            {
+              "name": "userAccountId",
+              "description": "The unique ID of the user's account, corresponding to `UserAccount.id` and the parent path."
+            },
+            {
+              "name": "depositTransactionId",
+              "description": "The unique ID of the deposit transaction, corresponding to `DepositTransaction.id`."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/investments/{investmentId}",
+        "definition": {
+          "entityName": "Investment",
+          "schema": {
+            "$ref": "#/backend/entities/Investment"
+          },
+          "description": "Stores details of a user's investments. Each document includes `userId` for explicit ownership, aligning with the path for authorization independence. Access is strictly limited to the authenticated user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user, corresponding to `request.auth.uid`."
+            },
+            {
+              "name": "investmentId",
+              "description": "The unique ID of the investment, corresponding to `Investment.id`."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The recommended Firestore structure for DailyGainX prioritizes security, scalability, and debuggability by adhering to the CORE DESIGN PRINCIPLES and DESIGN STRATEGY MANDATES. All user-specific data is strictly segregated under a top-level `/users/{userId}` collection, which serves as the root of private user data.\n\n**Authorization Independence via Denormalization:**\n\n1.  **UserProfile (`/users/{userId}`):** The user's profile is directly under their UID. Authorization rules simply verify `request.auth.uid == userId`, ensuring no `get()` calls are needed for profile access.\n2.  **UserAccount (`/users/{userId}/accounts/{userAccountId}`):** User accounts are nested under the user's path. The `UserAccount` entity schema already includes a `userId` field, which effectively denormalizes ownership. Rules can check `request.auth.uid == userId` (from the path) and `request.auth.uid == resource.data.userId` for robust, independent authorization without cross-document `get()` calls.\n3.  **DepositTransaction (`/users/{userId}/accounts/{userAccountId}/depositTransactions/{depositTransactionId}`):** Deposit transactions are deeply nested. To maintain Authorization Independence, each `DepositTransaction` document will *require* an additional denormalized `ownerId` field (representing the `userId` from the top-level path) to be stored directly within the document, alongside its `accountId`. This allows rules to authorize access solely based on `request.auth.uid == ownerId` and `request.auth.uid == userId` (from the path), bypassing the need to fetch parent `UserAccount` or `UserProfile` documents.\n4.  **Investment (`/users/{userId}/investments/{investmentId}`):** Investments are nested directly under the user's path. The `Investment` entity schema includes a `userId` field, which perfectly aligns with the path's `userId` parameter. Authorization rules simply check `request.auth.uid == userId` (from the path) and `request.auth.uid == resource.data.userId`, providing complete independence.\n\n**QAPs (Rules are not Filters) Support:**\n\n*   **Structural Segregation:** By placing all user-specific data under `/users/{userId}/...`, the security posture for all documents within these subcollections is homogeneously 'private to the user'. This eliminates the need for complex filter-like rules.\n*   **Path-Based Ownership:** The hierarchical structure of `/users/{userId}/...` inherently restricts data access to the authenticated user. When a user queries `/users/{request.auth.uid}/accounts`, `/users/{request.auth.uid}/investments`, or `/users/{request.auth.uid}/accounts/{accountId}/depositTransactions`, the `userId` in the path (which is `request.auth.uid`) directly enforces ownership. This ensures that `list` operations are implicitly secure and efficient, as Firestore's security rules can grant `allow list: if request.auth.uid == userId;` without concerns about filtering results. The `request.auth.uid` must match the `{userId}` wildcard in the path, making it impossible for a user to query another user's data."
+  }
+}
