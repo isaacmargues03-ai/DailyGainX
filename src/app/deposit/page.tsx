@@ -229,7 +229,7 @@ export default function DepositPage() {
                 <div className="space-y-4">
                     <div className="flex justify-between items-center">
                         <h2 className="font-semibold">Pagar</h2>
-                        <p className="text-sm text-orange-500">(1 USDT ≈ {CONVERSION_RATE} R$)</p>
+                        <p className="text-sm text-muted-foreground">(1 USDT ≈ {CONVERSION_RATE} R$)</p>
                     </div>
                     <div className="relative">
                         <Input
