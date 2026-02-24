@@ -14,3 +14,16 @@ export type OpenPosition = {
   amount: number;
   timestamp: string;
 };
+
+export type ActiveInvestment = {
+  id: string;
+  productId: string;
+  instructorName: string;
+  companyName: string;
+  period: number;
+  investedAmount: number;
+  profit: number;
+  imageUrl: string;
+  imageHint: string;
+  investmentTimestamp: number;
+};

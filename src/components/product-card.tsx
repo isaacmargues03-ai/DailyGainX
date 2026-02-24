@@ -14,26 +14,40 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAppContext } from '@/context/AppContext';
+import type { Product } from '@/lib/products';
 
 interface ProductCardProps {
-  instructorName: string;
-  companyName: string;
-  period: number;
-  minInvestment: number;
-  profit: number;
+  product: Product;
   imageUrl: string;
   imageHint: string;
 }
 
-export function ProductCard({ instructorName, companyName, period, minInvestment, profit, imageUrl, imageHint }: ProductCardProps) {
+export function ProductCard({ product, imageUrl, imageHint }: ProductCardProps) {
+  const { instructorName, companyName, period, minInvestment, profit } = product;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { addInvestment, balance } = useAppContext();
 
   const handleInvest = () => {
-    toast({
-      title: "Investimento Confirmado!",
-      description: `Você investiu na ${companyName}.`,
-    });
+    if (balance < minInvestment) {
+        toast({
+            variant: "destructive",
+            title: "Saldo Insuficiente",
+            description: `Você precisa de pelo menos ${minInvestment} USDT para este investimento.`,
+        });
+        setIsDialogOpen(false);
+        return;
+    }
+
+    const success = addInvestment(product, { imageUrl, imageHint });
+
+    if (success) {
+        toast({
+          title: "Investimento Confirmado!",
+          description: `Você investiu na ${companyName}.`,
+        });
+    }
     setIsDialogOpen(false);
   };
   

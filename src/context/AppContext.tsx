@@ -1,6 +1,7 @@
 'use client';
 
-import type { Operation, OpenPosition } from '@/lib/types';
+import type { Operation, OpenPosition, ActiveInvestment } from '@/lib/types';
+import type { Product } from '@/lib/products';
 import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from 'react';
 
 const INITIAL_BALANCE = 150.0;
@@ -27,6 +28,8 @@ interface AppContextType {
   closePosition: (positionId: string) => void;
   marketData: { time: string; price: number; }[];
   lastPrice: number;
+  activeInvestments: ActiveInvestment[];
+  addInvestment: (product: Product, image: { imageUrl: string, imageHint: string }) => boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -35,6 +38,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [balance, setBalance] = useState(INITIAL_BALANCE);
   const [operations, setOperations] = useState<Operation[]>([]);
   const [openPositions, setOpenPositions] = useState<OpenPosition[]>([]);
+  const [activeInvestments, setActiveInvestments] = useState<ActiveInvestment[]>([]);
 
   const initialData = useMemo(() => generateData(60, 5.4321), []);
   const [marketData, setMarketData] = useState(initialData);
@@ -110,10 +114,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     setOpenPositions(prev => prev.filter(p => p.id !== positionId));
   };
+  
+  const addInvestment = (product: Product, image: { imageUrl: string, imageHint: string }): boolean => {
+    if (balance < product.minInvestment) {
+      return false;
+    }
+    setBalance(prev => prev - product.minInvestment);
+    const newInvestment: ActiveInvestment = {
+      id: new Date().getTime().toString(),
+      productId: product.id,
+      companyName: product.companyName,
+      instructorName: product.instructorName,
+      period: product.period,
+      investedAmount: product.minInvestment,
+      profit: product.profit,
+      imageUrl: image.imageUrl,
+      imageHint: image.imageHint,
+      investmentTimestamp: Date.now(),
+    };
+    setActiveInvestments(prev => [newInvestment, ...prev]);
+    return true;
+  };
 
 
   return (
-    <AppContext.Provider value={{ balance, setBalance, operations, addOperation, openPositions, openPosition, closePosition, marketData, lastPrice }}>
+    <AppContext.Provider value={{ 
+        balance, 
+        setBalance, 
+        operations, 
+        addOperation, 
+        openPositions, 
+        openPosition, 
+        closePosition, 
+        marketData, 
+        lastPrice,
+        activeInvestments,
+        addInvestment
+    }}>
       {children}
     </AppContext.Provider>
   );
