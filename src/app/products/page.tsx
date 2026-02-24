@@ -35,6 +35,38 @@ const products = [
     minInvestment: 30,
     profit: 25,
   },
+  {
+    id: 'magalu-company',
+    instructorName: 'Carlos Ferreira',
+    companyName: 'Magazine Luiza',
+    period: 40,
+    minInvestment: 40,
+    profit: 30,
+  },
+  {
+    id: 'renner-company',
+    instructorName: 'Lucas Andrade',
+    companyName: 'Renner',
+    period: 45,
+    minInvestment: 50,
+    profit: 40,
+  },
+  {
+    id: 'nubank-company',
+    instructorName: 'Gabriela Costa',
+    companyName: 'Nubank',
+    period: 50,
+    minInvestment: 60,
+    profit: 55,
+  },
+  {
+    id: 'xp-company',
+    instructorName: 'Rafael Martins',
+    companyName: 'XP Inc.',
+    period: 60,
+    minInvestment: 100,
+    profit: 90,
+  },
 ];
 
 export default function ProductsPage() {

@@ -79,6 +79,30 @@
       "imageHint": "woman portrait"
     },
     {
+      "id": "magalu-company",
+      "description": "Portrait of Carlos Ferreira, instructor for Magazine Luiza",
+      "imageUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtYWxlJTIwYnVzaW5lc3MlMjBwb3J0cmFpdHxlbnwwfHx8fDE3NzI5ODc5NjV8MA&ixlib.rb-4.1.0&q=80&w=1080",
+      "imageHint": "male business"
+    },
+    {
+      "id": "renner-company",
+      "description": "Portrait of Lucas Andrade, instructor for Renner",
+      "imageUrl": "https://images.unsplash.com/photo-1521119989659-a83eee488004?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxtYW4lMjBzbWlsaW5nJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzcyOTg4MDIxfDA&ixlib.rb-4.1.0&q=80&w=1080",
+      "imageHint": "man smiling"
+    },
+    {
+      "id": "nubank-company",
+      "description": "Portrait of Gabriela Costa, instructor for Nubank",
+      "imageUrl": "https://images.unsplash.com/photo-1599842057874-37393e9342df?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhZnJvJTIwYnJhemlsaWFuJTIwd29tYW58ZW58MHx8fHwxNzcyOTg4MDY0fDA&ixlib.rb-4.1.0&q=80&w=1080",
+      "imageHint": "brazilian woman"
+    },
+    {
+      "id": "xp-company",
+      "description": "Portrait of Rafael Martins, instructor for XP Inc.",
+      "imageUrl": "https://images.unsplash.com/photo-1628260412296-a0a2592f8ef5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxmaW5hbmNlJTIwZXhwZXJ0JTIwcG9ydHJhaXR8ZW58MHx8fHwxNzcyOTg4MTIwfDA&ixlib.rb-4.1.0&q=80&w=1080",
+      "imageHint": "finance expert"
+    },
+    {
       "id": "factory-1",
       "description": "A modern factory floor",
       "imageUrl": "https://images.unsplash.com/photo-1682947882227-f1684e4a48c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtb2Rlcm4lMjBmYWN0b3J5fGVufDB8fHx8MTc3MTkxMDMzMnww&ixlib.rb-4.1.0&q=80&w=1080",
