@@ -11,6 +11,48 @@
       "description": "Image for an investment machine",
       "imageUrl": "https://images.unsplash.com/photo-1744868562210-fffb7fa882d9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxzZXJ2ZXIlMjB0ZWNobm9sb2d5fGVufDB8fHx8MTc3MTg3MjA0MHww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "server technology"
+    },
+    {
+      "id": "instagram-profile-pic",
+      "description": "Instagram main profile picture",
+      "imageUrl": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwZXJzb24lMjBwcm9maWxlfGVufDB8fHx8MTc3MTg0ODcxNHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person profile"
+    },
+    {
+      "id": "ravenna",
+      "description": "Profile picture for Ravenna",
+      "imageUrl": "https://images.unsplash.com/photo-1542812720-b51be06566ab?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx3b21hbiUyMHBlcnNvbnxlbnwwfHx8fDE3NzE4OTgwODd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman person"
+    },
+    {
+      "id": "alice",
+      "description": "Profile picture for Alice",
+      "imageUrl": "https://images.unsplash.com/photo-1610462679576-e591f04e6e1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHx3b21hbiUyMHByb2ZpbGV8ZW58MHx8fHwxNzcxODg2Njk3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman profile"
+    },
+    {
+      "id": "mari",
+      "description": "Profile picture for Mari",
+      "imageUrl": "https://images.unsplash.com/photo-1610655507808-a59293f4e332?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc3MTgzNTc1N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "thaylon",
+      "description": "Profile picture for Thaylon",
+      "imageUrl": "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxtYW4lMjBwcm9maWxlfGVufDB8fHx8MTc3MTg5ODA4N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man profile"
+    },
+    {
+      "id": "story-f1",
+      "description": "Story highlight for F1",
+      "imageUrl": "https://images.unsplash.com/photo-1632214790681-7087f4c8d139?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxyYWNlJTIwY2FyfGVufDB8fHx8MTc3MTg0ODE2M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "race car"
+    },
+    {
+      "id": "story-flamengo",
+      "description": "Story highlight for Flamengo",
+      "imageUrl": "https://images.unsplash.com/photo-1598881034666-6d3443d4b1bc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxzb2NjZXIlMjB0ZWFtfGVufDB8fHx8MTc3MTg5ODA4N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "soccer team"
     }
   ]
 }
