@@ -101,6 +101,12 @@
       "description": "Interior of a large factory warehouse",
       "imageUrl": "https://images.unsplash.com/photo-1621935637996-25d971a1c9ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxGYWN0b3J5fGVufDB8fHx8MTc3MjE4ODk3NXww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "warehouse factory"
+    },
+    {
+      "id": "factory-5",
+      "description": "A power plant with smokestacks",
+      "imageUrl": "https://images.unsplash.com/photo-1586523991283-59695e283c27?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwb3dlciUyMHBsYW50fGVufDB8fHx8MTc3MjI4NDg4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "power plant factory"
     }
   ]
 }
