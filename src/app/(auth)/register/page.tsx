@@ -41,14 +41,17 @@ export default function RegisterPage() {
         // Find referrer if code is provided
         let referrerId: string | null = null;
         if (referralCode) {
-            const referralCodeDocRef = doc(firestore, 'referralCodes', referralCode);
-            const referralCodeDoc = await getDoc(referralCodeDocRef);
-            if (referralCodeDoc.exists()) {
-                referrerId = referralCodeDoc.data().userId;
-            } else {
-                toast({ variant: 'destructive', title: 'Código de Indicação Inválido', description: 'O código que você inseriu não foi encontrado.' });
-                setIsLoading(false);
-                return;
+            const finalReferralCode = referralCode.trim().toUpperCase();
+            if (finalReferralCode) {
+                const referralCodeDocRef = doc(firestore, 'referralCodes', finalReferralCode);
+                const referralCodeDoc = await getDoc(referralCodeDocRef);
+                if (referralCodeDoc.exists()) {
+                    referrerId = referralCodeDoc.data().userId;
+                } else {
+                    toast({ variant: 'destructive', title: 'Código de Indicação Inválido', description: 'O código que você inseriu não foi encontrado.' });
+                    setIsLoading(false);
+                    return;
+                }
             }
         }
 
@@ -188,8 +191,9 @@ export default function RegisterPage() {
                   type="text"
                   placeholder="Código de quem te convidou"
                   value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value.trim().toUpperCase())}
+                  onChange={(e) => setReferralCode(e.target.value)}
                   disabled={isLoading}
+                  autoCapitalize="characters"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
