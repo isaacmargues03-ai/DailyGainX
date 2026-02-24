@@ -6,7 +6,7 @@ export default function DashboardPage() {
     <div className="flex min-h-screen w-full flex-col">
       <Header />
       <main className="flex-1 bg-background">
-        <div className="container mx-auto max-w-2xl px-4 py-8">
+        <div className="container mx-auto px-4 py-8">
             <div className="mb-8 text-center">
                 <h1 className="text-3xl font-bold tracking-tight">Nossos patrocinios</h1>
             </div>

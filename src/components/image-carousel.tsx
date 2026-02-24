@@ -21,7 +21,7 @@ export function ImageCarousel() {
         align: 'start',
         loop: true,
       }}
-      className="w-full max-w-xl mx-auto"
+      className="w-full mx-auto"
     >
       <CarouselContent>
         {factoryImages.map((image) => (
