@@ -1,6 +1,12 @@
 {
   "placeholderImages": [
     {
+      "id": "petrobras-logo",
+      "description": "Placeholder logo for Petrobras",
+      "imageUrl": "https://images.unsplash.com/photo-1620288627223-53302f4e8c74?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjb21wYW55JTIwbG9nb3xlbnwwfHx8fDE3NzE4NzY3NDF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "company logo"
+    },
+    {
       "id": "user-profile",
       "description": "User profile picture",
       "imageUrl": "https://images.unsplash.com/photo-1613145997970-db84a7975fbb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxwcm9maWxlJTIwcGVyc29ufGVufDB8fHx8MTc3MTg3NDUzMnww&ixlib=rb-4.1.0&q=80&w=1080",
@@ -81,19 +87,19 @@
     {
       "id": "factory-1",
       "description": "A modern factory floor",
-      "imageUrl": "https://images.unsplash.com/photo-1543304376-1ae7c2be5e59?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBmYWN0b3J5fGVufDB8fHx8MTc3MTkxMDMzMXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1682947882227-f1684e4a48c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtb2Rlcm4lMjBmYWN0b3J5fGVufDB8fHx8MTc3MTkxMDMzMnww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "modern factory"
     },
     {
       "id": "factory-2",
       "description": "An industrial manufacturing plant",
-      "imageUrl": "https://images.unsplash.com/photo-1734864219944-c6093131d30c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8aW5kdXN0cmlhbCUyMGZhY3Rvcnl8ZW58MHx8fHwxNzcxODk4NTQ0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1546185058-592ead754d27?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxpbmR1c3RyaWFsJTIwZmFjdG9yeXxlbnwwfHx8fDE3NzE4OTg1NDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "industrial factory"
     },
     {
       "id": "factory-3",
       "description": "Automated production line in a factory",
-      "imageUrl": "https://images.unsplash.com/photo-1716191300006-ea66bf47e2b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxhdXRvbWF0aW9uJTIwZmFjdG9yeXxlbnwwfHx8fDE3NzE5MTIwMjF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1764115424793-063c2a8b61f3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxhdXRvbWF0aW9uJTIwZmFjdG9yeXxlbnwwfHx8fDE3NzE5MTIwMjF8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "automation factory"
     },
     {
@@ -105,7 +111,7 @@
     {
       "id": "factory-5",
       "description": "A power plant with smokestacks",
-      "imageUrl": "https://images.unsplash.com/photo-1750074905875-a837f1e9f92e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxwb3dlciUyMHBsYW50JTIwZmFjdG9yeXxlbnwwfHx8fDE3NzE5MTIwMjF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1559755496-4c6ab5721ad9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxwb3dlciUyMHBsYW50JTIwZmFjdG9yeXxlbnwwfHx8fDE3NzE5MTIwMjF8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "power plant factory"
     }
   ]
