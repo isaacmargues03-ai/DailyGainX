@@ -55,28 +55,28 @@
       "imageHint": "soccer team"
     },
     {
-      "id": "nathan-morris",
-      "description": "Profile picture for Nathan Morris",
-      "imageUrl": "https://images.unsplash.com/photo-1557862921-37829c790f19?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NzE5ODAwMDB8MA&ixlib.rb-4.1.0&q=80&w=1080",
-      "imageHint": "man portrait"
+      "id": "petrobras-company",
+      "description": "Image of a Petrobras oil platform",
+      "imageUrl": "https://images.unsplash.com/photo-1549449830-4b53443b7a42?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxvaWwlMjBwbGF0Zm9ybXxlbnwwfHx8fDE3NzIwMjYxMDF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "oil platform"
     },
     {
-      "id": "luciana-costa",
-      "description": "Profile picture for Luciana Costa",
-      "imageUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8fDE3NzE5ODAwMDB8MA&ixlib.rb-4.1.0&q=80&w=1080",
-      "imageHint": "woman portrait"
+      "id": "vale-company",
+      "description": "Image of a Vale mining site",
+      "imageUrl": "https://images.unsplash.com/photo-1599388149896-3d3a0a389279?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxvdmVyheadJTIwbWluaW5nfGVufDB8fHx8MTc3MjAyNjE4NHww&ixlib.rb-4.1.0&q=80&w=1080",
+      "imageHint": "mining site"
     },
     {
-      "id": "isabella-silva",
-      "description": "Profile picture for Isabella Silva",
-      "imageUrl": "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8fDE3NzE5ODAwMDB8MA&ixlib.rb-4.1.0&q=80&w=1080",
-      "imageHint": "woman portrait"
+      "id": "itau-company",
+      "description": "Image of a modern office building for Itaú",
+      "imageUrl": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBvZmZpY2UlMjBidWlsZGluZ3xlbnwwfHx8fDE3NzIwMjYyODZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "office building"
     },
     {
-      "id": "alexander-greene",
-      "description": "Profile picture for Alexander Greene",
-      "imageUrl": "https://images.unsplash.com/photo-1564564321837-a57b7070ac4f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NzE5ODAwMDB8MA&ixlib.rb-4.1.0&q=80&w=1080",
-      "imageHint": "man portrait"
+      "id": "ambev-company",
+      "description": "Image of a beverage factory for Ambev",
+      "imageUrl": "https://images.unsplash.com/photo-1567650560940-a356a3e9f656?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxiZXdlcmFnZSUyMGZhY3Rvcnl8ZW58MHx8fHwxNzcyMDI2MzE3fDA&ixlib.rb-4.1.0&q=80&w=1080",
+      "imageHint": "beverage factory"
     },
     {
       "id": "factory-1",

@@ -4,32 +4,36 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const products = [
   {
-    id: 'nathan-morris',
-    name: 'Nathan Morris',
-    term: 180,
-    prevProfit: '501',
-    annualReturn: '1.015,92',
+    id: 'petrobras-company',
+    instructorName: 'Maurício Instrutor',
+    companyName: 'Petrobras',
+    period: 6,
+    minInvestment: 5,
+    profit: 4,
   },
   {
-    id: 'luciana-costa',
-    name: 'Luciana Costa',
-    term: 7,
-    prevProfit: '13,65',
-    annualReturn: '711,75',
+    id: 'vale-company',
+    instructorName: 'Ricardo Almeida',
+    companyName: 'Vale',
+    period: 10,
+    minInvestment: 10,
+    profit: 8,
   },
   {
-    id: 'isabella-silva',
-    name: 'Isabella Silva',
-    term: 15,
-    prevProfit: '26,41',
-    annualReturn: '642,64',
+    id: 'itau-company',
+    instructorName: 'Sofia Lima',
+    companyName: 'Itaú Unibanco',
+    period: 15,
+    minInvestment: 20,
+    profit: 15,
   },
   {
-    id: 'alexander-greene',
-    name: 'Alexander Greene',
-    term: 3,
-    prevProfit: '6,92',
-    annualReturn: '841,93',
+    id: 'ambev-company',
+    instructorName: 'Beatriz Santos',
+    companyName: 'Ambev',
+    period: 20,
+    minInvestment: 30,
+    profit: 25,
   },
 ];
 
@@ -38,19 +42,21 @@ export default function ProductsPage() {
     <div className="flex min-h-screen w-full flex-col">
       <Header />
       <main className="flex-1 bg-background p-4">
-        <div className="container mx-auto max-w-2xl">
-          <h1 className="text-3xl font-bold tracking-tight mb-4">Produtos</h1>
-          <div className="grid grid-cols-1 gap-4">
+        <div className="container mx-auto max-w-4xl">
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Nossos Produtos</h1>
+          <p className="text-muted-foreground mb-6">Invista em produtos de empresas renomadas e acompanhe seus rendimentos.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {products.map((product) => {
               const image = PlaceHolderImages.find((p) => p.id === product.id);
               if (!image) return null;
               return (
                 <ProductCard
                   key={product.id}
-                  name={product.name}
-                  term={product.term}
-                  prevProfit={product.prevProfit}
-                  annualReturn={product.annualReturn}
+                  instructorName={product.instructorName}
+                  companyName={product.companyName}
+                  period={product.period}
+                  minInvestment={product.minInvestment}
+                  profit={product.profit}
                   imageUrl={image.imageUrl}
                   imageHint={image.imageHint}
                 />
