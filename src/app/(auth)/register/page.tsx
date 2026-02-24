@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
-import { RecaptchaVerifier, signInWithPhoneNumber, createUserWithEmailAndPassword, ConfirmationResult } from 'firebase/auth';
+import { RecaptchaVerifier, signInWithPhoneNumber, linkWithCredential, EmailAuthProvider, ConfirmationResult } from 'firebase/auth';
 
 declare global {
   interface Window {
@@ -123,18 +123,19 @@ export default function RegisterPage() {
     try {
         const confirmationResult = window.confirmationResult;
         // First, confirm the phone verification code
-        await confirmationResult.confirm(verificationCode);
+        const userCredential = await confirmationResult.confirm(verificationCode);
+        const user = userCredential.user;
         
-        // After phone is verified, the user is temporarily signed in.
-        // We now create the user with email/password. Firebase will handle linking.
-        await createUserWithEmailAndPassword(auth, email, password);
+        // After phone is verified, create an email/password credential and link it.
+        const emailCredential = EmailAuthProvider.credential(email, password);
+        await linkWithCredential(user, emailCredential);
 
         toast({
             title: 'Cadastro bem-sucedido!',
-            description: 'Sua conta foi criada. Você será redirecionado para o login.',
+            description: 'Sua conta foi criada com telefone e email. Você será redirecionado para o login.',
         });
         
-        // Sign out the temporary user before redirecting to login for a clean flow
+        // Sign out the user before redirecting to login for a clean flow
         await auth.signOut();
         router.push('/login');
 
@@ -146,10 +147,13 @@ export default function RegisterPage() {
                 description = 'O código de verificação está incorreto. Tente novamente.';
                 break;
             case 'auth/email-already-in-use':
-                description = 'Este email já está em uso. Por favor, utilize outro ou faça login.';
+                description = 'Este email já está em uso por outra conta.';
                 break;
             case 'auth/weak-password':
                 description = 'A senha é muito fraca. Use pelo menos 6 caracteres.';
+                break;
+            case 'auth/credential-already-in-use':
+                description = 'Esta credencial (email ou telefone) já está associada a outra conta de usuário.';
                 break;
             default:
                 description = `Ocorreu um erro durante o cadastro: ${error.message}`;
