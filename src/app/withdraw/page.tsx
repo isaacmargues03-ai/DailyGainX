@@ -69,12 +69,12 @@ export default function WithdrawPage() {
             type: 'withdrawal',
             amount: withdrawAmount,
             method: 'Pix',
-            status: 'Completed'
+            status: 'Pending'
         });
 
         toast({
-            title: 'Retirada Solicitada!',
-            description: `${withdrawAmount.toFixed(2)} USDT serão enviados para a chave Pix informada.`,
+            title: 'Saque Solicitado com Sucesso!',
+            description: `Sua solicitação de saque de ${withdrawAmount.toFixed(2)} USDT foi recebida. O valor será creditado em sua conta em até 42 horas.`,
         });
 
         setAmount('');

@@ -147,12 +147,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     
     setTransactions(prev => [newTransaction, ...prev]);
 
-    if (newTransaction.status === 'Completed') {
-        if (newTransaction.type === 'deposit') {
-            setBalance(prev => prev + newTransaction.amount);
-        } else if (newTransaction.type === 'withdrawal') {
-            setBalance(prev => prev - newTransaction.amount);
-        }
+    if (newTransaction.type === 'deposit' && newTransaction.status === 'Completed') {
+        setBalance(prev => prev + newTransaction.amount);
+    } else if (newTransaction.type === 'withdrawal') {
+        setBalance(prev => prev - newTransaction.amount);
     }
   };
 
