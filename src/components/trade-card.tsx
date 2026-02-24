@@ -89,10 +89,10 @@ export function TradeCard() {
                 </CardContent>
                 <CardFooter className="grid grid-cols-2 gap-4">
                     <Button size="lg" className="bg-green-500 hover:bg-green-600 text-white font-bold text-lg py-6" onClick={() => handleOpenDialog('buy')}>
-                        Comprar / Sobe
+                        Comprar
                     </Button>
                     <Button size="lg" className="bg-red-500 hover:bg-red-600 text-white font-bold text-lg py-6" onClick={() => handleOpenDialog('sell')}>
-                        Vender / Desce
+                        Vender
                     </Button>
                 </CardFooter>
             </Card>

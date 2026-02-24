@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/context/AppContext';
 import { Operation, OpenPosition } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown, XCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 // A card for a single open position
@@ -40,34 +40,40 @@ function OpenPositionCard({ position }: { position: OpenPosition }) {
 
         return () => clearInterval(interval);
 
-    }, [marketData, position, closePosition]);
+    }, [marketData, position]);
 
     return (
         <Card className="w-full">
-            <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-4 mb-3">
+            <CardContent className="p-4 space-y-4">
+                <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
                         {position.type === 'buy' ? 
-                            <TrendingUp className="h-10 w-10 text-green-500" /> : 
-                            <TrendingDown className="h-10 w-10 text-red-500" />
+                            <TrendingUp className="h-8 w-8 text-green-500" /> : 
+                            <TrendingDown className="h-8 w-8 text-red-500" />
                         }
                         <div>
-                            <p className="font-semibold text-base capitalize">{position.type === 'buy' ? 'Compra' : 'Venda'} @ {position.entryPrice.toFixed(4)}</p>
-                            <p className="text-sm text-muted-foreground">Investido: {position.amount.toFixed(2)} USDT</p>
+                            <p className="font-semibold text-lg capitalize">{position.type === 'buy' ? 'Compra' : 'Venda'}</p>
+                            <p className="text-sm text-muted-foreground">Entrada @ {position.entryPrice.toFixed(4)}</p>
                         </div>
                     </div>
-                     <Button variant="destructive" size="sm" onClick={() => closePosition(position.id)}>
-                        <XCircle className="mr-2 h-4 w-4" />
-                        Fechar
-                    </Button>
+                     <div className="text-right">
+                         <p className="text-xs text-muted-foreground">Resultado (P/L)</p>
+                         <p className={cn("text-xl font-bold", pnlColor)}>
+                            {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}
+                         </p>
+                    </div>
                 </div>
-                <div className="text-center bg-muted/50 rounded-md p-3">
-                     <p className="text-xs text-muted-foreground">Resultado Atual (P/L)</p>
-                     <p className={cn("text-2xl font-bold", pnlColor)}>
-                        {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)} USDT
-                     </p>
+
+                <div className="border-t pt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <span className="text-muted-foreground">Valor Investido:</span>
+                    <span className="font-medium text-right">{position.amount.toFixed(2)} USDT</span>
+                    <span className="text-muted-foreground">ID da Operação:</span>
+                    <span className="font-mono text-xs text-right">{position.id}</span>
                 </div>
-                 <p className="text-xs text-muted-foreground text-center mt-2">ID: {position.id}</p>
+                
+                <Button variant="destructive" className="w-full" onClick={() => closePosition(position.id)}>
+                    Cancelar Operação
+                </Button>
             </CardContent>
         </Card>
     );
