@@ -75,7 +75,7 @@ export default function ReferralsPage() {
                 <ul className="list-disc list-inside space-y-1">
                   <li>Seu amigo se cadastra usando seu código.</li>
                   <li>Ele faz o primeiro depósito de qualquer valor.</li>
-                  <li>Você recebe 1 USDT de bônus no seu saldo (simulado).</li>
+                  <li>Você recebe 1 USDT de bônus no seu saldo.</li>
                 </ul>
               </div>
             </CardContent>
@@ -85,5 +85,3 @@ export default function ReferralsPage() {
     </div>
   );
 }
-
-    
