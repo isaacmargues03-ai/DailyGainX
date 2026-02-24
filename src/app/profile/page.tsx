@@ -42,7 +42,7 @@ function MenuItem({ href, icon, text }: { href: string; icon: React.ReactNode; t
 }
 
 export default function ProfilePage() {
-  const { balance } = useAppContext();
+  const { balance, isBalanceLoading } = useAppContext();
   const { auth, user, firestore } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
@@ -111,7 +111,13 @@ export default function ProfilePage() {
                         <p className="text-sm font-medium text-muted-foreground">Saldo</p>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-3xl font-bold mb-4">{balance.toFixed(2)} USDT</p>
+                        <div className="text-3xl font-bold mb-4">
+                            {isBalanceLoading ? (
+                                <Skeleton className="h-8 w-32" />
+                            ) : (
+                                `${balance.toFixed(2)} USDT`
+                            )}
+                        </div>
                         <div className="grid grid-cols-2 gap-4">
                             <Button variant="outline" size="lg" asChild>
                                 <Link href="/withdraw">

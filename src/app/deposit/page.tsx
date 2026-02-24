@@ -12,7 +12,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useFirebase, useUser } from '@/firebase';
-import { doc, getDoc, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, writeBatch, increment } from 'firebase/firestore';
 
 
 const PixLogo = () => (
@@ -106,31 +106,38 @@ export default function DepositPage() {
                     if (userData && userData.hasMadeFirstDeposit === false) {
                         const batch = writeBatch(firestore);
                         
-                        // Always mark the first deposit as done for the current user.
+                        // Mark first deposit as done for the current user.
                         batch.update(userDocRef, { hasMadeFirstDeposit: true });
 
-                        // If the user was referred, also reward the referrer.
+                        let rewardedReferrer = false;
+                        // If the user was referred, try to reward the referrer.
                         if (userData.referralId) {
                             const referralDocRef = doc(firestore, 'referrals', userData.referralId);
                             const referralDoc = await getDoc(referralDocRef);
 
                             if (referralDoc.exists() && referralDoc.data().status === 'pending') {
-                                // Update referral status to 'rewarded' to grant the 1 USDT bonus.
-                                batch.update(referralDoc.ref, { status: 'rewarded' });
+                                const referrerId = referralDoc.data().referrerId;
+
+                                // Update referral status to 'rewarded'.
+                                batch.update(referralDocRef, { status: 'rewarded' });
                                 
-                                // Commit changes and show the bonus toast to the depositor.
-                                await batch.commit();
-                                toast({
-                                    title: 'Indicação Recompensada!',
-                                    description: 'Graças a você, a pessoa que te indicou ganhou 1 USDT de bônus!',
-                                });
-                            } else {
-                                // If referral is invalid or already rewarded, just commit the user's status update.
-                                await batch.commit();
+                                // Add 1 USDT to the referrer's account balance.
+                                // Assumes the referrer's account document ID is the same as their user ID.
+                                const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
+                                batch.update(referrerAccountRef, { balance: increment(1) });
+                                rewardedReferrer = true;
                             }
-                        } else {
-                            // If not referred, just commit the user's status update.
-                            await batch.commit();
+                        }
+                        
+                        // Commit all batched writes at once.
+                        await batch.commit();
+
+                        // Show toast if a reward was successfully processed.
+                        if (rewardedReferrer) {
+                            toast({
+                                title: 'Indicação Recompensada!',
+                                description: 'Graças a você, a pessoa que te indicou ganhou 1 USDT de bônus!',
+                            });
                         }
                     }
                 }

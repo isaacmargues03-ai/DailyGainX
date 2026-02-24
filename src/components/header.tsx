@@ -16,11 +16,12 @@ import { Gem, User, LogOut } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useAppContext } from '@/context/AppContext';
 import { useFirebase } from '@/firebase';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const userProfileImage = PlaceHolderImages.find(p => p.id === 'instagram-profile-pic');
 
 export function Header() {
-  const { balance } = useAppContext();
+  const { balance, isBalanceLoading } = useAppContext();
   const { auth, user } = useFirebase();
   const router = useRouter();
 
@@ -44,7 +45,9 @@ export function Header() {
         <div className="flex flex-1 items-center justify-end space-x-4">
           <div className="text-right">
               <p className="text-sm text-muted-foreground">Saldo</p>
-              <p className="font-bold text-lg">{balance.toFixed(2)} USDT</p>
+              <div className="font-bold text-lg h-7 flex items-center justify-end">
+                {isBalanceLoading ? <Skeleton className="h-6 w-24" /> : `${balance.toFixed(2)} USDT`}
+              </div>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

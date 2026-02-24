@@ -27,9 +27,17 @@ export function ProductCard({ product, imageUrl, imageHint }: ProductCardProps) 
   const { instructorName, companyName, period, minInvestment, profit } = product;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
-  const { addInvestment, balance } = useAppContext();
+  const { addInvestment, balance, isBalanceLoading } = useAppContext();
 
   const handleInvest = () => {
+    if (isBalanceLoading) {
+        toast({
+            variant: "destructive",
+            title: "Aguarde",
+            description: "Seu saldo está sendo carregado. Tente novamente em alguns segundos.",
+        });
+        return;
+    }
     if (balance < minInvestment) {
         toast({
             variant: "destructive",
@@ -94,7 +102,9 @@ export function ProductCard({ product, imageUrl, imageHint }: ProductCardProps) 
           </div>
         </CardContent>
         <CardFooter className="p-4 pt-0">
-          <Button className="w-full" onClick={() => setIsDialogOpen(true)}>Investir</Button>
+          <Button className="w-full" onClick={() => setIsDialogOpen(true)} disabled={isBalanceLoading}>
+            {isBalanceLoading ? 'Carregando Saldo...' : 'Investir'}
+            </Button>
         </CardFooter>
       </Card>
 

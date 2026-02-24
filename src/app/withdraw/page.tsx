@@ -24,7 +24,7 @@ export default function WithdrawPage() {
     const [pixKey, setPixKey] = useState('');
     const [fullName, setFullName] = useState('');
     const { toast } = useToast();
-    const { balance, addTransaction, activeInvestments } = useAppContext();
+    const { balance, isBalanceLoading, addTransaction, activeInvestments } = useAppContext();
 
     const handleWithdraw = () => {
         const withdrawAmount = parseFloat(amount);
@@ -82,7 +82,7 @@ export default function WithdrawPage() {
         setFullName('');
     };
 
-    const isButtonDisabled = !amount || !pixKey || !fullName || parseFloat(amount) <= 0 || parseFloat(amount) > balance || activeInvestments.length === 0 || parseFloat(amount) < 5 || parseFloat(amount) > 10000;
+    const isButtonDisabled = isBalanceLoading || !amount || !pixKey || !fullName || parseFloat(amount) <= 0 || parseFloat(amount) > balance || activeInvestments.length === 0 || parseFloat(amount) < 5 || parseFloat(amount) > 10000;
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40">
