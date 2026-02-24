@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -11,10 +13,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Gem, User, LogOut } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useAppContext } from '@/context/AppContext';
 
 const userProfileImage = PlaceHolderImages.find(p => p.id === 'user-profile');
 
 export function Header() {
+  const { balance } = useAppContext();
   const user = {
     name: 'Usuário Teste',
     email: 'usuario@gmail.com',
@@ -32,7 +36,7 @@ export function Header() {
         <div className="flex flex-1 items-center justify-end space-x-4">
           <div className="text-right">
               <p className="text-sm text-muted-foreground">Saldo</p>
-              <p className="font-bold text-lg">150.00 USDT</p>
+              <p className="font-bold text-lg">{balance.toFixed(2)} USDT</p>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

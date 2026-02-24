@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { User, DollarSign, Home, Layers } from 'lucide-react';
+import { User, DollarSign, Home, Layers, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -15,7 +15,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card">
-      <div className="mx-auto grid h-16 grid-cols-4 items-center justify-items-center px-2">
+      <div className="mx-auto grid h-16 grid-cols-5 items-center justify-items-center px-2">
         <Link href="/" className="flex h-full items-center justify-center p-2" aria-label="Início">
             <Home className={cn('h-8 w-8', pathname === '/' ? 'text-primary' : 'text-muted-foreground')} />
         </Link>
@@ -24,6 +24,9 @@ export function BottomNav() {
         </Link>
         <Link href="/products" className="flex h-full items-center justify-center p-2" aria-label="Produtos">
             <Layers className={cn('h-8 w-8', pathname === '/products' ? 'text-primary' : 'text-muted-foreground')} />
+        </Link>
+        <Link href="/operations" className="flex h-full items-center justify-center p-2" aria-label="Operações">
+            <History className={cn('h-8 w-8', pathname === '/operations' ? 'text-primary' : 'text-muted-foreground')} />
         </Link>
         <Link href="/profile" className="flex h-full items-center justify-center p-2" aria-label="Perfil">
           <div className={cn('rounded-full p-0.5', pathname === '/profile' ? 'bg-primary' : 'bg-transparent')}>

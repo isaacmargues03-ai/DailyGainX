@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { DollarSign } from 'lucide-react';
 import { TradeChart } from './trade-chart';
 import { cn } from '@/lib/utils';
+import { useAppContext } from '@/context/AppContext';
+import { useToast } from "@/hooks/use-toast";
 
 const generateData = (count: number, initialValue: number) => {
     let value = initialValue;
@@ -14,13 +16,23 @@ const generateData = (count: number, initialValue: number) => {
         const date = new Date();
         date.setSeconds(date.getSeconds() - (count - i));
         value += (Math.random() - 0.5) * 0.01;
-        data.push({ time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), price: parseFloat(value.toFixed(4)) });
+        data.push({ time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), price: parseFloat(value.toFixed(4)) });
     }
     return data;
 };
 
+const WIN_PROBABILITY = 0.2; // 20% chance to win
+const MAX_WIN_AMOUNT = 1.5;
+const MIN_WIN_AMOUNT = 0.1;
+const MIN_LOSS_AMOUNT = 3.0;
+const MAX_LOSS_AMOUNT = 8.0;
+
 export function TradeCard() {
+    const { balance, setBalance, addOperation } = useAppContext();
+    const { toast } = useToast();
     const [message, setMessage] = useState<string | null>(null);
+    const [isTrading, setIsTrading] = useState(false);
+
     const initialData = useMemo(() => generateData(30, 5.4321), []);
     const [data, setData] = useState(initialData);
 
@@ -46,9 +58,53 @@ export function TradeCard() {
     }, []);
 
     const handleTrade = (direction: 'buy' | 'sell') => {
-        const action = direction === 'buy' ? 'Compra' : 'Venda';
-        setMessage(`Ordem de ${action} enviada.`);
-        setTimeout(() => setMessage(null), 4000);
+        if (isTrading) return;
+
+        setIsTrading(true);
+        setMessage(`Ordem de ${direction === 'buy' ? 'compra' : 'venda'} enviada. Aguardando resultado...`);
+
+        setTimeout(() => {
+            const isWin = Math.random() < WIN_PROBABILITY;
+            let amountChanged: number;
+            const outcome = isWin ? 'win' : 'loss';
+
+            if (isWin) {
+                amountChanged = MIN_WIN_AMOUNT + Math.random() * (MAX_WIN_AMOUNT - MIN_WIN_AMOUNT);
+            } else {
+                amountChanged = -(MIN_LOSS_AMOUNT + Math.random() * (MAX_LOSS_AMOUNT - MIN_LOSS_AMOUNT));
+            }
+
+            if (balance + amountChanged < 0) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Operação Falhou',
+                    description: `Você não tem saldo para cobrir a perda de ${Math.abs(amountChanged).toFixed(2)} USDT.`,
+                });
+                setMessage('Falha na operação por saldo insuficiente para cobrir possível perda.');
+                setIsTrading(false);
+                setTimeout(() => setMessage(null), 5000);
+                return;
+            }
+
+            setBalance(prev => prev + amountChanged);
+            addOperation({
+                type: direction,
+                price: lastPrice,
+                outcome,
+                amount: Math.abs(amountChanged),
+            });
+
+            const resultMessage = `Você ${isWin ? 'ganhou' : 'perdeu'} ${Math.abs(amountChanged).toFixed(2)} USDT.`;
+            setMessage(resultMessage);
+            toast({
+                title: 'Operação Concluída',
+                description: resultMessage,
+            });
+
+            setIsTrading(false);
+            setTimeout(() => setMessage(null), 5000);
+
+        }, 3000); // 3 second delay
     }
 
     return (
@@ -73,11 +129,11 @@ export function TradeCard() {
                 {message && <p className="text-sm text-center text-muted-foreground mt-4">{message}</p>}
             </CardContent>
             <CardFooter className="grid grid-cols-2 gap-4">
-                <Button size="lg" className="bg-green-500 hover:bg-green-600 text-white" onClick={() => handleTrade('buy')}>
-                    Comprar
+                <Button size="lg" className="bg-green-500 hover:bg-green-600 text-white" onClick={() => handleTrade('buy')} disabled={isTrading}>
+                    {isTrading ? 'Aguarde...' : 'Comprar'}
                 </Button>
-                <Button size="lg" className="bg-red-500 hover:bg-red-600 text-white" onClick={() => handleTrade('sell')}>
-                    Vender
+                <Button size="lg" className="bg-red-500 hover:bg-red-600 text-white" onClick={() => handleTrade('sell')} disabled={isTrading}>
+                     {isTrading ? 'Aguarde...' : 'Vender'}
                 </Button>
             </CardFooter>
         </Card>

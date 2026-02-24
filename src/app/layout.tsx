@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { BottomNav } from '@/components/bottom-nav';
+import { AppProvider } from '@/context/AppContext';
 
 export const metadata: Metadata = {
   title: 'DailyGainX',
@@ -24,9 +25,11 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <div className="pb-16">{children}</div>
-        <Toaster />
-        <BottomNav />
+        <AppProvider>
+          <div className="pb-16">{children}</div>
+          <Toaster />
+          <BottomNav />
+        </AppProvider>
       </body>
     </html>
   );
