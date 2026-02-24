@@ -171,6 +171,14 @@ export default function DepositPage() {
                                     <p className="text-sm text-muted-foreground">Valor: <span className="font-bold text-foreground">{usdtAmount.toFixed(2)} USDT</span></p>
                                     <div className="w-full space-y-4 pt-4 text-left">
                                         <div className="space-y-2">
+                                            <Label htmlFor="beneficiary">Beneficiário</Label>
+                                            <Input
+                                                id="beneficiary"
+                                                readOnly
+                                                value="DailyGainX"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
                                             <Label htmlFor="pix-copy-paste">Pix Copia e Cola</Label>
                                             <div className="flex items-center space-x-2">
                                                 <Input
