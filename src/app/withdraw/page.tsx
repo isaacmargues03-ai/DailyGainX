@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/AppContext';
 import { ArrowLeft } from 'lucide-react';
@@ -22,7 +21,6 @@ const PixIcon = () => (
 
 export default function WithdrawPage() {
     const [amount, setAmount] = useState('');
-    const [pixKeyType, setPixKeyType] = useState('cpf');
     const [pixKey, setPixKey] = useState('');
     const { toast } = useToast();
     const { balance, addTransaction, activeInvestments } = useAppContext();
@@ -108,25 +106,11 @@ export default function WithdrawPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="space-y-3">
-                                <Label>Tipo de Chave Pix</Label>
-                                <RadioGroup defaultValue="cpf" value={pixKeyType} onValueChange={setPixKeyType} className="flex space-x-4">
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="cpf" id="r-cpf" />
-                                        <Label htmlFor="r-cpf">CPF</Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="phone" id="r-phone" />
-                                        <Label htmlFor="r-phone">Telefone</Label>
-                                    </div>
-                                </RadioGroup>
-                            </div>
-
                             <div className="space-y-2">
-                                <Label htmlFor="pix-key">Sua Chave {pixKeyType === 'cpf' ? 'CPF' : 'Telefone'}</Label>
+                                <Label htmlFor="pix-key">Sua Chave CPF</Label>
                                 <Input
                                     id="pix-key"
-                                    placeholder={pixKeyType === 'cpf' ? '000.000.000-00' : '(00) 00000-0000'}
+                                    placeholder={'000.000.000-00'}
                                     value={pixKey}
                                     onChange={(e) => setPixKey(e.target.value)}
                                 />
