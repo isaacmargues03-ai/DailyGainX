@@ -3,7 +3,9 @@ import { ImageCarousel } from '@/components/image-carousel';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
-const petrobrasLogoImage = PlaceHolderImages.find(p => p.id === 'petrobras-logo');
+const brLogo = PlaceHolderImages.find(p => p.id === 'br-logo');
+const upsLogo = PlaceHolderImages.find(p => p.id === 'ups-logo');
+const solarPowerLogo = PlaceHolderImages.find(p => p.id === 'solar-power-logo');
 
 
 export default function DashboardPage() {
@@ -16,20 +18,42 @@ export default function DashboardPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Nossos patrocinios</h1>
             </div>
             <ImageCarousel />
-            {petrobrasLogoImage && (
-              <div className="mt-8 flex justify-center">
+            <div className="mt-8 flex justify-around items-center gap-4 flex-wrap">
+              {brLogo && (
                 <Image
-                  src={petrobrasLogoImage.imageUrl}
-                  alt={petrobrasLogoImage.description}
-                  width={347}
-                  height={54}
-                  className="h-auto w-auto"
-                  data-ai-hint={petrobrasLogoImage.imageHint}
+                  src={brLogo.imageUrl}
+                  alt={brLogo.description}
+                  width={200}
+                  height={100}
+                  className="h-auto w-auto max-h-20 object-contain"
+                  data-ai-hint={brLogo.imageHint}
                 />
-              </div>
-            )}
+              )}
+              {upsLogo && (
+                <Image
+                  src={upsLogo.imageUrl}
+                  alt={upsLogo.description}
+                  width={200}
+                  height={100}
+                  className="h-auto w-auto max-h-20 object-contain"
+                  data-ai-hint={upsLogo.imageHint}
+                />
+              )}
+              {solarPowerLogo && (
+                <Image
+                  src={solarPowerLogo.imageUrl}
+                  alt={solarPowerLogo.description}
+                  width={200}
+                  height={100}
+                  className="h-auto w-auto max-h-20 object-contain"
+                  data-ai-hint={solarPowerLogo.imageHint}
+                />
+              )}
+            </div>
         </div>
       </main>
     </div>
   );
 }
+
+    
