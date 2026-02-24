@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, collection, query, where } from 'firebase/firestore';
 import { Header } from '@/components/header';
@@ -7,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Gift, User, CheckCircle } from 'lucide-react';
+import { Copy, Gift, User, CheckCircle, CreditCard } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +50,12 @@ export default function ReferralsPage() {
   }, [firestore, user]);
 
   const { data: referrals, isLoading: isReferralsLoading } = useCollection<Referral>(referralsQuery);
+  
+  const totalRewards = useMemo(() => {
+    if (!referrals) return 0;
+    // Each rewarded referral is 1 USDT
+    return referrals.filter(r => r.status === 'rewarded').length;
+  }, [referrals]);
 
 
   const copyToClipboard = () => {
@@ -70,6 +77,26 @@ export default function ReferralsPage() {
             <h1 className="text-3xl font-bold tracking-tight">Indique e Ganhe</h1>
             <p className="text-muted-foreground mt-2">Convide seus amigos e ganhe 1 USDT para cada amigo que fizer o primeiro depósito.</p>
           </div>
+
+          <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-primary">
+                    <CreditCard className="h-6 w-6" />
+                    Total de Recompensas
+                </CardTitle>
+                <CardDescription>
+                    Seus ganhos por indicar amigos. Este valor não é adicionado automaticamente ao seu saldo principal.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {isReferralsLoading ? (
+                    <Skeleton className="h-8 w-24" />
+                ) : (
+                    <p className="text-3xl font-bold">{totalRewards.toFixed(2)} USDT</p>
+                )}
+            </CardContent>
+          </Card>
+
 
           <Card>
             <CardHeader>
@@ -104,7 +131,7 @@ export default function ReferralsPage() {
                 <ul className="list-disc list-inside space-y-1">
                   <li>Seu amigo se cadastra usando seu código.</li>
                   <li>Ele faz o primeiro depósito de qualquer valor.</li>
-                  <li>Você recebe 1 USDT de bônus no seu saldo.</li>
+                  <li>Você recebe 1 USDT de bônus na sua recompensa.</li>
                 </ul>
               </div>
             </CardContent>
