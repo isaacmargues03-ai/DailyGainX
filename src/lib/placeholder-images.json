@@ -3,7 +3,7 @@
     {
       "id": "user-profile",
       "description": "User profile picture",
-      "imageUrl": "https://images.unsplash.com/photo-1613145997970-db84a7975fbb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxwcm9maWxlJTIwcGVyc29ufGVufDB8fHx8MTc3MTg3NDUzMnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1613145997970-db84a7975fbb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxwcm9maWxlJTIwcGVyc29ufGVufDB8fHx8MTc3MTg3NDUzMnww&ixlib.rb-4.1.0&q=80&w=1080",
       "imageHint": "profile person"
     },
     {
@@ -56,27 +56,27 @@
     },
     {
       "id": "petrobras-company",
-      "description": "An engineer working on an oil platform for Petrobras",
-      "imageUrl": "https://images.unsplash.com/photo-1581092916322-3c303a283e7a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxvaWwlMjBlbmdpbmVlcnxlbnwwfHx8fDE3NzIxODk2MTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "oil engineer"
+      "description": "Portrait of a male engineer, representing the instructor for Petrobras",
+      "imageUrl": "https://images.unsplash.com/photo-1552664730-d307ca884978?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtYWxlJTIwZW5naW5lZXIlMjBwb3J0cmFpdHxlbnwwfHx8fDE3NzIyOTI0ODl8MA&ixlib.rb-4.1.0&q=80&w=1080",
+      "imageHint": "male engineer"
     },
     {
       "id": "vale-company",
-      "description": "A worker at a Vale mining site",
-      "imageUrl": "https://images.unsplash.com/photo-1629822479151-242d2a44136e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtaW5pbmclMjB3b3JrZXJ8ZW58MHx8fHwxNzcyMTg5NjYxfDA&ixlib.rb-4.1.0&q=80&w=1080",
-      "imageHint": "mining worker"
+      "description": "Portrait of a male worker, representing the instructor for Vale",
+      "imageUrl": "https://images.unsplash.com/photo-1618978119892-3e3c6a47a1c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtYWxlJTIwd29ya2VyJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzcyMjkyNTU3fDA&ixlib.rb-4.1.0&q=80&w=1080",
+      "imageHint": "male worker"
     },
     {
       "id": "itau-company",
-      "description": "A finance professional in an office, representing Itaú",
-      "imageUrl": "https://images.unsplash.com/photo-1556742208-999815f2b35a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmaW5hbmNlJTIwcHJvZmVzc2lvbmFsfGVufDB8fHx8MTc3MjE4OTcyOHww&ixlib.rb-4.1.0&q=80&w=1080",
-      "imageHint": "finance professional"
+      "description": "Portrait of a female finance professional, representing the instructor for Itaú",
+      "imageUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmZW1hbGUlMjBmaW5hbmNlJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzcyMjkyNTk3fDA&ixlib.rb-4.1.0&q=80&w=1080",
+      "imageHint": "female finance"
     },
     {
       "id": "ambev-company",
-      "description": "A worker in a brewery, representing Ambev",
-      "imageUrl": "https://images.unsplash.com/photo-1581352026392-28498b315b49?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjcmFmdCUyMGJyZXdlcnl8ZW58MHx8fHwxNzcyMTg5Nzc4fDA&ixlib.rb-4.1.0&q=80&w=1080",
-      "imageHint": "craft brewery"
+      "description": "Portrait of a female brewery worker, representing the instructor for Ambev",
+      "imageUrl": "https://images.unsplash.com/photo-1634055278783-16a7f5c53f31?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmZW1hbGUlMjBicmV3ZXJ5JTIwd29ya2VyfGVufDB8fHx8MTc3MjI5MjYyOXww&ixlib.rb-4.1.0&q=80&w=1080",
+      "imageHint": "brewery worker"
     },
     {
       "id": "factory-1",
