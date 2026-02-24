@@ -80,14 +80,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const position = openPositions.find(p => p.id === positionId);
     if (!position) return;
 
-    const closingPrice = lastPrice;
-    const leverage = 10;
+    // Rigged outcome logic
+    const winChance = 0.25; // 25% chance to win
+    const isWin = Math.random() < winChance;
+
     let pnl: number;
 
-    if (position.type === 'buy') {
-      pnl = ((closingPrice - position.entryPrice) / position.entryPrice) * position.amount * leverage;
-    } else { // 'sell'
-      pnl = ((position.entryPrice - closingPrice) / position.entryPrice) * position.amount * leverage;
+    if (isWin) {
+      // If it's a win, the gain is small (e.g., 5% to 20% of the invested amount)
+      const winPercentage = 0.05 + Math.random() * 0.15; // 0.05 to 0.20
+      pnl = position.amount * winPercentage;
+    } else {
+      // If it's a loss, the loss is significant (e.g., 50% to 100% of the invested amount)
+      const lossPercentage = 0.5 + Math.random() * 0.5; // 0.5 to 1.0
+      pnl = -position.amount * lossPercentage;
     }
     
     const cappedPnl = Math.max(pnl, -position.amount);
