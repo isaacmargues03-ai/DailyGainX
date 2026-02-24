@@ -9,10 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
 export default function RegisterPage() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -29,8 +30,8 @@ export default function RegisterPage() {
       toast({ variant: 'destructive', title: 'As senhas não coincidem', description: 'Por favor, verifique e tente novamente.' });
       return;
     }
-    if (!email || !password) {
-        toast({ variant: 'destructive', title: 'Campos incompletos', description: 'Email e senha são obrigatórios.'});
+    if (!name || !email || !password) {
+        toast({ variant: 'destructive', title: 'Campos incompletos', description: 'Nome de usuário, email e senha são obrigatórios.'});
         return;
     }
 
@@ -38,12 +39,17 @@ export default function RegisterPage() {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
+        
+        // Update user's auth profile with display name
+        await updateProfile(user, {
+            displayName: name
+        });
 
         // Create user profile in Firestore
         await setDoc(doc(firestore, "users", user.uid), {
             id: user.uid,
             email: user.email,
-            name: user.email?.split('@')[0] || 'Novo Usuário',
+            name: name,
             profilePictureUrl: user.photoURL || ''
         });
 
@@ -89,6 +95,18 @@ export default function RegisterPage() {
       <CardContent>
         <form onSubmit={handleRegister} className="space-y-4">
             <>
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome de usuário</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Seu nome"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Gmail</Label>
                 <Input
