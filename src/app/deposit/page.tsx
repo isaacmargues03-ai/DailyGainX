@@ -216,7 +216,8 @@ export default function DepositPage() {
                 <div className="w-9 h-9" />
             </header>
 
-            <main className="flex-1 p-4 sm:p-6 space-y-6">
+            <main className="flex-1 p-4 sm:p-6">
+              <div className="container mx-auto max-w-md space-y-6">
                 <div>
                     <Label className="text-sm font-normal text-muted-foreground">PIX elegível</Label>
                     <div className="mt-2 flex items-center justify-between rounded-lg border-2 border-green-500 bg-card p-4">
@@ -266,6 +267,7 @@ export default function DepositPage() {
                         Depósito
                     </Button>
                 </div>
+              </div>
             </main>
         </div>
     );
