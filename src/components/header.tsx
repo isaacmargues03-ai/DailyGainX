@@ -17,7 +17,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useAppContext } from '@/context/AppContext';
 import { useFirebase } from '@/firebase';
 
-const userProfileImage = PlaceHolderImages.find(p => p.id === 'user-profile');
+const userProfileImage = PlaceHolderImages.find(p => p.id === 'instagram-profile-pic');
 
 export function Header() {
   const { balance } = useAppContext();
@@ -83,5 +83,3 @@ export function Header() {
     </header>
   );
 }
-
-    
