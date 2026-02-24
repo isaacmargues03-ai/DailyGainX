@@ -14,14 +14,14 @@ export function BottomNav() {
   const user = { name: 'Usuário Teste' };
 
   const navItems = [
-    { href: '/', icon: Home, label: 'Painel' },
+    { href: '/', icon: Home, label: 'Início' },
     { href: '/search', icon: Search, label: 'Pesquisar' },
     { href: '/add', icon: PlusSquare, label: 'Adicionar' },
     { href: '/reels', icon: Clapperboard, label: 'Reels' },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card">
       <div className="mx-auto flex h-14 items-center justify-around px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
