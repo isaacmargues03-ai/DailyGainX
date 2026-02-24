@@ -77,6 +77,30 @@
       "description": "Profile picture for Alexander Greene",
       "imageUrl": "https://images.unsplash.com/photo-1564564321837-a57b7070ac4f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NzE5ODAwMDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "man portrait"
+    },
+    {
+      "id": "factory-1",
+      "description": "A modern factory floor",
+      "imageUrl": "https://images.unsplash.com/photo-1580983216235-a6b4938a49ae?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxGYWN0b3J5fGVufDB8fHx8MTc3MjE4ODk3NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "modern factory"
+    },
+    {
+      "id": "factory-2",
+      "description": "An industrial manufacturing plant",
+      "imageUrl": "https://images.unsplash.com/photo-1611649231495-3675841432e3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxGYWN0b3J5fGVufDB8fHx8MTc3MjE4ODk3NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "industrial factory"
+    },
+    {
+      "id": "factory-3",
+      "description": "Automated production line in a factory",
+      "imageUrl": "https://images.unsplash.com/photo-1567099322354-8a1563638c4c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxGYWN0b3J5fGVufDB8fHx8MTc3MjE4ODk3NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "automation factory"
+    },
+    {
+      "id": "factory-4",
+      "description": "Interior of a large factory warehouse",
+      "imageUrl": "https://images.unsplash.com/photo-1621935637996-25d971a1c9ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxGYWN0b3J5fGVufDB8fHx8MTc3MjE4ODk3NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "warehouse factory"
     }
   ]
 }
