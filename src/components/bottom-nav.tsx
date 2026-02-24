@@ -9,7 +9,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   const navItems = [
-    { href: '/conversas', label: 'Conversas', icon: MessageSquare },
+    { href: '/conversas', label: 'Conversas', icon: MessageSquare, notification: 8 },
     { href: '/atualizacoes', label: 'Atualizações', icon: History },
     { href: '/comunidades', label: 'Comunidades', icon: Users },
     { href: '/ligacoes', label: 'Ligações', icon: Phone },
@@ -24,10 +24,17 @@ export function BottomNav() {
             href={item.href}
             className={cn(
               'flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-primary',
-              pathname === item.href ? 'text-primary' : ''
+              pathname === item.href ? 'text-accent' : ''
             )}
           >
-            <item.icon className="h-6 w-6" />
+            <div className="relative">
+              <item.icon className="h-6 w-6" />
+              {item.notification && (
+                <span className="absolute -right-2 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground">
+                  {item.notification}
+                </span>
+              )}
+            </div>
             <span className="text-xs font-medium">{item.label}</span>
           </Link>
         ))}
