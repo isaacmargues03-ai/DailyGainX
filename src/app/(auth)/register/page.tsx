@@ -96,8 +96,8 @@ export default function RegisterPage() {
               description = 'Muitas solicitações. Por favor, tente novamente mais tarde.';
               break;
           case 'auth/operation-not-allowed':
-              title = 'Autenticação por telefone desativada';
-              description = 'Para que isso funcione, o login por telefone precisa ser ativado no seu projeto Firebase.';
+              title = 'Ação necessária no Firebase';
+              description = 'Ative o provedor "Telefone" no seu Firebase Console em: Authentication > Sign-in method.';
               break;
           default:
               description = `Ocorreu um erro inesperado: ${error.message}`;
