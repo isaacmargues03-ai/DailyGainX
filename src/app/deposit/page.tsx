@@ -227,7 +227,10 @@ export default function DepositPage() {
                 </div>
 
                 <div className="space-y-4">
-                    <h2 className="font-semibold">Pagar</h2>
+                    <div className="flex justify-between items-center">
+                        <h2 className="font-semibold">Pagar</h2>
+                        <p className="text-sm text-orange-500">(1 USDT ≈ {CONVERSION_RATE} R$)</p>
+                    </div>
                     <div className="relative">
                         <Input
                             id="brlAmount"
@@ -239,7 +242,6 @@ export default function DepositPage() {
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">R$</span>
                     </div>
-                    <p className="text-sm text-orange-500 text-center">(1 USDT ≈ {CONVERSION_RATE} R$)</p>
                     <div className="relative">
                         <Input
                             id="usdtAmount"
