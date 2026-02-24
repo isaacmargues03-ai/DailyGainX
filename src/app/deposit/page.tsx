@@ -71,7 +71,8 @@ export default function DepositPage() {
             const userDocRef = doc(firestore, 'users', user.uid);
             getDoc(userDocRef)
                 .then((userDoc) => {
-                    if (userDoc.exists() && userDoc.data().hasMadeFirstDeposit === false) {
+                    const userData = userDoc.data();
+                    if (userDoc.exists() && userData && userData.hasMadeFirstDeposit === false) {
                         // This is the first deposit, check for a referral record
                         const referralsQuery = query(collection(firestore, 'referrals'), where('referredId', '==', user.uid), where('status', '==', 'pending'));
                         getDocs(referralsQuery).then(referralSnapshot => {
