@@ -1,5 +1,4 @@
 import { Header } from '@/components/header';
-import { InvestmentCard } from '@/components/investment-card';
 
 export default function DashboardPage() {
   return (
@@ -7,7 +6,6 @@ export default function DashboardPage() {
       <Header />
       <main className="flex-1 bg-background">
         <div className="container mx-auto max-w-2xl px-4 py-8">
-          <InvestmentCard />
         </div>
       </main>
     </div>
