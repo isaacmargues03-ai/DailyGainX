@@ -29,7 +29,7 @@ const PixLogo = () => (
 );
 
 
-const CONVERSION_RATE = 5.1723;
+const CONVERSION_RATE = 5;
 
 export default function DepositPage() {
     const [brlAmount, setBrlAmount] = useState('');
@@ -51,11 +51,11 @@ export default function DepositPage() {
 
     const handleGenerateQrCode = () => {
         const amountInBrl = parseFloat(brlAmount);
-        if (isNaN(amountInBrl) || amountInBrl < 10) {
+        if (isNaN(amountInBrl) || amountInBrl < 25) {
             toast({
                 variant: 'destructive',
                 title: 'Valor inválido',
-                description: 'Por favor, insira um valor de depósito válido (mínimo R$ 10).',
+                description: 'Por favor, insira um valor de depósito válido (mínimo R$ 25).',
             });
             return;
         }
@@ -232,7 +232,7 @@ export default function DepositPage() {
                         <Input
                             id="brlAmount"
                             type="number"
-                            placeholder="Limite 10 ~ 10000"
+                            placeholder="Limite 25 ~ 10000"
                             value={brlAmount}
                             onChange={(e) => setBrlAmount(e.target.value)}
                             className="h-14 text-lg pl-4 pr-12 bg-muted border-none"
@@ -243,7 +243,7 @@ export default function DepositPage() {
                     <div className="relative">
                         <Input
                             id="usdtAmount"
-                            value={usdtAmount > 0 ? usdtAmount.toFixed(4) : ''}
+                            value={usdtAmount > 0 ? usdtAmount.toFixed(2) : ''}
                             readOnly
                             className="h-14 text-lg pl-4 pr-16 bg-muted border-none"
                             placeholder="Receberei"
@@ -262,7 +262,7 @@ export default function DepositPage() {
                     <Button 
                         onClick={handleGenerateQrCode} 
                         className="w-full h-12 text-lg" 
-                        disabled={!brlAmount || parseFloat(brlAmount) < 10}
+                        disabled={!brlAmount || parseFloat(brlAmount) < 25}
                     >
                         Depósito
                     </Button>
