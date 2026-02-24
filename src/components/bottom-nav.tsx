@@ -2,37 +2,49 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CandlestickChart, Zap, User } from 'lucide-react';
+import { Home, Search, PlusSquare, Clapperboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+
+const userProfileImage = PlaceHolderImages.find(p => p.id === 'instagram-profile-pic');
 
 export function BottomNav() {
   const pathname = usePathname();
+  const user = { name: 'Usuário Teste' };
 
   const navItems = [
-    { href: '/', label: 'Painel', icon: LayoutDashboard },
-    { href: '/investir', label: 'Investir', icon: CandlestickChart },
-    { href: '/minhas-maquinas', label: 'Máquinas', icon: Zap },
-    { href: '/profile', label: 'Perfil', icon: User },
+    { href: '/', icon: Home, label: 'Painel' },
+    { href: '/search', icon: Search, label: 'Pesquisar' },
+    { href: '/add', icon: PlusSquare, label: 'Adicionar' },
+    { href: '/reels', icon: Clapperboard, label: 'Reels' },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/80 backdrop-blur-sm md:hidden">
-      <div className="container mx-auto flex h-16 items-center justify-around px-4">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              'flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-primary',
-              pathname === item.href ? 'text-primary' : ''
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card md:hidden">
+      <div className="mx-auto flex h-14 items-center justify-around px-2">
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link key={item.href} href={item.href} className="flex h-full w-1/5 items-center justify-center" aria-label={item.label}>
+              <item.icon
+                className={cn('h-7 w-7', isActive ? 'text-foreground' : 'text-muted-foreground')}
+                strokeWidth={isActive ? 2.5 : 2}
+                fill={isActive && item.icon === Home ? 'currentColor' : 'none'}
+              />
+            </Link>
+          );
+        })}
+        <Link href="/profile" className="flex h-full w-1/5 items-center justify-center" aria-label="Perfil">
+          <div className={cn('rounded-full p-0.5', pathname === '/profile' ? 'bg-foreground' : 'bg-transparent')}>
+            {userProfileImage && (
+              <Avatar className="h-7 w-7">
+                <AvatarImage src={userProfileImage.imageUrl} data-ai-hint={userProfileImage.imageHint} />
+                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+              </Avatar>
             )}
-          >
-            <div className="relative">
-              <item.icon className="h-6 w-6" />
-            </div>
-            <span className="text-xs font-medium">{item.label}</span>
-          </Link>
-        ))}
+          </div>
+        </Link>
       </div>
     </nav>
   );
