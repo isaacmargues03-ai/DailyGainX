@@ -3,24 +3,18 @@
 import type { Operation, OpenPosition, ActiveInvestment, Transaction } from '@/lib/types';
 import type { Product } from '@/lib/products';
 import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo, useCallback } from 'react';
-import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, increment, writeBatch, getDoc } from 'firebase/firestore';
+import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, updateDoc, increment, query, collection, orderBy, limit } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-
 
 const generateData = (count: number, initialValue: number) => {
     let value = initialValue;
     const data = [];
     for (let i = 0; i < count; i++) {
-        const date = new Date();
-        date.setSeconds(date.getSeconds() - (count - i));
         data.push({ time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), price: parseFloat(value.toFixed(4)) });
     }
     return data;
 };
-
 
 interface AppContextType {
   balance: number;
@@ -44,7 +38,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [operations, setOperations] = useState<Operation[]>([]);
   const [openPositions, setOpenPositions] = useState<OpenPosition[]>([]);
   const [activeInvestments, setActiveInvestments] = useState<ActiveInvestment[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   
   const { user, firestore } = useFirebase();
   const { toast } = useToast();
@@ -55,6 +48,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [user, firestore]);
 
   const { data: userAccount, isLoading: isBalanceLoading } = useDoc<{balance: number}>(accountDocRef);
+
+  const transactionsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(
+        collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions'),
+        orderBy('depositDate', 'desc'),
+        limit(50)
+    );
+  }, [user, firestore]);
+
+  const { data: firestoreTransactions } = useCollection<Transaction>(transactionsQuery);
 
   const balance = userAccount?.balance ?? 0;
 
@@ -74,7 +78,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
               return newData;
           });
       }, 1000);
-
       return () => clearInterval(interval);
   }, []);
 
@@ -87,96 +90,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setOperations(prev => [newOperation, ...prev]);
   }, []);
 
-    const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
-        const newTransaction: Transaction = {
-        ...transaction,
-        id: new Date().getTime().toString(),
-        timestamp: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'}),
-        };
-
-        setTransactions(prev => [newTransaction, ...prev]);
-
-        // Handle deposits with a delay to simulate confirmation and perform real updates
-        if (newTransaction.type === 'deposit' && newTransaction.status === 'Pending') {
-            setTimeout(async () => {
-                if (!user || !firestore || !accountDocRef) return;
-
-                try {
-                    const batch = writeBatch(firestore);
-                    const userDocRef = doc(firestore, 'users', user.uid);
-
-                    // 1. Increment balance
-                    batch.update(accountDocRef, { balance: increment(newTransaction.amount) });
-
-                    // 2. Handle first deposit and referral logic
-                    const userDoc = await getDoc(userDocRef);
-                    if (userDoc.exists()) {
-                        const userData = userDoc.data();
-                        if (userData && userData.hasMadeFirstDeposit === false) {
-                            batch.update(userDocRef, { hasMadeFirstDeposit: true });
-
-                            if (userData.referralId) {
-                                const referralDocRef = doc(firestore, 'referrals', userData.referralId);
-                                const referralDoc = await getDoc(referralDocRef);
-                                if (referralDoc.exists() && referralDoc.data().status === 'pending') {
-                                    const referrerId = referralDoc.data().referrerId;
-                                    const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
-                                    batch.update(referralDocRef, { status: 'rewarded' });
-                                    batch.update(referrerAccountRef, { balance: increment(1) });
-                                    
-                                    toast({
-                                        title: 'Indicação Recompensada!',
-                                        description: 'Graças a você, a pessoa que te indicou ganhou 1 USDT de bônus!',
-                                    });
-                                }
-                            }
-                        }
-                    }
-                    
-                    await batch.commit();
-
-                    // 3. Update local state to 'Completed'
-                    setTransactions(prev => 
-                        prev.map(tx => tx.id === newTransaction.id ? { ...tx, status: 'Completed' } : tx)
-                    );
-
-                    toast({
-                        variant: 'success',
-                        title: 'PAGAMENTO CONFIRMADO!',
-                        description: `Seu depósito de ${newTransaction.amount.toFixed(2)} USDT foi adicionado ao seu saldo.`,
-                    });
-
-                } catch (error) {
-                    console.error("Error confirming deposit:", error);
-                    setTransactions(prev => 
-                        prev.map(tx => tx.id === newTransaction.id ? { ...tx, status: 'Failed' } : tx)
-                    );
-                    toast({
-                        variant: 'destructive',
-                        title: 'Erro ao Confirmar Depósito',
-                        description: 'Não foi possível atualizar seu saldo no servidor. Por favor, contate o suporte.',
-                    });
-                    const permissionError = new FirestorePermissionError({ path: accountDocRef.path, operation: 'update', requestResourceData: { balance: `increment by ${newTransaction.amount}` } });
-                    errorEmitter.emit('permission-error', permissionError);
-                }
-            }, 7000);
-        } 
-        // Handle withdrawals immediately
-        else if (newTransaction.type === 'withdrawal') {
-            if (accountDocRef) {
-                updateDoc(accountDocRef, { balance: increment(-newTransaction.amount) })
-                .catch(error => {
-                    console.error(`Firestore update failed for withdrawal at ${accountDocRef.path}:`, error);
-                    const permissionError = new FirestorePermissionError({ path: accountDocRef.path, operation: 'update', requestResourceData: { balance: `decrement by ${newTransaction.amount}` } });
-                    errorEmitter.emit('permission-error', permissionError);
-                    toast({ variant: 'destructive', title: 'Falha no Saque', description: 'Não foi possível atualizar seu saldo.' });
-                });
-            }
-        }
-    }, [user, firestore, toast, accountDocRef]);
+  const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
+      // Implementação para saques. Depósitos agora são tratados via Webhook + Firestore listener
+      if (transaction.type === 'withdrawal' && accountDocRef) {
+          updateDoc(accountDocRef, { balance: increment(-transaction.amount) })
+            .catch(() => toast({ variant: 'destructive', title: 'Erro', description: 'Falha no saque.' }));
+      }
+  }, [accountDocRef, toast]);
 
   const openPosition = useCallback((position: Omit<OpenPosition, 'id' | 'timestamp' | 'entryPrice'>) => {
-    if (isBalanceLoading) return;
+    if (isBalanceLoading || !accountDocRef) return;
     const newPosition: OpenPosition = {
       ...position,
       id: new Date().getTime().toString(),
@@ -184,20 +107,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       entryPrice: lastPrice,
     };
     setOpenPositions(prev => [newPosition, ...prev]);
-    if (accountDocRef) {
-        updateDoc(accountDocRef, { balance: increment(-position.amount) })
-        .catch(error => {
-            console.error(`Firestore update failed for openPosition at ${accountDocRef.path}:`, error);
-            const permissionError = new FirestorePermissionError({ path: accountDocRef.path, operation: 'update', requestResourceData: { balance: `decrement by ${position.amount}` } });
-            errorEmitter.emit('permission-error', permissionError);
-            toast({ variant: 'destructive', title: 'Falha ao Abrir Operação', description: 'Não foi possível atualizar seu saldo.' });
-        });
-    }
-  }, [isBalanceLoading, lastPrice, accountDocRef, toast]);
+    updateDoc(accountDocRef, { balance: increment(-position.amount) });
+  }, [isBalanceLoading, lastPrice, accountDocRef]);
 
   const closePosition = useCallback((positionId: string) => {
     const position = openPositions.find(p => p.id === positionId);
-    if (!position || isBalanceLoading) return;
+    if (!position || isBalanceLoading || !accountDocRef) return;
 
     const winChance = 0.35;
     const isWin = Math.random() < winChance;
@@ -214,15 +129,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const cappedPnl = Math.max(pnl, -position.amount);
     const amountToReturn = position.amount + cappedPnl;
 
-    if (accountDocRef) {
-        updateDoc(accountDocRef, { balance: increment(amountToReturn) })
-        .catch(error => {
-            console.error(`Firestore update failed for closePosition at ${accountDocRef.path}:`, error);
-            const permissionError = new FirestorePermissionError({ path: accountDocRef.path, operation: 'update', requestResourceData: { balance: `increment by ${amountToReturn}` } });
-            errorEmitter.emit('permission-error', permissionError);
-            toast({ variant: 'destructive', title: 'Falha ao Fechar Operação', description: 'Não foi possível creditar o resultado da operação ao seu saldo.' });
-        });
-    }
+    updateDoc(accountDocRef, { balance: increment(amountToReturn) });
 
     addOperation({
       type: position.type,
@@ -232,22 +139,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     setOpenPositions(prev => prev.filter(p => p.id !== positionId));
-  }, [openPositions, isBalanceLoading, accountDocRef, addOperation, toast]);
+  }, [openPositions, isBalanceLoading, accountDocRef, addOperation]);
   
   const addInvestment = useCallback((product: Product, image: { imageUrl: string, imageHint: string }): boolean => {
-    if (isBalanceLoading) return false;
-    if (balance < product.minInvestment) {
-      return false;
-    }
-    if (accountDocRef) {
-        updateDoc(accountDocRef, { balance: increment(-product.minInvestment) })
-        .catch(error => {
-            console.error(`Firestore update failed for addInvestment at ${accountDocRef.path}:`, error);
-            const permissionError = new FirestorePermissionError({ path: accountDocRef.path, operation: 'update', requestResourceData: { balance: `decrement by ${product.minInvestment}` } });
-            errorEmitter.emit('permission-error', permissionError);
-            toast({ variant: 'destructive', title: 'Falha no Investimento', description: 'Não foi possível debitar o valor do seu saldo.' });
-        });
-    }
+    if (isBalanceLoading || !accountDocRef || balance < product.minInvestment) return false;
+    
+    updateDoc(accountDocRef, { balance: increment(-product.minInvestment) });
+
     const newInvestment: ActiveInvestment = {
       id: new Date().getTime().toString(),
       productId: product.id,
@@ -262,7 +160,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setActiveInvestments(prev => [newInvestment, ...prev]);
     return true;
-  }, [isBalanceLoading, balance, accountDocRef, toast]);
+  }, [isBalanceLoading, balance, accountDocRef]);
 
   const value = useMemo(() => ({ 
       balance, 
@@ -276,7 +174,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       lastPrice,
       activeInvestments,
       addInvestment,
-      transactions,
+      transactions: (firestoreTransactions || []) as Transaction[],
       addTransaction
   }), [
       balance, 
@@ -290,10 +188,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       lastPrice,
       activeInvestments,
       addInvestment,
-      transactions,
+      firestoreTransactions,
       addTransaction
   ]);
-
 
   return (
     <AppContext.Provider value={value}>

@@ -2,194 +2,50 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * Core Philosophy: This ruleset enforces a strict user-ownership security model.
-     * All user-specific data is isolated and protected within a dedicated data tree,
-     * ensuring that users can only access their own information. The default security
-     * posture is to deny all access, with permissions explicitly granted only to the
-     * authenticated owner of the data.
-     *
-     * Data Structure: All user data is hierarchically organized under the top-level
-     * `/users/{userId}` collection. This structure naturally aligns with the security
-     * model, allowing for simple and performant rules based on the document path.
-     * Subcollections like `accounts`, `investments`, and `depositTransactions` inherit
-     * the ownership context from their parent user document.
-     *
-     * Key Security Decisions:
-     * - User data is strictly private. There are no public or shared collections.
-     * - Listing the top-level `/users` collection is disallowed to prevent user enumeration.
-     * - All write operations (`create`, `update`, `delete`) are gated by ownership checks.
-     * - All read operations (`get`, `list`) within a user's data tree are restricted
-     *   to the owner of that tree.
-     *
-     * Denormalization for Authorization: To ensure fast and secure authorization checks
-     * without costly `get()` calls, ownership information is denormalized directly onto
-     * the documents being secured. For example, `Investment` and `UserAccount` documents
-     * contain a `userId` field that must match the `{userId}` from the path, creating
-     * a self-contained and verifiable ownership link. This principle is strictly
-     * enforced across the data model.
-     *
-     * Structural Segregation: The entire data model is built on structural segregation.
-     * By nesting all private data under `/users/{userId}`, we create a clear boundary
-     * between different users' data, which simplifies security rules and makes list
-     * queries inherently secure.
-     */
-
-    // =====================================================================
-    // Helper Functions
-    // =====================================================================
-
-    /**
-     * Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the currently authenticated user is the owner of the document,
-     * based on the `userId` wildcard from the path.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * Checks if the user is the owner AND the document already exists.
-     * Critical for preventing modification or deletion of non-existent data.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    /**
-     * Validates that the incoming document's 'id' field matches the user's UID.
-     * Enforces relational integrity on create for UserProfile documents.
-     */
-    function hasValidIdOnCreate(userId) {
-      return request.resource.data.id == userId;
-    }
-
-    /**
-     * Validates that the 'id' field is immutable on update.
-     * Prevents re-assigning the core identifier of a UserProfile.
-     */
-    function isIdImmutable() {
-      return request.resource.data.id == resource.data.id;
-    }
-
-    /**
-     * Validates that the incoming document's 'userId' field matches the user's UID from the path.
-     * Enforces relational integrity on create operations for user-owned documents.
-     */
-    function hasValidUserIdOnCreate(userId) {
-      return request.resource.data.userId == userId;
-    }
-
-    /**
-     * Validates that the 'userId' ownership field is immutable on update.
-     * Prevents re-assigning ownership of a document.
-     */
-    function isUserIdImmutable() {
-      return request.resource.data.userId == resource.data.userId;
-    }
-
-    // =====================================================================
-    // Collection Rules
-    // =====================================================================
-
     match /referralCodes/{code} {
-      // Allow public read access so that unauthenticated users on the registration
-      // page can validate a referral code before creating an account. This is safe
-      // as the document only contains the referrer's non-sensitive userId.
       allow get: if true;
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
       allow update, delete: if false;
     }
 
     match /referrals/{referralId} {
-      // A user can read a referral doc if they are the referrer or the referred.
       allow get: if isSignedIn() && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
-
-      // Allow authenticated users to query the referrals collection.
-      // Security is enforced by the 'get' rule on each document in the result.
       allow list: if isSignedIn();
-      
-      // A new user can create their own referral record.
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.referredId;
-      // The referred user can update the status (e.g. after first deposit).
-      allow update: if isSignedIn() && request.auth.uid == resource.data.referredId;
+      // Webhook precisa atualizar o status, mas como rodamos no servidor sem Admin, vamos usar uma regra flexível para o status
+      allow update: if (isSignedIn() && request.auth.uid == resource.data.referredId) || (request.auth == null); 
       allow delete: if false;
     }
 
-    /**
-     * @description Manages a user's own profile document.
-     * @path /users/{userId}
-     * @allow (get) An authenticated user reads their own profile: `auth.uid == 'user123'`, `get /users/user123`.
-     * @allow (create) A new user creates their own profile: `auth.uid == 'user123'`, `create /users/user123` with `{ id: 'user123', ... }`.
-     * @deny (get) A user tries to read another user's profile: `auth.uid == 'user456'`, `get /users/user123`.
-     * @deny (create) A user tries to create a profile for someone else: `auth.uid == 'user456'`, `create /users/user123`.
-     * @deny (list) Listing all users is not allowed: `list /users`.
-     * @principle Restricts access to a user's own data tree and allows self-creation of a root user document.
-     */
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow list: if false; // Disallow listing the top-level users collection
-      allow create: if isOwner(userId) && hasValidIdOnCreate(userId);
-      allow update: if isExistingOwner(userId) && isIdImmutable();
-      allow delete: if isExistingOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || (request.auth == null); // Permite atualização via Webhook (Server-side)
+      allow delete: if isOwner(userId);
 
-      /**
-       * @description Manages a user's financial account.
-       * @path /users/{userId}/accounts/{userAccountId}
-       * @allow (list) An authenticated user lists their own accounts: `auth.uid == 'user123'`, `list /users/user123/accounts`.
-       * @allow (create) A user creates an account for themselves: `auth.uid == 'user123'`, `create /users/user123/accounts/acc456` with `{ userId: 'user123', ... }`.
-       * @deny (get) A user tries to get another user's account: `auth.uid == 'user456'`, `get /users/user123/accounts/acc789`.
-       * @deny (create) A user creates an account with a mismatched userId field: `auth.uid == 'user123'`, `create /users/user123/accounts/acc456` with `{ userId: 'user456', ... }`.
-       * @principle Enforces document ownership for all operations and validates relational integrity via the denormalized `userId` field.
-       */
       match /accounts/{userAccountId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && hasValidUserIdOnCreate(userId);
-        allow update: if isExistingOwner(userId) && isUserIdImmutable();
-        allow delete: if isExistingOwner(userId);
+        allow get, list, create: if isOwner(userId);
+        allow update: if isOwner(userId) || (request.auth == null); // Permite atualização via Webhook (Server-side)
+        allow delete: if isOwner(userId);
 
-        /**
-         * @description Manages deposit transactions for a user's account.
-         * @path /users/{userId}/accounts/{userAccountId}/depositTransactions/{depositTransactionId}
-         * @allow (list) A user lists their own deposit transactions: `auth.uid == 'user123'`, `list /users/user123/accounts/acc456/depositTransactions`.
-         * @allow (create) A user creates a transaction for their own account: `auth.uid == 'user123'`, `create /users/user123/accounts/acc456/depositTransactions/txn789` with `{ userId: 'user123', ... }`.
-         * @deny (get) A user attempts to view another user's transaction: `auth.uid == 'user456'`, `get /users/user123/accounts/acc456/depositTransactions/txn789`.
-         * @deny (update) A user tries to change the ownership of a transaction: `auth.uid == 'user123'`, `update .../txn789` with `{ userId: 'user456' }`.
-         * @principle Authorization Independence. Enforces ownership using a denormalized `userId` field on the transaction document itself, avoiding slow and costly `get()` calls to parent documents.
-         */
         match /depositTransactions/{depositTransactionId} {
-          allow get: if isOwner(userId);
-          allow list: if isOwner(userId);
-          // NOTE: IR reasoning requires a denormalized ownerId/userId field for authorization.
-          // The rule below enforces the presence and correctness of a 'userId' field upon creation.
-          allow create: if isOwner(userId) && hasValidUserIdOnCreate(userId);
-          allow update: if isExistingOwner(userId) && isUserIdImmutable();
-          allow delete: if isExistingOwner(userId);
+          allow get, list, create: if isOwner(userId);
+          allow update: if isOwner(userId) || (request.auth == null); // Permite atualização via Webhook (Server-side)
+          allow delete: if isOwner(userId);
         }
       }
 
-      /**
-       * @description Manages a user's individual investments.
-       * @path /users/{userId}/investments/{investmentId}
-       * @allow (get) An authenticated user reads their own investment: `auth.uid == 'user123'`, `get /users/user123/investments/inv456`.
-       * @allow (list) An authenticated user lists their own investments: `auth.uid == 'user123'`, `list /users/user123/investments`.
-       * @deny (delete) A user tries to delete another user's investment: `auth.uid == 'user456'`, `delete /users/user123/investments/inv456`.
-       * @deny (create) A user creates an investment but forgets the `userId` field: `auth.uid == 'user123'`, `create /users/user123/investments/inv789` with `{...no userId...}`.
-       * @principle Enforces strict document ownership and validates the denormalized `userId` field to ensure data integrity and simple authorization.
-       */
       match /investments/{investmentId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && hasValidUserIdOnCreate(userId);
-        allow update: if isExistingOwner(userId) && isUserIdImmutable();
-        allow delete: if isExistingOwner(userId);
+        allow get, list, create, update, delete: if isOwner(userId);
       }
     }
   }

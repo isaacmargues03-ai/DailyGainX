@@ -13,19 +13,15 @@ interface GeneratePixOptions {
     amount: number;
     payerName?: string;
     payerEmail?: string;
+    externalId: string; // ID único para rastrear no webhook
+    postbackUrl?: string; // URL do nosso webhook
 }
 
-// This function is intended to be run on the server.
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
-    const { amount, payerName, payerEmail } = options;
+    const { amount, payerName, payerEmail, externalId, postbackUrl } = options;
 
-    // Suas credenciais reais da PixUp.
     const clientId = "Aducmartins_4621537998005562";
     const clientSecret = "c473cdb25c796b619fb302ed9a0a8ce039c1287499348ce477c5195851b143e9";
-
-    if (clientId === "SEU_CLIENT_ID_AQUI" || clientSecret === "SEU_CLIENT_SECRET_AQUI") {
-        throw new Error('As credenciais da API PixUp não foram configuradas. Por favor, peça ao assistente para editar o arquivo `src/app/actions/pix.ts` com suas credenciais.');
-    }
 
     try {
         // 1. Get Access Token
@@ -41,32 +37,20 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         });
 
         if (!tokenResponse.ok) {
-            let errorDetails = 'A API não retornou um corpo de erro válido.';
-            try {
-                // Try to parse the error as JSON, which is common for APIs
-                const errorJson = await tokenResponse.json();
-                // Use a detailed message if available, otherwise stringify the object
-                errorDetails = errorJson.error_description || errorJson.message || JSON.stringify(errorJson);
-            } catch (e) {
-                // If parsing fails, it's likely not JSON, so use the raw text body
-                const rawText = await tokenResponse.text();
-                errorDetails = rawText || errorDetails;
-            }
-            console.error('Erro ao obter token de acesso da PixUp:', errorDetails);
-            // Throw a new error with the detailed message
-            throw new Error(`Falha na autenticação: ${errorDetails}`);
+            const errorJson = await tokenResponse.json();
+            throw new Error(`Falha na autenticação PixUp: ${errorJson.error_description || errorJson.message}`);
         }
 
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
         
-        // 2. Create QR Code via direct fetch
-        // A API da PixUp agora exige o campo 'payer'. Se 'payer' for enviado, 'payer.document' também é obrigatório.
+        // 2. Create QR Code
         const body: CreateQrcodeBodyParam = {
              amount,
+             external_id: externalId,
+             postbackUrl: postbackUrl,
              payer: {
                  name: payerName || 'Cliente DailyGainX',
-                 // A API requer um documento, mas não parece validar o formato. Usamos um placeholder.
                  document: '00000000000', 
                  email: payerEmail
              }
@@ -84,17 +68,15 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!qrCodeApiResponse.ok) {
             const errorText = await qrCodeApiResponse.text();
-            console.error("PixUp QR Code API Error:", errorText);
-            throw new Error(`A API PixUp retornou um erro ao gerar o QR Code: ${errorText}`);
+            throw new Error(`Erro na API PixUp: ${errorText}`);
         }
 
         const qrCodeData = await qrCodeApiResponse.json();
 
         if (!qrCodeData.qrcode || !qrCodeData.transactionId) {
-            throw new Error('A resposta da API não continha a chave Pix copia e cola ou o ID da transação.');
+            throw new Error('Resposta inválida da PixUp.');
         }
 
-        // 3. Generate QR Code image from the "copia e cola" string
         const qrCodeImageUrl = await QRCode.toDataURL(qrCodeData.qrcode);
 
         return {
@@ -103,16 +85,8 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
             transactionId: qrCodeData.transactionId,
         };
 
-    } catch (error) {
-        console.error('Erro no fluxo de geração de Pix:', error);
-        
-        // Re-throw the original error to be caught by the client-side component.
-        // This ensures the detailed error message from the try block is shown in the toast.
-        if (error instanceof Error) {
-            throw error;
-        }
-
-        // Fallback for any non-Error objects that might be thrown.
-        throw new Error('Ocorreu um erro desconhecido ao gerar o QR Code do Pix.');
+    } catch (error: any) {
+        console.error('Erro na geração do Pix:', error);
+        throw new Error(error.message || 'Erro ao gerar Pix.');
     }
 }

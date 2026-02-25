@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useFirebase } from '@/firebase';
 import { generatePixQrCode } from '@/app/actions/pix';
+import { doc, collection, setDoc } from 'firebase/firestore';
 
 
 const PixLogo = () => (
@@ -27,7 +28,6 @@ const PixLogo = () => (
     </svg>
 );
 
-
 const BRL_PER_USDT = 5.0;
 
 export default function DepositPage() {
@@ -35,16 +35,10 @@ export default function DepositPage() {
     const [usdtAmount, setUsdtAmount] = useState(0);
     const [qrCode, setQrCode] = useState('');
     const [pixCopyPaste, setPixCopyPaste] = useState('');
-    const [currentTransactionId, setCurrentTransactionId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     
     const { toast } = useToast();
-    const { addTransaction, transactions } = useAppContext();
-    const { user } = useFirebase();
-    
-    const currentTransaction = transactions.find(tx => tx.externalId === currentTransactionId);
-    const paymentStatus = currentTransaction?.status;
-
+    const { user, firestore } = useFirebase();
 
     const handleGenerateQrCode = async () => {
         const amountInBrl = parseFloat(brlAmount);
@@ -57,32 +51,54 @@ export default function DepositPage() {
             return;
         }
 
+        if (!user) return;
+
         setIsLoading(true);
         try {
+            // 1. Criar o registro da transação no Firestore PRIMEIRO para ter o ID
+            const depositRef = doc(collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions'));
+            const depositId = depositRef.id;
+
+            // 2. Definir o ID externo para o Webhook (userId:depositId)
+            const externalId = `${user.uid}:${depositId}`;
+            const postbackUrl = `${window.location.origin}/api/webhook/pixup`;
+
+            // 3. Gerar o QR Code na PixUp
             const response = await generatePixQrCode({ 
                 amount: amountInBrl,
-                payerName: user?.displayName || 'Cliente DailyGainX',
-                payerEmail: user?.email || undefined
-            });
-            setQrCode(response.qrCodeImageUrl);
-            setPixCopyPaste(response.pixCopyPaste);
-            setCurrentTransactionId(response.transactionId);
-            
-            // Kick off the deposit process in the context
-            addTransaction({
-                type: 'deposit',
-                amount: usdtAmount,
-                method: 'Pix',
-                status: 'Pending',
-                externalId: response.transactionId
+                payerName: user.displayName || 'Cliente DailyGainX',
+                payerEmail: user.email || undefined,
+                externalId: externalId,
+                postbackUrl: postbackUrl
             });
 
-        } catch (error) {
+            // 4. Salvar os detalhes da transação (incluindo o ID real da PixUp)
+            await setDoc(depositRef, {
+                id: depositId,
+                userId: user.uid,
+                accountId: user.uid,
+                amount: usdtAmount,
+                status: 'Pending',
+                method: 'Pix',
+                externalId: response.transactionId,
+                pixCopyPaste: response.pixCopyPaste,
+                depositDate: new Date().toISOString()
+            });
+
+            setQrCode(response.qrCodeImageUrl);
+            setPixCopyPaste(response.pixCopyPaste);
+
+            toast({
+                title: 'QR Code Gerado!',
+                description: 'Aguardando o pagamento para creditar seu saldo.',
+            });
+
+        } catch (error: any) {
             console.error(error);
             toast({
                 variant: 'destructive',
-                title: 'Erro ao gerar QR Code',
-                description: error instanceof Error ? error.message : 'Não foi possível se comunicar com o serviço de Pix.',
+                title: 'Erro ao gerar depósito',
+                description: error.message || 'Não foi possível se comunicar com o serviço de Pix.',
             });
         } finally {
             setIsLoading(false);
@@ -94,7 +110,7 @@ export default function DepositPage() {
         navigator.clipboard.writeText(pixCopyPaste);
         toast({
             title: 'Copiado!',
-            description: 'A chave Pix "Copia e Cola" foi copiada para a sua área de transferência.',
+            description: 'A chave Pix foi copiada.',
         });
     };
     
@@ -102,9 +118,7 @@ export default function DepositPage() {
         setQrCode('');
         setPixCopyPaste('');
         setBrlAmount('');
-        setCurrentTransactionId('');
     };
-
 
     if (qrCode) {
         return (
@@ -113,73 +127,60 @@ export default function DepositPage() {
                     <Button variant="ghost" size="icon" onClick={resetDepositFlow}>
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <h1 className="text-lg font-semibold">Depósito</h1>
+                    <h1 className="text-lg font-semibold">Pagamento</h1>
                     <div className="w-9 h-9" />
                 </header>
                 <main className="flex-1 p-4 sm:p-6">
                     <div className="container mx-auto max-w-md">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    Pagamento via Pix
-                                </CardTitle>
+                                <CardTitle>QR Code do Pix</CardTitle>
                                 <CardDescription>
-                                    {paymentStatus === 'Completed' 
-                                        ? 'Seu pagamento foi confirmado com sucesso!'
-                                        : "Pague com o QR Code ou a chave. A confirmação do pagamento é automática."}
+                                    Pague agora. Seu saldo será atualizado automaticamente assim que a PixUp confirmar o recebimento.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                {paymentStatus === 'Completed' ? (
-                                    <div className="flex flex-col items-center text-center gap-4 py-8">
-                                        <CheckCircle className="h-16 w-16 text-green-500" />
-                                        <h3 className="text-xl font-semibold">Pagamento Confirmado</h3>
-                                        <p className="text-muted-foreground">O valor de <span className="font-bold text-foreground">{usdtAmount.toFixed(2)} USDT</span> foi adicionado ao seu saldo.</p>
-                                        <Button asChild className="w-full mt-4">
-                                            <Link href="/profile">Voltar para o Perfil</Link>
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col items-center text-center gap-4">
+                                <div className="flex flex-col items-center text-center gap-4">
+                                    <div className="relative p-2 bg-white rounded-lg border">
                                         <Image 
                                             src={qrCode} 
                                             alt="Pix QR Code" 
                                             width={256} 
                                             height={256} 
-                                            className="rounded-lg border bg-white"
+                                            className="rounded-lg"
                                             data-ai-hint="qr code"
                                         />
-                                        <p className="text-sm text-muted-foreground">Valor: <span className="font-bold text-foreground">{usdtAmount.toFixed(2)} USDT</span></p>
-                                        
-                                        <div className="w-full space-y-4 pt-4 text-left">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="pix-copy-paste">Pix Copia e Cola</Label>
-                                                <div className="flex items-center space-x-2">
-                                                    <Input
-                                                        id="pix-copy-paste"
-                                                        readOnly
-                                                        value={pixCopyPaste}
-                                                        className="text-sm truncate"
-                                                    />
-                                                    <Button variant="outline" size="icon" onClick={copyPixKeyToClipboard}>
-                                                        <Copy className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                            {paymentStatus === 'Pending' && (
-                                                <div className="flex items-center justify-center gap-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 p-3 text-sm">
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                    <span>Aguardando confirmação do pagamento...</span>
-                                                </div>
-                                            )}
-                                             {paymentStatus === 'Failed' && (
-                                                <div className="flex items-center justify-center gap-2 rounded-lg bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 p-3 text-sm">
-                                                    <span>Falha na confirmação do pagamento.</span>
-                                                </div>
-                                            )}
-                                        </div>
                                     </div>
-                                )}
+                                    <div className="space-y-1">
+                                        <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">Valor a pagar</p>
+                                        <p className="text-2xl font-bold">R$ {parseFloat(brlAmount).toFixed(2)}</p>
+                                        <p className="text-sm text-primary font-medium">({usdtAmount.toFixed(2)} USDT)</p>
+                                    </div>
+                                    
+                                    <div className="w-full space-y-4 pt-4 text-left">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="pix-copy-paste">Pix Copia e Cola</Label>
+                                            <div className="flex items-center space-x-2">
+                                                <Input
+                                                    id="pix-copy-paste"
+                                                    readOnly
+                                                    value={pixCopyPaste}
+                                                    className="text-sm truncate"
+                                                />
+                                                <Button variant="outline" size="icon" onClick={copyPixKeyToClipboard}>
+                                                    <Copy className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-center gap-3 rounded-xl bg-primary/10 text-primary p-4 text-sm animate-pulse border border-primary/20">
+                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                            <span className="font-semibold">Aguardando confirmação bancária...</span>
+                                        </div>
+                                        <p className="text-[10px] text-center text-muted-foreground">
+                                            Você pode sair desta página se desejar. O saldo cairá automaticamente.
+                                        </p>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
@@ -203,19 +204,19 @@ export default function DepositPage() {
             <main className="flex-1 p-4 sm:p-6">
               <div className="container mx-auto max-w-md space-y-6">
                 <div>
-                    <Label className="text-sm font-normal text-muted-foreground">PIX</Label>
-                    <div className="mt-2 flex items-center justify-between rounded-lg border-2 border-green-500 bg-card p-4">
+                    <Label className="text-sm font-normal text-muted-foreground">Método de Pagamento</Label>
+                    <div className="mt-2 flex items-center justify-between rounded-xl border-2 border-primary bg-primary/5 p-4">
                         <PixLogo />
-                        <CheckCircle className="h-6 w-6 text-green-500" />
+                        <CheckCircle className="h-6 w-6 text-primary" />
                     </div>
                 </div>
 
                 <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                        <h2 className="font-semibold">Pagar</h2>
-                        <p className="text-sm text-muted-foreground">(1 USDT ≈ {BRL_PER_USDT.toFixed(2)} R$)</p>
+                    <div className="flex justify-between items-center px-1">
+                        <h2 className="font-semibold text-lg">Quanto deseja depositar?</h2>
+                        <p className="text-xs text-muted-foreground">(1 USDT ≈ R$ 5,00)</p>
                     </div>
-                    <div className="relative">
+                    <div className="relative group">
                         <Input
                             id="brlAmount"
                             type="number"
@@ -231,42 +232,49 @@ export default function DepositPage() {
                                     setUsdtAmount(0);
                                 }
                             }}
-                            className="h-14 text-lg pl-4 pr-12 bg-muted border-none"
+                            className="h-16 text-xl pl-6 pr-12 bg-muted/50 border-none rounded-2xl focus:ring-2 focus:ring-primary transition-all"
                         />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">R$</span>
+                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">R$</span>
                     </div>
                     <div className="relative">
                         <Input
                             id="usdtAmount"
                             value={usdtAmount > 0 ? usdtAmount.toFixed(2) : ''}
                             readOnly
-                            className="h-14 text-lg pl-4 pr-16 bg-muted border-none"
-                            placeholder="Receberei"
+                            className="h-16 text-xl pl-6 pr-20 bg-muted/30 border-none rounded-2xl text-primary font-bold"
+                            placeholder="Valor em USDT"
                         />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">USDT</span>
+                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-primary/70 font-bold">USDT</span>
                     </div>
                 </div>
 
-                <div className="space-y-4 text-sm text-muted-foreground">
-                    <p><span className="font-semibold">A.</span> Sem taxas.</p>
-                </div>
-                
                 <div className="pt-4">
                     <Button 
                         onClick={handleGenerateQrCode} 
-                        className="w-full h-12 text-lg" 
+                        className="w-full h-14 text-xl rounded-2xl shadow-lg shadow-primary/20" 
                         disabled={!brlAmount || parseFloat(brlAmount) < 1 || isLoading}
                     >
                         {isLoading ? (
                             <>
-                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                Gerando...
+                                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                                Gerando Pix...
                             </>
                         ) : (
-                            'Depósito'
+                            'Gerar QR Code'
                         )}
                     </Button>
                 </div>
+
+                <ul className="space-y-3 text-xs text-muted-foreground bg-muted/20 p-4 rounded-xl">
+                    <li className="flex gap-2">
+                        <span className="font-bold text-primary">1.</span>
+                        O crédito é instantâneo após a confirmação bancária.
+                    </li>
+                    <li className="flex gap-2">
+                        <span className="font-bold text-primary">2.</span>
+                        Não cobramos taxas de depósito.
+                    </li>
+                </ul>
               </div>
             </main>
         </div>
