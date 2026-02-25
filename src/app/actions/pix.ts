@@ -28,7 +28,8 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
     try {
         // 1. Get Access Token
-        const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+        // Use btoa for wider compatibility in serverless environments like Next.js edge.
+        const credentials = btoa(`${clientId}:${clientSecret}`);
         const tokenResponse = await fetch('https://api.pixupbr.com/v2/oauth/token', {
             method: 'POST',
             headers: {
