@@ -60,12 +60,9 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         const accessToken = tokenData.access_token;
         
         // 2. Create QR Code via direct fetch
+        // A API da PixUp requer o campo 'payer.document' se o objeto 'payer' for enviado.
+        // Para simplificar e evitar o erro, enviaremos apenas o campo 'amount', que é o único obrigatório.
         const body: CreateQrcodeBodyParam = { amount };
-        if (payerName || payerEmail) {
-            body.payer = {};
-            if (payerName) body.payer.name = payerName;
-            if (payerEmail) body.payer.email = payerEmail;
-        }
 
         const qrCodeApiResponse = await fetch('https://api.pixupbr.com/v2/pix/qrcode', {
             method: 'POST',
