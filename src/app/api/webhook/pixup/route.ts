@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 
         const { status, external_id, amount, transactionId } = payload;
 
-        // Lista de status considerados como "Pago" pela PixUp
+        // Lista estendida de status considerados como "Pago"
         const validStatuses = [
             'PAID', 'COMPLETED', 'CONCLUDED', 'CONCLUIDO', 
             'APROVADO', 'Aprovado', 'aprovado', 'paid', 'concluido'
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
         const { firestore } = initializeFirebase();
         
-        // Referências no Firestore (Estrutura de acordo com backend.json)
+        // Referências no Firestore baseadas no backend.json
         const transactionRef = doc(firestore, 'users', userId, 'accounts', userId, 'depositTransactions', depositId);
         const accountRef = doc(firestore, 'users', userId, 'accounts', userId);
         const userRef = doc(firestore, 'users', userId);
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: 'OK' }, { status: 200 });
         }
 
-        // Regra de Conversão: R$ 1,00 BRL = 100 USDT
+        // Regra de Conversão: R$ 1,00 BRL = 100 USDT (R$ 0,01 = 1 USDT)
         const usdtToCredit = parseFloat(amount) * 100;
 
         const batch = writeBatch(firestore);
