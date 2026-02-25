@@ -1,0 +1,275 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PIX",
+    "version": "2"
+  },
+  "servers": [
+    {
+      "url": "https://api.pixupbr.com/"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "sec0": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "x-bearer-format": "bearer"
+      }
+    }
+  },
+  "security": [
+    {
+      "sec0": []
+    }
+  ],
+  "paths": {
+    "/v2/pix/qrcode": {
+      "post": {
+        "summary": "Gerar QRCode",
+        "description": "",
+        "operationId": "create-qrcode",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "amount"
+                ],
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "description": "Valor da transação",
+                    "format": "float"
+                  },
+                  "external_id": {
+                    "type": "string",
+                    "description": "ID externo da transação gerado por você"
+                  },
+                  "postbackUrl": {
+                    "type": "string",
+                    "description": "URL de webhook para receber as informações sobre o pagamento."
+                  },
+                  "payerQuestion": {
+                    "type": "string",
+                    "description": "Descrição referente a transação"
+                  },
+                  "payer": {
+                    "type": "object",
+                    "description": "Este objeto representa o pagador.",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Nome completo do cliente ou nome comercial."
+                      },
+                      "document": {
+                        "type": "string",
+                        "description": "O número de identificação fiscal do cliente (CPF para clientes individuais ou CNPJ para clientes empresariais)"
+                      },
+                      "email": {
+                        "type": "string",
+                        "description": "E-mail pessoal do cliente ou e-mail comercial"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Result": {
+                    "value": "{\n    \"transactionId\": \"4392d1d7e408d3cec04fm1zf3gv7vkq1\",\n    \"external_id\": \"\",\n    \"status\": \"PENDING\",\n    \"amount\": 15,\n    \"calendar\": {\n        \"expiration\": 3000,\n        \"dueDate\": \"2024-10-07 04:41:05\"\n    },\n    \"debtor\": {\n        \"name\": \"Monkey D. Luffy\",\n        \"document\": \"12924586666\"\n    },\n    \"qrcode\": \"00020126850014br.gov.bcb.pix2563pix.voluti.com.br\\/qr\\/v3\\/at\\/6ed39bf2-bdc2-42b8-a95b-13d2212146b25204000053039865802BR5925BS PAYMENTS SOLUTIONS LTD6008SALVADOR62070503***63048D9B\"\n}"
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "transactionId": {
+                      "type": "string",
+                      "example": "4392d1d7e408d3cec04fm1zf3gv7vkq1"
+                    },
+                    "external_id": {
+                      "type": "string",
+                      "example": ""
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "PENDING"
+                    },
+                    "amount": {
+                      "type": "integer",
+                      "example": 15,
+                      "default": 0
+                    },
+                    "calendar": {
+                      "type": "object",
+                      "properties": {
+                        "expiration": {
+                          "type": "integer",
+                          "example": 3000,
+                          "default": 0
+                        },
+                        "dueDate": {
+                          "type": "string",
+                          "example": "2024-10-07 04:41:05"
+                        }
+                      }
+                    },
+                    "debtor": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "example": "Monkey D. Luffy"
+                        },
+                        "document": {
+                          "type": "string",
+                          "example": "12924586666"
+                        }
+                      }
+                    },
+                    "qrcode": {
+                      "type": "string",
+                      "example": "00020126850014br.gov.bcb.pix2563pix.voluti.com.br/qr/v3/at/6ed39bf2-bdc2-42b8-a95b-13d2212146b25204000053039865802BR5925BS PAYMENTS SOLUTIONS LTD6008SALVADOR62070503***63048D9B"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Result": {
+                    "value": "{\n    \"statusCode\": 401,\n    \"message\": \"Erro de autorização\"\n}"
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer",
+                      "example": 401,
+                      "default": 0
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Erro de autorização"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/v2/pix/payment": {
+      "post": {
+        "summary": "Fazer um pagamento",
+        "description": "",
+        "operationId": "fazer-um-pagamento",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "amount",
+                  "creditParty"
+                ],
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "description": "Valor da transação",
+                    "format": "float"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Descrição referente a transação"
+                  },
+                  "external_id": {
+                    "type": "string",
+                    "description": "ID externo da transação gerado por você"
+                  },
+                  "creditParty": {
+                    "type": "object",
+                    "description": "Este objeto representa o destinatário.",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Nome completo do cliente ou nome comercial que pertence a chave."
+                      },
+                      "keyType": {
+                        "type": "string",
+                        "description": "Tipo de chave pix relatado no sumário"
+                      },
+                      "key": {
+                        "type": "string",
+                        "description": "A chave PIX da conta bancária de destino"
+                      },
+                      "taxId": {
+                        "type": "string",
+                        "description": "O número de identificação fiscal do cliente (CPF para clientes individuais ou CNPJ para clientes empresariais)"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Result": {
+                    "value": "{}"
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Result": {
+                    "value": "{}"
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "x-readme": {
+    "headers": []
+  },
+  "x-readme-fauxas": true
+}

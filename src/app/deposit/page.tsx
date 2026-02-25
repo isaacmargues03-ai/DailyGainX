@@ -7,12 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/AppContext';
-import { ArrowLeft, CheckCircle, Copy } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Copy, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
-import { useFirebase, useUser } from '@/firebase';
+import { useFirebase } from '@/firebase';
 import { doc, getDoc, writeBatch, increment } from 'firebase/firestore';
+import { generatePixQrCode } from '@/app/actions/pix';
 
 
 const PixLogo = () => (
@@ -36,6 +36,7 @@ export default function DepositPage() {
     const [usdtAmount, setUsdtAmount] = useState(0);
     const [qrCode, setQrCode] = useState('');
     const [pixCopyPaste, setPixCopyPaste] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
     const { addTransaction } = useAppContext();
     const { user, firestore } = useFirebase();
@@ -49,7 +50,7 @@ export default function DepositPage() {
         }
     }, [brlAmount]);
 
-    const handleGenerateQrCode = () => {
+    const handleGenerateQrCode = async () => {
         const amountInBrl = parseFloat(brlAmount);
         if (isNaN(amountInBrl) || amountInBrl < 25) {
             toast({
@@ -60,9 +61,25 @@ export default function DepositPage() {
             return;
         }
 
-        const qrCodeUrl = `https://placehold.co/256x256/EAF2F8/17202A/png?text=PIX+QR+CODE%0A${usdtAmount.toFixed(2)}+USDT`;
-        setQrCode(qrCodeUrl);
-        setPixCopyPaste('00020126360014br.gov.bcb.pix0114' + Math.random().toString(36).substring(2, 15) + '5204000053039865802BR5913' + 'DailyGainX' + '6009SAO PAULO62070503***6304' + Math.random().toString(16).slice(2, 6).toUpperCase());
+        setIsLoading(true);
+        try {
+            const response = await generatePixQrCode({ 
+                amount: amountInBrl,
+                payerName: user?.displayName || undefined,
+                payerEmail: user?.email || undefined
+            });
+            setQrCode(response.qrCodeImageUrl);
+            setPixCopyPaste(response.pixCopyPaste);
+        } catch (error) {
+            console.error(error);
+            toast({
+                variant: 'destructive',
+                title: 'Erro ao gerar QR Code',
+                description: error instanceof Error ? error.message : 'Não foi possível se comunicar com o serviço de Pix.',
+            });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const copyPixKeyToClipboard = () => {
@@ -275,9 +292,16 @@ export default function DepositPage() {
                     <Button 
                         onClick={handleGenerateQrCode} 
                         className="w-full h-12 text-lg" 
-                        disabled={!brlAmount || parseFloat(brlAmount) < 25}
+                        disabled={!brlAmount || parseFloat(brlAmount) < 25 || isLoading}
                     >
-                        Depósito
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                Gerando...
+                            </>
+                        ) : (
+                            'Depósito'
+                        )}
                     </Button>
                 </div>
               </div>

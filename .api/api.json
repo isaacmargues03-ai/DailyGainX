@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "apis": [
+    {
+      "identifier": "pixup",
+      "source": "@pixup/v2#3qg122xm24ufd6p",
+      "integrity": "sha512-5LmMuKHABfH/ZycOUI6P+B5dlYT6bRn/0xWPKbvTzH/M+30NEDg+13q/FGdbzKBpEytwA+xN14s+CTRcbxL8yA==",
+      "installerVersion": "6.1.3"
+    }
+  ]
+}
