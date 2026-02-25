@@ -2,7 +2,7 @@
 
 import type { Operation, OpenPosition, ActiveInvestment, Transaction } from '@/lib/types';
 import type { Product } from '@/lib/products';
-import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo, useCallback } from 'react';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 
@@ -50,7 +50,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return doc(firestore, 'users', user.uid, 'accounts', user.uid);
   }, [user, firestore]);
 
-  const { data: userAccount, isLoading: isAccountLoading } = useDoc<{balance: number}>(accountDocRef);
+  const { data: userAccount, isLoading: isBalanceLoading } = useDoc<{balance: number}>(accountDocRef);
 
   const balance = userAccount?.balance ?? 0;
 
@@ -74,17 +74,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return () => clearInterval(interval);
   }, []);
 
-  const addOperation = (operation: Omit<Operation, 'id' | 'timestamp'>) => {
+  const addOperation = useCallback((operation: Omit<Operation, 'id' | 'timestamp'>) => {
     const newOperation: Operation = {
       ...operation,
       id: new Date().getTime().toString(),
       timestamp: new Date().toLocaleString('pt-BR'),
     };
     setOperations(prev => [newOperation, ...prev]);
-  };
+  }, []);
 
-  const openPosition = (position: Omit<OpenPosition, 'id' | 'timestamp' | 'entryPrice'>) => {
-    if (isAccountLoading) return;
+  const openPosition = useCallback((position: Omit<OpenPosition, 'id' | 'timestamp' | 'entryPrice'>) => {
+    if (isBalanceLoading) return;
     const newPosition: OpenPosition = {
       ...position,
       id: new Date().getTime().toString(),
@@ -95,11 +95,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (accountDocRef) {
         updateDoc(accountDocRef, { balance: increment(-position.amount) });
     }
-  };
+  }, [isBalanceLoading, lastPrice, accountDocRef]);
 
-  const closePosition = (positionId: string) => {
+  const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
+    const newTransaction: Transaction = {
+      ...transaction,
+      id: new Date().getTime().toString(),
+      timestamp: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'}),
+    };
+    
+    setTransactions(prev => [newTransaction, ...prev]);
+
+    if (accountDocRef) {
+        if (newTransaction.type === 'deposit' && newTransaction.status === 'Completed') {
+            updateDoc(accountDocRef, { balance: increment(newTransaction.amount) });
+        } else if (newTransaction.type === 'withdrawal' && transaction.status !== 'Failed') {
+            updateDoc(accountDocRef, { balance: increment(-newTransaction.amount) });
+        }
+    }
+  }, [accountDocRef]);
+
+  const closePosition = useCallback((positionId: string) => {
     const position = openPositions.find(p => p.id === positionId);
-    if (!position || isAccountLoading) return;
+    if (!position || isBalanceLoading) return;
 
     // Rigged outcome logic, adjusted to be less suspicious
     const winChance = 0.35; // 35% chance to win
@@ -132,10 +150,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     setOpenPositions(prev => prev.filter(p => p.id !== positionId));
-  };
+  }, [openPositions, isBalanceLoading, accountDocRef, addOperation]);
   
-  const addInvestment = (product: Product, image: { imageUrl: string, imageHint: string }): boolean => {
-    if (isAccountLoading) return false;
+  const addInvestment = useCallback((product: Product, image: { imageUrl: string, imageHint: string }): boolean => {
+    if (isBalanceLoading) return false;
     if (balance < product.minInvestment) {
       return false;
     }
@@ -156,43 +174,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setActiveInvestments(prev => [newInvestment, ...prev]);
     return true;
-  };
+  }, [isBalanceLoading, balance, accountDocRef]);
 
-  const addTransaction = (transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
-    const newTransaction: Transaction = {
-      ...transaction,
-      id: new Date().getTime().toString(),
-      timestamp: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'}),
-    };
-    
-    setTransactions(prev => [newTransaction, ...prev]);
-
-    if (accountDocRef) {
-        if (newTransaction.type === 'deposit' && newTransaction.status === 'Completed') {
-            updateDoc(accountDocRef, { balance: increment(newTransaction.amount) });
-        } else if (newTransaction.type === 'withdrawal' && transaction.status !== 'Failed') {
-            updateDoc(accountDocRef, { balance: increment(-newTransaction.amount) });
-        }
-    }
-  };
+  const value = useMemo(() => ({ 
+      balance, 
+      isBalanceLoading,
+      operations, 
+      addOperation, 
+      openPositions, 
+      openPosition, 
+      closePosition, 
+      marketData, 
+      lastPrice,
+      activeInvestments,
+      addInvestment,
+      transactions,
+      addTransaction
+  }), [
+      balance, 
+      isBalanceLoading,
+      operations, 
+      addOperation, 
+      openPositions, 
+      openPosition, 
+      closePosition, 
+      marketData, 
+      lastPrice,
+      activeInvestments,
+      addInvestment,
+      transactions,
+      addTransaction
+  ]);
 
 
   return (
-    <AppContext.Provider value={{ 
-        balance, 
-        isBalanceLoading: isAccountLoading,
-        operations, 
-        addOperation, 
-        openPositions, 
-        openPosition, 
-        closePosition, 
-        marketData, 
-        lastPrice,
-        activeInvestments,
-        addInvestment,
-        transactions,
-        addTransaction
-    }}>
+    <AppContext.Provider value={value}>
       {children}
     </AppContext.Provider>
   );
