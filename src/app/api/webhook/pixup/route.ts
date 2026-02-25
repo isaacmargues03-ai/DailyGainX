@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 
         const { status, external_id, amount, transactionId } = payload;
 
-        // Lista estendida de status considerados como "Pago"
+        // Lista de status considerados como aprovados pela PixUp
         const validStatuses = [
             'PAID', 'COMPLETED', 'CONCLUDED', 'CONCLUIDO', 
             'APROVADO', 'Aprovado', 'aprovado', 'paid', 'concluido'
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
         const { firestore } = initializeFirebase();
         
-        // Referências no Firestore baseadas no backend.json
+        // Referências no Firestore
         const transactionRef = doc(firestore, 'users', userId, 'accounts', userId, 'depositTransactions', depositId);
         const accountRef = doc(firestore, 'users', userId, 'accounts', userId);
         const userRef = doc(firestore, 'users', userId);
@@ -55,21 +55,22 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Transação inexistente' }, { status: 404 });
         }
 
-        // Evitar processamento duplo
+        // Evitar processamento duplo (Idempotência)
         if (transactionDoc.data().status === 'Completed') {
             console.log('Transação já concluída anteriormente.');
             return NextResponse.json({ message: 'OK' }, { status: 200 });
         }
 
-        // Regra de Conversão: R$ 1,00 BRL = 100 USDT (R$ 0,01 = 1 USDT)
+        // Regra de Conversão: R$ 0,01 = 1 USDT (R$ 1,00 = 100 USDT)
+        // Multiplicamos por 100 para converter o valor em BRL para USDT conforme solicitado.
         const usdtToCredit = parseFloat(amount) * 100;
 
         const batch = writeBatch(firestore);
 
-        // 1. Incrementar saldo da conta
+        // 1. Incrementar saldo da conta usando FieldValue.increment (increment() no SDK web)
         batch.update(accountRef, { balance: increment(usdtToCredit) });
         
-        // 2. Finalizar transação no histórico
+        // 2. Finalizar status da transação no histórico
         batch.update(transactionRef, { 
             status: 'Completed', 
             updatedAt: new Date().toISOString(),
@@ -98,12 +99,12 @@ export async function POST(request: Request) {
         }
 
         await batch.commit();
-        console.log(`SUCESSO: ${usdtToCredit} USDT creditados para ${userId}`);
+        console.log(`SUCESSO: ${usdtToCredit} USDT creditados para o usuário ${userId}`);
 
         return NextResponse.json({ success: true }, { status: 200 });
 
     } catch (error: any) {
-        console.error('ERRO NO WEBHOOK:', error);
+        console.error('ERRO NO PROCESSAMENTO DO WEBHOOK:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

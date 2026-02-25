@@ -21,7 +21,7 @@ interface GeneratePixOptions {
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
     const { amount, payerName, payerEmail, externalId, postbackUrl } = options;
 
-    // Credenciais de Produção Ativas
+    // Credenciais de Produção Oficiais
     const clientId = "Aducmartins_4621537998005562";
     const clientSecret = "c473cdb25c796b619fb302ed9a0a8ce039c1287499348ce477c5195851b143e9";
     const apiUrl = "https://api.pixupbr.com/v2";
