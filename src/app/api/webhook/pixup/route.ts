@@ -3,16 +3,16 @@ import { initializeFirebase } from '@/firebase';
 import { doc, getDoc, increment, writeBatch } from 'firebase/firestore';
 
 /**
- * Endpoint oficial para receber notificações da PixUp em tempo real.
+ * Endpoint oficial para receber notificações da PixUp em tempo real (Produção).
  */
 export async function POST(request: Request) {
     try {
         const payload = await request.json();
-        console.log('--- Notificação PixUp Recebida ---', JSON.stringify(payload));
+        console.log('--- Notificação PixUp Produção ---', JSON.stringify(payload));
 
         const { status, external_id, amount, transactionId } = payload;
 
-        // Validar status (A PixUp envia 'Aprovado' no dashboard e via API)
+        // Validar status conforme resposta da API PixUp em produção
         const validStatuses = [
             'PAID', 'COMPLETED', 'CONCLUDED', 'CONCLUIDO', 
             'APROVADO', 'Aprovado', 'aprovado', 'paid', 'concluido'
@@ -22,8 +22,8 @@ export async function POST(request: Request) {
         const isPaid = validStatuses.includes(statusString);
         
         if (!isPaid) {
-            console.log(`Pagamento ignorado. Status: ${statusString}`);
-            return NextResponse.json({ message: 'Aguardando status de aprovação' }, { status: 200 });
+            console.log(`Pagamento ignorado ou pendente. Status: ${statusString}`);
+            return NextResponse.json({ message: 'Aguardando aprovação' }, { status: 200 });
         }
 
         if (!external_id) {
@@ -49,11 +49,12 @@ export async function POST(request: Request) {
         const transactionDoc = await getDoc(transactionRef);
 
         if (!transactionDoc.exists()) {
-            console.error(`Transação ${depositId} não encontrada.`);
+            console.error(`Transação ${depositId} não encontrada no banco de dados.`);
             return NextResponse.json({ error: 'Transação não encontrada' }, { status: 404 });
         }
 
         if (transactionDoc.data().status === 'Completed') {
+            console.log('Transação já processada anteriormente.');
             return NextResponse.json({ message: 'Já processado' }, { status: 200 });
         }
 
@@ -94,12 +95,12 @@ export async function POST(request: Request) {
         }
 
         await batch.commit();
-        console.log(`SUCESSO: ${usdtToCredit} USDT creditados para ${userId}`);
+        console.log(`SUCESSO: ${usdtToCredit} USDT creditados via Produção para o usuário ${userId}`);
 
         return NextResponse.json({ success: true }, { status: 200 });
 
     } catch (error: any) {
-        console.error('ERRO CRÍTICO NO WEBHOOK:', error);
-        return NextResponse.json({ error: 'Erro Interno' }, { status: 500 });
+        console.error('ERRO CRÍTICO NO WEBHOOK (Produção):', error);
+        return NextResponse.json({ error: 'Erro Interno no Servidor' }, { status: 500 });
     }
 }

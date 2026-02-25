@@ -1,4 +1,3 @@
-
 'use server';
 
 import QRCode from 'qrcode';
@@ -21,14 +20,15 @@ interface GeneratePixOptions {
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
     const { amount, payerName, payerEmail, externalId, postbackUrl } = options;
 
-    // Credenciais oficiais fornecidas pelo usuário
+    // Credenciais oficiais de Produção
     const clientId = "Aducmartins_4621537998005562";
     const clientSecret = "c473cdb25c796b619fb302ed9a0a8ce039c1287499348ce477c5195851b143e9";
+    const apiUrl = "https://api.pixupbr.com/v2";
 
     try {
         // 1. Obter Token de Acesso
         const credentials = btoa(`${clientId}:${clientSecret}`);
-        const tokenResponse = await fetch('https://api.pixupbr.com/v2/oauth/token', {
+        const tokenResponse = await fetch(`${apiUrl}/oauth/token`, {
             method: 'POST',
             headers: {
                 'Authorization': `Basic ${credentials}`,
@@ -58,7 +58,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
              }
         };
 
-        const qrCodeApiResponse = await fetch('https://api.pixupbr.com/v2/pix/qrcode', {
+        const qrCodeApiResponse = await fetch(`${apiUrl}/pix/qrcode`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
