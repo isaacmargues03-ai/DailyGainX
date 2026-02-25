@@ -6,6 +6,7 @@ import type { CreateQrcodeBodyParam } from '@api/pixup/types';
 interface QrCodeResponse {
     qrCodeImageUrl: string;
     pixCopyPaste: string;
+    transactionId: string;
 }
 
 interface GeneratePixOptions {
@@ -89,8 +90,8 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         const qrCodeData = await qrCodeApiResponse.json();
 
-        if (!qrCodeData.qrcode) {
-            throw new Error('A resposta da API não continha a chave Pix copia e cola.');
+        if (!qrCodeData.qrcode || !qrCodeData.transactionId) {
+            throw new Error('A resposta da API não continha a chave Pix copia e cola ou o ID da transação.');
         }
 
         // 3. Generate QR Code image from the "copia e cola" string
@@ -98,7 +99,8 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         return {
             qrCodeImageUrl,
-            pixCopyPaste: qrCodeData.qrcode
+            pixCopyPaste: qrCodeData.qrcode,
+            transactionId: qrCodeData.transactionId,
         };
 
     } catch (error) {

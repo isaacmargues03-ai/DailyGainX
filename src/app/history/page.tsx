@@ -24,6 +24,9 @@ function TransactionItem({ transaction }: { transaction: Transaction }) {
             <div>
                 <p className="font-semibold capitalize">{isDeposit ? 'Depósito' : 'Retirada'}</p>
                 <p className="text-sm text-muted-foreground">{transaction.timestamp}</p>
+                {transaction.externalId && (
+                  <p className="text-xs text-muted-foreground font-mono truncate max-w-[150px] sm:max-w-xs">ID: {transaction.externalId}</p>
+                )}
             </div>
         </div>
         <div className="text-right">

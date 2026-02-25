@@ -35,4 +35,5 @@ export type Transaction = {
   timestamp: string;
   status: 'Completed' | 'Pending' | 'Failed';
   method: 'Pix';
+  externalId?: string;
 };

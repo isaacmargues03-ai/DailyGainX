@@ -36,6 +36,7 @@ export default function DepositPage() {
     const [usdtAmount, setUsdtAmount] = useState(0);
     const [qrCode, setQrCode] = useState('');
     const [pixCopyPaste, setPixCopyPaste] = useState('');
+    const [transactionId, setTransactionId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [paymentStatus, setPaymentStatus] = useState<'idle' | 'generated' | 'confirming' | 'confirmed'>('idle');
     const { toast } = useToast();
@@ -49,7 +50,8 @@ export default function DepositPage() {
             type: 'deposit',
             amount: usdtAmount,
             method: 'Pix',
-            status: 'Completed'
+            status: 'Completed',
+            externalId: transactionId
         });
 
         try {
@@ -90,7 +92,7 @@ export default function DepositPage() {
         } catch (error) {
             console.error("Error processing first deposit logic:", error);
         }
-    }, [usdtAmount, user, firestore, addTransaction, toast]);
+    }, [usdtAmount, user, firestore, addTransaction, toast, transactionId]);
 
     useEffect(() => {
         if (paymentStatus === 'generated') {
@@ -132,6 +134,7 @@ export default function DepositPage() {
             });
             setQrCode(response.qrCodeImageUrl);
             setPixCopyPaste(response.pixCopyPaste);
+            setTransactionId(response.transactionId);
             setPaymentStatus('generated');
         } catch (error) {
             console.error(error);
@@ -158,6 +161,7 @@ export default function DepositPage() {
         setQrCode('');
         setPixCopyPaste('');
         setBrlAmount('');
+        setTransactionId('');
         setPaymentStatus('idle');
     };
 
