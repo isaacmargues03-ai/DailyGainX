@@ -1,6 +1,5 @@
 'use server';
 
-import sdk from '@api/pixup';
 import QRCode from 'qrcode';
 import type { CreateQrcodeBodyParam } from '@api/pixup/types';
 
@@ -36,7 +35,8 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
                 'Authorization': `Basic ${credentials}`,
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: 'grant_type=client_credentials'
+            body: 'grant_type=client_credentials',
+            cache: 'no-store'
         });
 
         if (!tokenResponse.ok) {
@@ -48,9 +48,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
         
-        // 2. Configure SDK and create QR Code
-        sdk.auth(accessToken);
-
+        // 2. Create QR Code via direct fetch
         const body: CreateQrcodeBodyParam = { amount };
         if (payerName || payerEmail) {
             body.payer = {};
@@ -58,7 +56,24 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
             if (payerEmail) body.payer.email = payerEmail;
         }
 
-        const { data: qrCodeData } = await sdk.createQrcode(body);
+        const qrCodeApiResponse = await fetch('https://api.pixupbr.com/v2/pix/qrcode', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+            cache: 'no-store'
+        });
+
+        if (!qrCodeApiResponse.ok) {
+            const errorText = await qrCodeApiResponse.text();
+            console.error("PixUp QR Code API Error:", errorText);
+            throw new Error('A API PixUp retornou um erro ao tentar gerar o QR Code.');
+        }
+
+        const qrCodeData = await qrCodeApiResponse.json();
+
 
         if (!qrCodeData.qrcode) {
             throw new Error('A resposta da API não continha a chave Pix copia e cola.');
@@ -74,6 +89,9 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
     } catch (error) {
         console.error('Erro ao gerar QR Code do Pix:', error);
+        if (error instanceof TypeError && error.message.includes('fetch failed')) {
+            throw new Error('Não foi possível se conectar ao serviço de pagamentos. Verifique sua conexão de internet ou tente novamente mais tarde.');
+        }
         if (error instanceof Error) {
             // Re-throwing a simpler error message for the client
             throw new Error(error.message || `Não foi possível gerar o QR Code do Pix. Tente novamente mais tarde.`);
