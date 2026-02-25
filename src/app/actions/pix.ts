@@ -19,7 +19,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
     const { amount, payerName, payerEmail } = options;
 
     // Suas credenciais reais da PixUp.
-    const clientId = "Aducmartins_0130127902781660";
+    const clientId = "Aducmartins_4621537998005562";
     const clientSecret = "c473cdb25c796b619fb302ed9a0a8ce039c1287499348ce477c5195851b143e9";
 
     if (clientId === "SEU_CLIENT_ID_AQUI" || clientSecret === "SEU_CLIENT_SECRET_AQUI") {
