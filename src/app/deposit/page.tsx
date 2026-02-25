@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,19 +37,19 @@ export default function DepositPage() {
     const [qrCode, setQrCode] = useState('');
     const [pixCopyPaste, setPixCopyPaste] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [paymentStatus, setPaymentStatus] = useState<'idle' | 'confirming' | 'confirmed'>('idle');
+    const [paymentStatus, setPaymentStatus] = useState<'idle' | 'generated' | 'confirming' | 'confirmed'>('idle');
     const { toast } = useToast();
     const { addTransaction } = useAppContext();
     const { user, firestore } = useFirebase();
 
-    useEffect(() => {
+    useState(() => {
         const amountInBrl = parseFloat(brlAmount);
         if (!isNaN(amountInBrl) && amountInBrl > 0) {
             setUsdtAmount(amountInBrl / BRL_PER_USDT);
         } else {
             setUsdtAmount(0);
         }
-    }, [brlAmount]);
+    });
     
     const confirmPaymentAndDeposit = useCallback(async () => {
         if (usdtAmount <= 0 || !user || !firestore) return;
@@ -101,22 +101,6 @@ export default function DepositPage() {
         }
     }, [usdtAmount, user, firestore, addTransaction, toast]);
 
-    useEffect(() => {
-        if (paymentStatus === 'confirming') {
-            const timer = setTimeout(() => {
-                confirmPaymentAndDeposit();
-                setPaymentStatus('confirmed');
-                 toast({
-                    variant: 'success',
-                    title: 'PAGAMENTO CONFIRMADO!',
-                    description: `Seu depósito de ${usdtAmount.toFixed(2)} USDT foi adicionado ao seu saldo.`,
-                });
-            }, 10000); // 10-second delay
-
-            return () => clearTimeout(timer);
-        }
-    }, [paymentStatus, confirmPaymentAndDeposit, toast, usdtAmount]);
-
 
     const handleGenerateQrCode = async () => {
         const amountInBrl = parseFloat(brlAmount);
@@ -139,7 +123,7 @@ export default function DepositPage() {
             });
             setQrCode(response.qrCodeImageUrl);
             setPixCopyPaste(response.pixCopyPaste);
-            setPaymentStatus('confirming');
+            setPaymentStatus('generated');
         } catch (error) {
             console.error(error);
             toast({
@@ -150,6 +134,22 @@ export default function DepositPage() {
         } finally {
             setIsLoading(false);
         }
+    };
+    
+    const handleConfirmPayment = async () => {
+        setPaymentStatus('confirming');
+        
+        // Simulate checking the payment status with the provider
+        await new Promise(res => setTimeout(res, 4000));
+    
+        await confirmPaymentAndDeposit();
+        
+        setPaymentStatus('confirmed');
+        toast({
+            variant: 'success',
+            title: 'PAGAMENTO CONFIRMADO!',
+            description: `Seu depósito de ${usdtAmount.toFixed(2)} USDT foi adicionado ao seu saldo.`,
+        });
     };
 
     const copyPixKeyToClipboard = () => {
@@ -188,12 +188,11 @@ export default function DepositPage() {
                                 </CardTitle>
                                 <CardDescription>
                                     {paymentStatus === 'confirmed' 
-                                        ? 'Seu pagamento foi confirmado!'
-                                        : 'Escaneie o QR Code ou copie a chave para pagar.'}
+                                        ? 'Seu pagamento foi confirmado com sucesso!'
+                                        : "Pague com o QR Code ou a chave. Após o pagamento, clique no botão abaixo para confirmar."}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-
                                 {paymentStatus === 'confirmed' ? (
                                     <div className="flex flex-col items-center text-center gap-4 py-8">
                                         <CheckCircle className="h-16 w-16 text-green-500" />
@@ -230,14 +229,30 @@ export default function DepositPage() {
                                                     </Button>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center justify-center gap-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 p-3 text-sm">
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                <span>Aguardando confirmação do pagamento...</span>
-                                            </div>
+                                            {paymentStatus === 'confirming' && (
+                                                <div className="flex items-center justify-center gap-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 p-3 text-sm">
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                    <span>Confirmando pagamento...</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
                             </CardContent>
+                             {(paymentStatus === 'generated' || paymentStatus === 'confirming') && (
+                                <CardFooter>
+                                    <Button onClick={handleConfirmPayment} className="w-full" disabled={paymentStatus === 'confirming'}>
+                                        {paymentStatus === 'confirming' ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Confirmando...
+                                            </>
+                                        ) : (
+                                            'Já Efetuei o Pagamento'
+                                        )}
+                                    </Button>
+                                </CardFooter>
+                            )}
                         </Card>
                     </div>
                 </main>
@@ -278,7 +293,16 @@ export default function DepositPage() {
                             type="number"
                             placeholder="Mínimo R$ 1,00"
                             value={brlAmount}
-                            onChange={(e) => setBrlAmount(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setBrlAmount(val);
+                                const amountInBrl = parseFloat(val);
+                                if (!isNaN(amountInBrl) && amountInBrl > 0) {
+                                    setUsdtAmount(amountInBrl / BRL_PER_USDT);
+                                } else {
+                                    setUsdtAmount(0);
+                                }
+                            }}
                             className="h-14 text-lg pl-4 pr-12 bg-muted border-none"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">R$</span>
