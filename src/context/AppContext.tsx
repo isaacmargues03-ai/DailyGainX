@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Operation, OpenPosition, ActiveInvestment, Transaction } from '@/lib/types';
@@ -47,6 +48,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return doc(firestore, 'users', user.uid, 'accounts', user.uid);
   }, [user, firestore]);
 
+  // Hook unificado para monitorar o saldo do banco de dados em tempo real
   const { data: userAccount, isLoading: isBalanceLoading } = useDoc<{balance: number}>(accountDocRef);
 
   const transactionsQuery = useMemoFirebase(() => {
@@ -91,7 +93,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
-      // Implementação para saques. Depósitos agora são tratados via Webhook + Firestore listener
+      // Implementação para saques. Depósitos são tratados via Webhook + Firestore listener
       if (transaction.type === 'withdrawal' && accountDocRef) {
           updateDoc(accountDocRef, { balance: increment(-transaction.amount) })
             .catch(() => toast({ variant: 'destructive', title: 'Erro', description: 'Falha no saque.' }));

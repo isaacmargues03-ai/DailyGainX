@@ -28,7 +28,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
     try {
         // 1. Obter Token de Acesso (OAuth2)
-        const credentials = btoa(`${clientId}:${clientSecret}`);
+        const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
         const tokenResponse = await fetch(`${apiUrl}/oauth/token`, {
             method: 'POST',
             headers: {
