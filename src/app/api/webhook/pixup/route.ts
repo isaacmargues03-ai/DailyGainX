@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
-import { doc, getDoc, updateDoc, increment, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, increment, writeBatch } from 'firebase/firestore';
 
 /**
  * Endpoint oficial para receber notificações da PixUp em tempo real.
@@ -48,20 +48,19 @@ export async function POST(request: Request) {
 
         const txData = transactionDoc.data();
         if (txData.status === 'Completed') {
-            console.log('Aviso: Esta transação já foi processada e creditada.');
-            return NextResponse.json({ message: 'Já processado anteriormente' }, { status: 200 });
+            console.log('Aviso: Esta transação já foi processada anteriormente.');
+            return NextResponse.json({ message: 'Já processado' }, { status: 200 });
         }
 
         // 2. Processar o crédito (USDT)
-        // Regra de Conversão: R$ 0.01 BRL = 1 USDT. 
-        // Se a PixUp enviar amount em BRL (ex: 1.00 para R$ 1,00), multiplicamos por 100.
+        // Regra de Conversão: R$ 1,00 BRL = 100 USDT. 
         const usdtToCredit = parseFloat(amount) * 100;
 
         const batch = writeBatch(firestore);
         const accountRef = doc(firestore, 'users', userId, 'accounts', userId);
         const userRef = doc(firestore, 'users', userId);
 
-        // Atualiza saldo da conta principal
+        // Atualiza saldo da conta principal usando increment
         batch.update(accountRef, { balance: increment(usdtToCredit) });
         
         // Atualiza status da transação para Concluído
@@ -93,12 +92,12 @@ export async function POST(request: Request) {
         }
 
         await batch.commit();
-        console.log(`SUCESSO: ${usdtToCredit} USDT creditados automaticamente para o usuário ${userId}`);
+        console.log(`SUCESSO: ${usdtToCredit} USDT creditados para o usuário ${userId}`);
 
-        return NextResponse.json({ success: true, usdtCredited: usdtToCredit }, { status: 200 });
+        return NextResponse.json({ success: true }, { status: 200 });
 
     } catch (error: any) {
         console.error('ERRO CRÍTICO NO WEBHOOK:', error);
-        return NextResponse.json({ error: 'Erro Interno', details: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Erro Interno' }, { status: 500 });
     }
 }
