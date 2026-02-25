@@ -29,7 +29,7 @@ const PixLogo = () => (
 );
 
 
-const CONVERSION_RATE = 0.01;
+const BRL_PER_USDT = 5.0;
 
 export default function DepositPage() {
     const [brlAmount, setBrlAmount] = useState('');
@@ -45,7 +45,7 @@ export default function DepositPage() {
     useEffect(() => {
         const amountInBrl = parseFloat(brlAmount);
         if (!isNaN(amountInBrl) && amountInBrl > 0) {
-            setUsdtAmount(amountInBrl / CONVERSION_RATE);
+            setUsdtAmount(amountInBrl / BRL_PER_USDT);
         } else {
             setUsdtAmount(0);
         }
@@ -120,11 +120,11 @@ export default function DepositPage() {
 
     const handleGenerateQrCode = async () => {
         const amountInBrl = parseFloat(brlAmount);
-        if (isNaN(amountInBrl) || amountInBrl < 0.01) {
+        if (isNaN(amountInBrl) || amountInBrl < 1) {
             toast({
                 variant: 'destructive',
                 title: 'Valor inválido',
-                description: 'Por favor, insira um valor de depósito válido (mínimo R$ 0.01).',
+                description: 'Por favor, insira um valor de depósito válido (mínimo R$ 1,00).',
             });
             return;
         }
@@ -270,13 +270,13 @@ export default function DepositPage() {
                 <div className="space-y-4">
                     <div className="flex justify-between items-center">
                         <h2 className="font-semibold">Pagar</h2>
-                        <p className="text-sm text-muted-foreground">(1 USDT ≈ {CONVERSION_RATE.toFixed(2)} R$)</p>
+                        <p className="text-sm text-muted-foreground">(1 USDT ≈ {BRL_PER_USDT.toFixed(2)} R$)</p>
                     </div>
                     <div className="relative">
                         <Input
                             id="brlAmount"
                             type="number"
-                            placeholder="Mínimo R$ 0.01"
+                            placeholder="Mínimo R$ 1,00"
                             value={brlAmount}
                             onChange={(e) => setBrlAmount(e.target.value)}
                             className="h-14 text-lg pl-4 pr-12 bg-muted border-none"
@@ -303,7 +303,7 @@ export default function DepositPage() {
                     <Button 
                         onClick={handleGenerateQrCode} 
                         className="w-full h-12 text-lg" 
-                        disabled={!brlAmount || parseFloat(brlAmount) < 0.01 || isLoading}
+                        disabled={!brlAmount || parseFloat(brlAmount) < 1 || isLoading}
                     >
                         {isLoading ? (
                             <>
