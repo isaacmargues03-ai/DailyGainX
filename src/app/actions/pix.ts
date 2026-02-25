@@ -1,3 +1,4 @@
+
 'use server';
 
 import QRCode from 'qrcode';
@@ -13,18 +14,19 @@ interface GeneratePixOptions {
     amount: number;
     payerName?: string;
     payerEmail?: string;
-    externalId: string; // ID único para rastrear no webhook
+    externalId: string; // ID único para rastrear no webhook (userId:transactionId)
     postbackUrl?: string; // URL do nosso webhook
 }
 
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
     const { amount, payerName, payerEmail, externalId, postbackUrl } = options;
 
+    // Credenciais oficiais fornecidas pelo usuário
     const clientId = "Aducmartins_4621537998005562";
     const clientSecret = "c473cdb25c796b619fb302ed9a0a8ce039c1287499348ce477c5195851b143e9";
 
     try {
-        // 1. Get Access Token
+        // 1. Obter Token de Acesso
         const credentials = btoa(`${clientId}:${clientSecret}`);
         const tokenResponse = await fetch('https://api.pixupbr.com/v2/oauth/token', {
             method: 'POST',
@@ -44,14 +46,14 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
         
-        // 2. Create QR Code
+        // 2. Criar QR Code com a PixUp
         const body: CreateQrcodeBodyParam = {
              amount,
              external_id: externalId,
              postbackUrl: postbackUrl,
              payer: {
                  name: payerName || 'Cliente DailyGainX',
-                 document: '00000000000', 
+                 document: '00000000000', // Documento genérico se não coletado
                  email: payerEmail
              }
         };
@@ -74,9 +76,10 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         const qrCodeData = await qrCodeApiResponse.json();
 
         if (!qrCodeData.qrcode || !qrCodeData.transactionId) {
-            throw new Error('Resposta inválida da PixUp.');
+            throw new Error('Resposta inválida da PixUp (campos faltando).');
         }
 
+        // Converter a string do Pix para imagem QR Code
         const qrCodeImageUrl = await QRCode.toDataURL(qrCodeData.qrcode);
 
         return {
@@ -86,7 +89,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         };
 
     } catch (error: any) {
-        console.error('Erro na geração do Pix:', error);
+        console.error('Erro detalhado na geração do Pix:', error);
         throw new Error(error.message || 'Erro ao gerar Pix.');
     }
 }

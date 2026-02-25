@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -17,29 +18,30 @@ service cloud.firestore {
     }
 
     match /referrals/{referralId} {
-      allow get: if isSignedIn() && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
+      allow get: if (isSignedIn() && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId)) || (request.auth == null);
       allow list: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.referredId;
-      // Webhook precisa atualizar o status, mas como rodamos no servidor sem Admin, vamos usar uma regra flexível para o status
       allow update: if (isSignedIn() && request.auth.uid == resource.data.referredId) || (request.auth == null); 
       allow delete: if false;
     }
 
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow get: if isOwner(userId) || (request.auth == null);
       allow list: if false;
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || (request.auth == null); // Permite atualização via Webhook (Server-side)
+      allow update: if isOwner(userId) || (request.auth == null);
       allow delete: if isOwner(userId);
 
       match /accounts/{userAccountId} {
-        allow get, list, create: if isOwner(userId);
-        allow update: if isOwner(userId) || (request.auth == null); // Permite atualização via Webhook (Server-side)
+        allow get: if isOwner(userId) || (request.auth == null);
+        allow list, create: if isOwner(userId);
+        allow update: if isOwner(userId) || (request.auth == null);
         allow delete: if isOwner(userId);
 
         match /depositTransactions/{depositTransactionId} {
-          allow get, list, create: if isOwner(userId);
-          allow update: if isOwner(userId) || (request.auth == null); // Permite atualização via Webhook (Server-side)
+          allow get: if isOwner(userId) || (request.auth == null);
+          allow list, create: if isOwner(userId);
+          allow update: if isOwner(userId) || (request.auth == null);
           allow delete: if isOwner(userId);
         }
       }
