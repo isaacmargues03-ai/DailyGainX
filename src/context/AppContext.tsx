@@ -4,7 +4,7 @@ import type { Operation, OpenPosition, ActiveInvestment, Transaction } from '@/l
 import type { Product } from '@/lib/products';
 import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo, useCallback } from 'react';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, increment } from 'firebase/firestore';
+import { doc, updateDoc, increment, writeBatch, getDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -87,6 +87,94 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setOperations(prev => [newOperation, ...prev]);
   }, []);
 
+    const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
+        const newTransaction: Transaction = {
+        ...transaction,
+        id: new Date().getTime().toString(),
+        timestamp: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'}),
+        };
+
+        setTransactions(prev => [newTransaction, ...prev]);
+
+        // Handle deposits with a delay to simulate confirmation and perform real updates
+        if (newTransaction.type === 'deposit' && newTransaction.status === 'Pending') {
+            setTimeout(async () => {
+                if (!user || !firestore || !accountDocRef) return;
+
+                try {
+                    const batch = writeBatch(firestore);
+                    const userDocRef = doc(firestore, 'users', user.uid);
+
+                    // 1. Increment balance
+                    batch.update(accountDocRef, { balance: increment(newTransaction.amount) });
+
+                    // 2. Handle first deposit and referral logic
+                    const userDoc = await getDoc(userDocRef);
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        if (userData && userData.hasMadeFirstDeposit === false) {
+                            batch.update(userDocRef, { hasMadeFirstDeposit: true });
+
+                            if (userData.referralId) {
+                                const referralDocRef = doc(firestore, 'referrals', userData.referralId);
+                                const referralDoc = await getDoc(referralDocRef);
+                                if (referralDoc.exists() && referralDoc.data().status === 'pending') {
+                                    const referrerId = referralDoc.data().referrerId;
+                                    const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
+                                    batch.update(referralDocRef, { status: 'rewarded' });
+                                    batch.update(referrerAccountRef, { balance: increment(1) });
+                                    
+                                    toast({
+                                        title: 'Indicação Recompensada!',
+                                        description: 'Graças a você, a pessoa que te indicou ganhou 1 USDT de bônus!',
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    
+                    await batch.commit();
+
+                    // 3. Update local state to 'Completed'
+                    setTransactions(prev => 
+                        prev.map(tx => tx.id === newTransaction.id ? { ...tx, status: 'Completed' } : tx)
+                    );
+
+                    toast({
+                        variant: 'success',
+                        title: 'PAGAMENTO CONFIRMADO!',
+                        description: `Seu depósito de ${newTransaction.amount.toFixed(2)} USDT foi adicionado ao seu saldo.`,
+                    });
+
+                } catch (error) {
+                    console.error("Error confirming deposit:", error);
+                    setTransactions(prev => 
+                        prev.map(tx => tx.id === newTransaction.id ? { ...tx, status: 'Failed' } : tx)
+                    );
+                    toast({
+                        variant: 'destructive',
+                        title: 'Erro ao Confirmar Depósito',
+                        description: 'Não foi possível atualizar seu saldo no servidor. Por favor, contate o suporte.',
+                    });
+                    const permissionError = new FirestorePermissionError({ path: accountDocRef.path, operation: 'update', requestResourceData: { balance: `increment by ${newTransaction.amount}` } });
+                    errorEmitter.emit('permission-error', permissionError);
+                }
+            }, 7000);
+        } 
+        // Handle withdrawals immediately
+        else if (newTransaction.type === 'withdrawal') {
+            if (accountDocRef) {
+                updateDoc(accountDocRef, { balance: increment(-newTransaction.amount) })
+                .catch(error => {
+                    console.error(`Firestore update failed for withdrawal at ${accountDocRef.path}:`, error);
+                    const permissionError = new FirestorePermissionError({ path: accountDocRef.path, operation: 'update', requestResourceData: { balance: `decrement by ${newTransaction.amount}` } });
+                    errorEmitter.emit('permission-error', permissionError);
+                    toast({ variant: 'destructive', title: 'Falha no Saque', description: 'Não foi possível atualizar seu saldo.' });
+                });
+            }
+        }
+    }, [user, firestore, toast, accountDocRef]);
+
   const openPosition = useCallback((position: Omit<OpenPosition, 'id' | 'timestamp' | 'entryPrice'>) => {
     if (isBalanceLoading) return;
     const newPosition: OpenPosition = {
@@ -106,35 +194,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
     }
   }, [isBalanceLoading, lastPrice, accountDocRef, toast]);
-
-  const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
-    const newTransaction: Transaction = {
-      ...transaction,
-      id: new Date().getTime().toString(),
-      timestamp: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'}),
-    };
-    
-    setTransactions(prev => [newTransaction, ...prev]);
-
-    if (accountDocRef) {
-        let amount = 0;
-        if (newTransaction.type === 'deposit' && newTransaction.status === 'Completed') {
-            amount = newTransaction.amount;
-        } else if (newTransaction.type === 'withdrawal' && transaction.status !== 'Failed') {
-            amount = -newTransaction.amount;
-        }
-        
-        if (amount !== 0) {
-            updateDoc(accountDocRef, { balance: increment(amount) })
-            .catch(error => {
-                console.error(`Firestore update failed for addTransaction at ${accountDocRef.path}:`, error);
-                const permissionError = new FirestorePermissionError({ path: accountDocRef.path, operation: 'update', requestResourceData: { balance: `increment by ${amount}` } });
-                errorEmitter.emit('permission-error', permissionError);
-                toast({ variant: 'destructive', title: 'Falha ao Atualizar Saldo', description: 'Não foi possível registrar sua transação no servidor.' });
-            });
-        }
-    }
-  }, [accountDocRef, toast]);
 
   const closePosition = useCallback((positionId: string) => {
     const position = openPositions.find(p => p.id === positionId);

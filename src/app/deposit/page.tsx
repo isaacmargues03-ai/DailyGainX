@@ -11,7 +11,6 @@ import { ArrowLeft, CheckCircle, Copy, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc, writeBatch, increment } from 'firebase/firestore';
 import { generatePixQrCode } from '@/app/actions/pix';
 
 
@@ -36,81 +35,15 @@ export default function DepositPage() {
     const [usdtAmount, setUsdtAmount] = useState(0);
     const [qrCode, setQrCode] = useState('');
     const [pixCopyPaste, setPixCopyPaste] = useState('');
-    const [transactionId, setTransactionId] = useState('');
+    const [currentTransactionId, setCurrentTransactionId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [paymentStatus, setPaymentStatus] = useState<'idle' | 'generated' | 'confirming' | 'confirmed'>('idle');
-    const { toast } = useToast();
-    const { addTransaction } = useAppContext();
-    const { user, firestore } = useFirebase();
     
-    const confirmPaymentAndDeposit = useCallback(async () => {
-        if (usdtAmount <= 0 || !user || !firestore) return;
-
-        addTransaction({
-            type: 'deposit',
-            amount: usdtAmount,
-            method: 'Pix',
-            status: 'Completed',
-            externalId: transactionId
-        });
-
-        try {
-            const userDocRef = doc(firestore, 'users', user.uid);
-            const userDoc = await getDoc(userDocRef);
-
-            if (userDoc.exists()) {
-                const userData = userDoc.data();
-                if (userData && userData.hasMadeFirstDeposit === false) {
-                    const batch = writeBatch(firestore);
-                    
-                    batch.update(userDocRef, { hasMadeFirstDeposit: true });
-
-                    let rewardedReferrer = false;
-                    if (userData.referralId) {
-                        const referralDocRef = doc(firestore, 'referrals', userData.referralId);
-                        const referralDoc = await getDoc(referralDocRef);
-
-                        if (referralDoc.exists() && referralDoc.data().status === 'pending') {
-                            const referrerId = referralDoc.data().referrerId;
-                            batch.update(referralDocRef, { status: 'rewarded' });
-                            const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
-                            batch.update(referrerAccountRef, { balance: increment(1) });
-                            rewardedReferrer = true;
-                        }
-                    }
-                    
-                    await batch.commit();
-
-                    if (rewardedReferrer) {
-                        toast({
-                            title: 'Indicação Recompensada!',
-                            description: 'Graças a você, a pessoa que te indicou ganhou 1 USDT de bônus!',
-                        });
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("Error processing first deposit logic:", error);
-        }
-    }, [usdtAmount, user, firestore, addTransaction, toast, transactionId]);
-
-    useEffect(() => {
-        if (paymentStatus === 'generated') {
-            setPaymentStatus('confirming');
-
-            const timer = setTimeout(() => {
-                confirmPaymentAndDeposit();
-                setPaymentStatus('confirmed');
-                toast({
-                    variant: 'success',
-                    title: 'PAGAMENTO CONFIRMADO!',
-                    description: `Seu depósito de ${usdtAmount.toFixed(2)} USDT foi adicionado ao seu saldo.`,
-                });
-            }, 7000); // Simulate 7-second payment confirmation delay
-
-            return () => clearTimeout(timer);
-        }
-    }, [paymentStatus, confirmPaymentAndDeposit, toast, usdtAmount]);
+    const { toast } = useToast();
+    const { addTransaction, transactions } = useAppContext();
+    const { user } = useFirebase();
+    
+    const currentTransaction = transactions.find(tx => tx.externalId === currentTransactionId);
+    const paymentStatus = currentTransaction?.status;
 
 
     const handleGenerateQrCode = async () => {
@@ -125,7 +58,6 @@ export default function DepositPage() {
         }
 
         setIsLoading(true);
-        setPaymentStatus('idle');
         try {
             const response = await generatePixQrCode({ 
                 amount: amountInBrl,
@@ -134,8 +66,17 @@ export default function DepositPage() {
             });
             setQrCode(response.qrCodeImageUrl);
             setPixCopyPaste(response.pixCopyPaste);
-            setTransactionId(response.transactionId);
-            setPaymentStatus('generated');
+            setCurrentTransactionId(response.transactionId);
+            
+            // Kick off the deposit process in the context
+            addTransaction({
+                type: 'deposit',
+                amount: usdtAmount,
+                method: 'Pix',
+                status: 'Pending',
+                externalId: response.transactionId
+            });
+
         } catch (error) {
             console.error(error);
             toast({
@@ -161,8 +102,7 @@ export default function DepositPage() {
         setQrCode('');
         setPixCopyPaste('');
         setBrlAmount('');
-        setTransactionId('');
-        setPaymentStatus('idle');
+        setCurrentTransactionId('');
     };
 
 
@@ -184,13 +124,13 @@ export default function DepositPage() {
                                     Pagamento via Pix
                                 </CardTitle>
                                 <CardDescription>
-                                    {paymentStatus === 'confirmed' 
+                                    {paymentStatus === 'Completed' 
                                         ? 'Seu pagamento foi confirmado com sucesso!'
                                         : "Pague com o QR Code ou a chave. A confirmação do pagamento é automática."}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                {paymentStatus === 'confirmed' ? (
+                                {paymentStatus === 'Completed' ? (
                                     <div className="flex flex-col items-center text-center gap-4 py-8">
                                         <CheckCircle className="h-16 w-16 text-green-500" />
                                         <h3 className="text-xl font-semibold">Pagamento Confirmado</h3>
@@ -226,10 +166,15 @@ export default function DepositPage() {
                                                     </Button>
                                                 </div>
                                             </div>
-                                            {paymentStatus === 'confirming' && (
+                                            {paymentStatus === 'Pending' && (
                                                 <div className="flex items-center justify-center gap-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 p-3 text-sm">
                                                     <Loader2 className="h-4 w-4 animate-spin" />
                                                     <span>Aguardando confirmação do pagamento...</span>
+                                                </div>
+                                            )}
+                                             {paymentStatus === 'Failed' && (
+                                                <div className="flex items-center justify-center gap-2 rounded-lg bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 p-3 text-sm">
+                                                    <span>Falha na confirmação do pagamento.</span>
                                                 </div>
                                             )}
                                         </div>
