@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,6 +37,7 @@ export default function DepositPage() {
     const [qrCode, setQrCode] = useState('');
     const [pixCopyPaste, setPixCopyPaste] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [paymentStatus, setPaymentStatus] = useState<'idle' | 'confirming' | 'confirmed'>('idle');
     const { toast } = useToast();
     const { addTransaction } = useAppContext();
     const { user, firestore } = useFirebase();
@@ -49,6 +50,73 @@ export default function DepositPage() {
             setUsdtAmount(0);
         }
     }, [brlAmount]);
+    
+    const confirmPaymentAndDeposit = useCallback(async () => {
+        if (usdtAmount <= 0 || !user || !firestore) return;
+
+        addTransaction({
+            type: 'deposit',
+            amount: usdtAmount,
+            method: 'Pix',
+            status: 'Completed'
+        });
+
+        try {
+            const userDocRef = doc(firestore, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                if (userData && userData.hasMadeFirstDeposit === false) {
+                    const batch = writeBatch(firestore);
+                    
+                    batch.update(userDocRef, { hasMadeFirstDeposit: true });
+
+                    let rewardedReferrer = false;
+                    if (userData.referralId) {
+                        const referralDocRef = doc(firestore, 'referrals', userData.referralId);
+                        const referralDoc = await getDoc(referralDocRef);
+
+                        if (referralDoc.exists() && referralDoc.data().status === 'pending') {
+                            const referrerId = referralDoc.data().referrerId;
+                            batch.update(referralDocRef, { status: 'rewarded' });
+                            const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
+                            batch.update(referrerAccountRef, { balance: increment(1) });
+                            rewardedReferrer = true;
+                        }
+                    }
+                    
+                    await batch.commit();
+
+                    if (rewardedReferrer) {
+                        toast({
+                            title: 'Indicação Recompensada!',
+                            description: 'Graças a você, a pessoa que te indicou ganhou 1 USDT de bônus!',
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error processing first deposit logic:", error);
+        }
+    }, [usdtAmount, user, firestore, addTransaction, toast]);
+
+    useEffect(() => {
+        if (paymentStatus === 'confirming') {
+            const timer = setTimeout(() => {
+                confirmPaymentAndDeposit();
+                setPaymentStatus('confirmed');
+                 toast({
+                    variant: 'success',
+                    title: 'PAGAMENTO CONFIRMADO!',
+                    description: `Seu depósito de ${usdtAmount.toFixed(2)} USDT foi adicionado ao seu saldo.`,
+                });
+            }, 10000); // 10-second delay
+
+            return () => clearTimeout(timer);
+        }
+    }, [paymentStatus, confirmPaymentAndDeposit, toast, usdtAmount]);
+
 
     const handleGenerateQrCode = async () => {
         const amountInBrl = parseFloat(brlAmount);
@@ -62,14 +130,16 @@ export default function DepositPage() {
         }
 
         setIsLoading(true);
+        setPaymentStatus('idle');
         try {
             const response = await generatePixQrCode({ 
                 amount: amountInBrl,
-                payerName: user?.displayName || undefined,
+                payerName: user?.displayName || 'Cliente DailyGainX',
                 payerEmail: user?.email || undefined
             });
             setQrCode(response.qrCodeImageUrl);
             setPixCopyPaste(response.pixCopyPaste);
+            setPaymentStatus('confirming');
         } catch (error) {
             console.error(error);
             toast({
@@ -91,86 +161,19 @@ export default function DepositPage() {
         });
     };
     
-    const handleConfirmPayment = async () => {
-        if (usdtAmount <= 0) return;
-
-        // Process the deposit transaction first to give immediate feedback to the user.
-        addTransaction({
-            type: 'deposit',
-            amount: usdtAmount,
-            method: 'Pix',
-            status: 'Completed'
-        });
-        toast({
-            variant: 'success',
-            title: 'DEPOSITO COM SUCESSO',
-        });
-        
-        // Reset the UI state.
-        setBrlAmount('');
+    const resetDepositFlow = () => {
         setQrCode('');
         setPixCopyPaste('');
-
-        // Then, handle the first deposit and referral reward logic in the background.
-        if (user && firestore) {
-            try {
-                const userDocRef = doc(firestore, 'users', user.uid);
-                const userDoc = await getDoc(userDocRef);
-
-                if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    // Check if it's the user's very first deposit.
-                    if (userData && userData.hasMadeFirstDeposit === false) {
-                        const batch = writeBatch(firestore);
-                        
-                        // Mark first deposit as done for the current user.
-                        batch.update(userDocRef, { hasMadeFirstDeposit: true });
-
-                        let rewardedReferrer = false;
-                        // If the user was referred, try to reward the referrer.
-                        if (userData.referralId) {
-                            const referralDocRef = doc(firestore, 'referrals', userData.referralId);
-                            const referralDoc = await getDoc(referralDocRef);
-
-                            if (referralDoc.exists() && referralDoc.data().status === 'pending') {
-                                const referrerId = referralDoc.data().referrerId;
-
-                                // Update referral status to 'rewarded'.
-                                batch.update(referralDocRef, { status: 'rewarded' });
-                                
-                                // Add 1 USDT to the referrer's account balance.
-                                // Assumes the referrer's account document ID is the same as their user ID.
-                                const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
-                                batch.update(referrerAccountRef, { balance: increment(1) });
-                                rewardedReferrer = true;
-                            }
-                        }
-                        
-                        // Commit all batched writes at once.
-                        await batch.commit();
-
-                        // Show toast if a reward was successfully processed.
-                        if (rewardedReferrer) {
-                            toast({
-                                title: 'Indicação Recompensada!',
-                                description: 'Graças a você, a pessoa que te indicou ganhou 1 USDT de bônus!',
-                            });
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error("Error processing first deposit logic:", error);
-                // The main deposit already succeeded, so we just log this error.
-                // A toast could be shown here if we wanted to inform the user about the referral part failing.
-            }
-        }
+        setBrlAmount('');
+        setPaymentStatus('idle');
     };
+
 
     if (qrCode) {
         return (
              <div className="flex min-h-screen w-full flex-col bg-muted/40">
                 <header className="flex items-center justify-between p-4 border-b bg-background">
-                    <Button variant="ghost" size="icon" onClick={() => { setQrCode(''); setPixCopyPaste(''); }}>
+                    <Button variant="ghost" size="icon" onClick={resetDepositFlow}>
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <h1 className="text-lg font-semibold">Depósito</h1>
@@ -184,48 +187,56 @@ export default function DepositPage() {
                                     Pagamento via Pix
                                 </CardTitle>
                                 <CardDescription>
-                                    Escaneie o QR Code ou copie a chave abaixo para pagar.
+                                    {paymentStatus === 'confirmed' 
+                                        ? 'Seu pagamento foi confirmado!'
+                                        : 'Escaneie o QR Code ou copie a chave para pagar.'}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <div className="flex flex-col items-center text-center gap-4">
-                                    <Image 
-                                        src={qrCode} 
-                                        alt="Pix QR Code" 
-                                        width={256} 
-                                        height={256} 
-                                        className="rounded-lg border bg-white"
-                                        data-ai-hint="qr code"
-                                    />
-                                    <p className="text-sm text-muted-foreground">Valor: <span className="font-bold text-foreground">{usdtAmount.toFixed(2)} USDT</span></p>
-                                    <div className="w-full space-y-4 pt-4 text-left">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="beneficiary">Beneficiário</Label>
-                                            <Input
-                                                id="beneficiary"
-                                                readOnly
-                                                value="DailyGainX"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="pix-copy-paste">Pix Copia e Cola</Label>
-                                            <div className="flex items-center space-x-2">
-                                                <Input
-                                                    id="pix-copy-paste"
-                                                    readOnly
-                                                    value={pixCopyPaste}
-                                                    className="text-sm truncate"
-                                                />
-                                                <Button variant="outline" size="icon" onClick={copyPixKeyToClipboard}>
-                                                    <Copy className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        <Button onClick={handleConfirmPayment} className="w-full">
-                                            Pagamento Concluído
+
+                                {paymentStatus === 'confirmed' ? (
+                                    <div className="flex flex-col items-center text-center gap-4 py-8">
+                                        <CheckCircle className="h-16 w-16 text-green-500" />
+                                        <h3 className="text-xl font-semibold">Pagamento Confirmado</h3>
+                                        <p className="text-muted-foreground">O valor de <span className="font-bold text-foreground">{usdtAmount.toFixed(2)} USDT</span> foi adicionado ao seu saldo.</p>
+                                        <Button asChild className="w-full mt-4">
+                                            <Link href="/profile">Voltar para o Perfil</Link>
                                         </Button>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="flex flex-col items-center text-center gap-4">
+                                        <Image 
+                                            src={qrCode} 
+                                            alt="Pix QR Code" 
+                                            width={256} 
+                                            height={256} 
+                                            className="rounded-lg border bg-white"
+                                            data-ai-hint="qr code"
+                                        />
+                                        <p className="text-sm text-muted-foreground">Valor: <span className="font-bold text-foreground">{usdtAmount.toFixed(2)} USDT</span></p>
+                                        
+                                        <div className="w-full space-y-4 pt-4 text-left">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="pix-copy-paste">Pix Copia e Cola</Label>
+                                                <div className="flex items-center space-x-2">
+                                                    <Input
+                                                        id="pix-copy-paste"
+                                                        readOnly
+                                                        value={pixCopyPaste}
+                                                        className="text-sm truncate"
+                                                    />
+                                                    <Button variant="outline" size="icon" onClick={copyPixKeyToClipboard}>
+                                                        <Copy className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-center gap-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 p-3 text-sm">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                <span>Aguardando confirmação do pagamento...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </div>
