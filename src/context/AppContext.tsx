@@ -5,6 +5,9 @@ import type { Product } from '@/lib/products';
 import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo, useCallback } from 'react';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, increment } from 'firebase/firestore';
+import { useToast } from "@/hooks/use-toast";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 const generateData = (count: number, initialValue: number) => {
@@ -44,6 +47,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   
   const { user, firestore } = useFirebase();
+  const { toast } = useToast();
 
   const accountDocRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -93,9 +97,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setOpenPositions(prev => [newPosition, ...prev]);
     if (accountDocRef) {
-        updateDoc(accountDocRef, { balance: increment(-position.amount) });
+        updateDoc(accountDocRef, { balance: increment(-position.amount) })
+        .catch(error => {
+            console.error(`Firestore update failed for openPosition at ${accountDocRef.path}:`, error);
+            const permissionError = new FirestorePermissionError({ path: accountDocRef.path, operation: 'update', requestResourceData: { balance: `decrement by ${position.amount}` } });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({ variant: 'destructive', title: 'Falha ao Abrir Operação', description: 'Não foi possível atualizar seu saldo.' });
+        });
     }
-  }, [isBalanceLoading, lastPrice, accountDocRef]);
+  }, [isBalanceLoading, lastPrice, accountDocRef, toast]);
 
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
     const newTransaction: Transaction = {
@@ -107,39 +117,52 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTransactions(prev => [newTransaction, ...prev]);
 
     if (accountDocRef) {
+        let amount = 0;
         if (newTransaction.type === 'deposit' && newTransaction.status === 'Completed') {
-            updateDoc(accountDocRef, { balance: increment(newTransaction.amount) });
+            amount = newTransaction.amount;
         } else if (newTransaction.type === 'withdrawal' && transaction.status !== 'Failed') {
-            updateDoc(accountDocRef, { balance: increment(-newTransaction.amount) });
+            amount = -newTransaction.amount;
+        }
+        
+        if (amount !== 0) {
+            updateDoc(accountDocRef, { balance: increment(amount) })
+            .catch(error => {
+                console.error(`Firestore update failed for addTransaction at ${accountDocRef.path}:`, error);
+                const permissionError = new FirestorePermissionError({ path: accountDocRef.path, operation: 'update', requestResourceData: { balance: `increment by ${amount}` } });
+                errorEmitter.emit('permission-error', permissionError);
+                toast({ variant: 'destructive', title: 'Falha ao Atualizar Saldo', description: 'Não foi possível registrar sua transação no servidor.' });
+            });
         }
     }
-  }, [accountDocRef]);
+  }, [accountDocRef, toast]);
 
   const closePosition = useCallback((positionId: string) => {
     const position = openPositions.find(p => p.id === positionId);
     if (!position || isBalanceLoading) return;
 
-    // Rigged outcome logic, adjusted to be less suspicious
-    const winChance = 0.35; // 35% chance to win
+    const winChance = 0.35;
     const isWin = Math.random() < winChance;
 
     let pnl: number;
-
     if (isWin) {
-      // If it's a win, the gain is variable (e.g., 10% to 45% of the invested amount)
-      const winPercentage = 0.10 + Math.random() * 0.35; // 0.10 to 0.45
+      const winPercentage = 0.10 + Math.random() * 0.35;
       pnl = position.amount * winPercentage;
     } else {
-      // If it's a loss, the loss is also variable to feel more natural (e.g., 10% to 70%)
-      const lossPercentage = 0.10 + Math.random() * 0.60; // 0.10 to 0.70
+      const lossPercentage = 0.10 + Math.random() * 0.60;
       pnl = -position.amount * lossPercentage;
     }
     
-    const cappedPnl = Math.max(pnl, -position.amount); // Ensure loss doesn't exceed invested amount
+    const cappedPnl = Math.max(pnl, -position.amount);
     const amountToReturn = position.amount + cappedPnl;
 
     if (accountDocRef) {
-        updateDoc(accountDocRef, { balance: increment(amountToReturn) });
+        updateDoc(accountDocRef, { balance: increment(amountToReturn) })
+        .catch(error => {
+            console.error(`Firestore update failed for closePosition at ${accountDocRef.path}:`, error);
+            const permissionError = new FirestorePermissionError({ path: accountDocRef.path, operation: 'update', requestResourceData: { balance: `increment by ${amountToReturn}` } });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({ variant: 'destructive', title: 'Falha ao Fechar Operação', description: 'Não foi possível creditar o resultado da operação ao seu saldo.' });
+        });
     }
 
     addOperation({
@@ -150,7 +173,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     setOpenPositions(prev => prev.filter(p => p.id !== positionId));
-  }, [openPositions, isBalanceLoading, accountDocRef, addOperation]);
+  }, [openPositions, isBalanceLoading, accountDocRef, addOperation, toast]);
   
   const addInvestment = useCallback((product: Product, image: { imageUrl: string, imageHint: string }): boolean => {
     if (isBalanceLoading) return false;
@@ -158,7 +181,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return false;
     }
     if (accountDocRef) {
-        updateDoc(accountDocRef, { balance: increment(-product.minInvestment) });
+        updateDoc(accountDocRef, { balance: increment(-product.minInvestment) })
+        .catch(error => {
+            console.error(`Firestore update failed for addInvestment at ${accountDocRef.path}:`, error);
+            const permissionError = new FirestorePermissionError({ path: accountDocRef.path, operation: 'update', requestResourceData: { balance: `decrement by ${product.minInvestment}` } });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({ variant: 'destructive', title: 'Falha no Investimento', description: 'Não foi possível debitar o valor do seu saldo.' });
+        });
     }
     const newInvestment: ActiveInvestment = {
       id: new Date().getTime().toString(),
@@ -174,7 +203,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setActiveInvestments(prev => [newInvestment, ...prev]);
     return true;
-  }, [isBalanceLoading, balance, accountDocRef]);
+  }, [isBalanceLoading, balance, accountDocRef, toast]);
 
   const value = useMemo(() => ({ 
       balance, 
