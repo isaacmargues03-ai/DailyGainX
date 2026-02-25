@@ -29,7 +29,7 @@ const PixLogo = () => (
 );
 
 
-const CONVERSION_RATE = 5;
+const CONVERSION_RATE = 0.01;
 
 export default function DepositPage() {
     const [brlAmount, setBrlAmount] = useState('');
@@ -270,7 +270,7 @@ export default function DepositPage() {
                 <div className="space-y-4">
                     <div className="flex justify-between items-center">
                         <h2 className="font-semibold">Pagar</h2>
-                        <p className="text-sm text-muted-foreground">(1 USDT ≈ {CONVERSION_RATE} R$)</p>
+                        <p className="text-sm text-muted-foreground">(1 USDT ≈ {CONVERSION_RATE.toFixed(2)} R$)</p>
                     </div>
                     <div className="relative">
                         <Input
