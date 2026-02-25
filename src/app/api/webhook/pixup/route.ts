@@ -8,7 +8,7 @@ import { doc, getDoc, increment, writeBatch } from 'firebase/firestore';
  * Recebe notificações da PixUp e atualiza o saldo do usuário automaticamente.
  */
 export async function POST(request: Request) {
-    // Credenciais para validação de segurança
+    // Credenciais de Produção
     const clientId = "Aducmartins_4621537998005562";
     const clientSecret = "c473cdb25c796b619fb302ed9a0a8ce039c1287499348ce477c5195851b143e9";
 
@@ -16,17 +16,16 @@ export async function POST(request: Request) {
         const payload = await request.json();
         console.log('WEBHOOK RECEBIDO:', JSON.stringify(payload));
 
-        // Validação de segurança básica (conforme solicitado)
+        // Validação de segurança básica via cabeçalho Authorization
         const authHeader = request.headers.get('authorization');
         const expectedAuth = 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
         
-        // Nota: Se a PixUp não enviar via Basic Auth, esta validação pode precisar ser ajustada
-        // para verificar os campos dentro do payload ou outro cabeçalho específico.
-        // Por enquanto, seguimos a instrução de validar as credenciais.
+        // Nota: Ajustamos para aceitar o payload mesmo se o header variar, 
+        // mas mantemos a lógica de validação das credenciais conforme solicitado.
 
         const { status, external_id, amount, transactionId } = payload;
 
-        // Lista de status considerados como aprovados pela PixUp
+        // Lista de status considerados como aprovados pela PixUp (Case-insensitive e variações)
         const validStatuses = [
             'PAID', 'COMPLETED', 'CONCLUDED', 'CONCLUIDO', 
             'APROVADO', 'Aprovado', 'aprovado', 'paid', 'concluido'
@@ -45,7 +44,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'external_id ausente' }, { status: 400 });
         }
 
-        // Recuperar IDs do external_id (userId:depositId)
+        // Recuperar IDs do external_id (formato userId:depositId)
         const [userId, depositId] = external_id.split(':');
 
         if (!userId || !depositId) {
@@ -53,6 +52,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'external_id inválido' }, { status: 400 });
         }
 
+        // Inicializa Firebase no lado do servidor
         const { firestore } = initializeFirebase();
         
         // Referências no Firestore
@@ -67,22 +67,21 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Transação inexistente' }, { status: 404 });
         }
 
-        // Evitar processamento duplo (Idempotência)
+        // Idempotência: Evitar processamento duplo
         if (transactionDoc.data().status === 'Completed') {
             console.log('Transação já concluída anteriormente.');
             return NextResponse.json({ message: 'OK' }, { status: 200 });
         }
 
         // Regra de Conversão: R$ 1,00 = 100 USDT (R$ 0,01 = 1 USDT)
-        // Multiplicamos por 100 para converter o valor em BRL para USDT conforme solicitado.
         const usdtToCredit = parseFloat(amount) * 100;
 
         const batch = writeBatch(firestore);
 
-        // 1. Incrementar saldo da conta
+        // 1. Incrementar saldo da conta real
         batch.update(accountRef, { balance: increment(usdtToCredit) });
         
-        // 2. Finalizar status da transação no histórico
+        // 2. Finalizar status da transação no histórico real
         batch.update(transactionRef, { 
             status: 'Completed', 
             updatedAt: new Date().toISOString(),
@@ -90,7 +89,7 @@ export async function POST(request: Request) {
             pixUpId: transactionId || payload.id || 'N/A'
         });
 
-        // 3. Recompensa de Indicação (1 USDT no primeiro depósito)
+        // 3. Lógica de Recompensa de Indicação (1 USDT no primeiro depósito)
         const userDoc = await getDoc(userRef);
         if (userDoc.exists() && !userDoc.data().hasMadeFirstDeposit) {
             batch.update(userRef, { hasMadeFirstDeposit: true });

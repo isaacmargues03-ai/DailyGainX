@@ -1,12 +1,28 @@
+
 # DailyGainX - Firebase Studio
 
-Este é um projeto Next.js criado no Firebase Studio.
+Este é um projeto Next.js criado no Firebase Studio com integração real da PixUp.
 
-## Primeiros Passos
+## Comandos do Terminal
 
-Para iniciar, dê uma olhada em `src/app/page.tsx`.
+Para atualizar e sincronizar com o GitHub:
+```bash
+git add .
+git commit -m "Integração PixUp Produção - Saldo Automático"
+git push
+```
 
-Para rodar o projeto localmente, use o comando:
+Para rodar o projeto localmente:
 ```bash
 npm run dev
 ```
+
+## Configuração do Webhook
+
+Cadastre a URL abaixo no painel da PixUp para que o saldo atualize automaticamente:
+`https://dailygainx.netlify.app/api/webhook/pixup`
+
+**Regras de Negócio:**
+- Conversão: R$ 1,00 = 100 USDT.
+- Crédito: Automático via Webhook (Server-side).
+- Recompensa: 1 USDT no primeiro depósito do indicado.
