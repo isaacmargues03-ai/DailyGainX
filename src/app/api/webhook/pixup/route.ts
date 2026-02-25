@@ -1,18 +1,20 @@
+
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
 import { doc, getDoc, increment, writeBatch } from 'firebase/firestore';
 
 /**
- * Endpoint oficial para receber notificações da PixUp em tempo real (Produção).
+ * Endpoint de Webhook para Produção.
+ * Recebe notificações da PixUp e atualiza o saldo do usuário automaticamente.
  */
 export async function POST(request: Request) {
     try {
         const payload = await request.json();
-        console.log('--- Notificação PixUp Produção ---', JSON.stringify(payload));
+        console.log('WEBHOOK RECEBIDO:', JSON.stringify(payload));
 
         const { status, external_id, amount, transactionId } = payload;
 
-        // Validar status conforme resposta da API PixUp em produção
+        // Lista de status considerados como "Pago" pela PixUp
         const validStatuses = [
             'PAID', 'COMPLETED', 'CONCLUDED', 'CONCLUIDO', 
             'APROVADO', 'Aprovado', 'aprovado', 'paid', 'concluido'
@@ -22,26 +24,26 @@ export async function POST(request: Request) {
         const isPaid = validStatuses.includes(statusString);
         
         if (!isPaid) {
-            console.log(`Pagamento ignorado ou pendente. Status: ${statusString}`);
-            return NextResponse.json({ message: 'Aguardando aprovação' }, { status: 200 });
+            console.log(`Status ignorado: ${statusString}`);
+            return NextResponse.json({ message: 'Aguardando pagamento' }, { status: 200 });
         }
 
         if (!external_id) {
-            console.error('Erro: external_id ausente no payload.');
+            console.error('external_id ausente no payload.');
             return NextResponse.json({ error: 'external_id ausente' }, { status: 400 });
         }
 
-        // Recuperar userId e depositId (formato userId:depositId)
+        // Recuperar IDs do external_id (userId:depositId)
         const [userId, depositId] = external_id.split(':');
 
         if (!userId || !depositId) {
-            console.error('Erro: formato de external_id inválido:', external_id);
+            console.error('external_id inválido:', external_id);
             return NextResponse.json({ error: 'external_id inválido' }, { status: 400 });
         }
 
         const { firestore } = initializeFirebase();
         
-        // Referências no Firestore
+        // Referências no Firestore (Estrutura de acordo com backend.json)
         const transactionRef = doc(firestore, 'users', userId, 'accounts', userId, 'depositTransactions', depositId);
         const accountRef = doc(firestore, 'users', userId, 'accounts', userId);
         const userRef = doc(firestore, 'users', userId);
@@ -49,32 +51,33 @@ export async function POST(request: Request) {
         const transactionDoc = await getDoc(transactionRef);
 
         if (!transactionDoc.exists()) {
-            console.error(`Transação ${depositId} não encontrada no banco de dados.`);
-            return NextResponse.json({ error: 'Transação não encontrada' }, { status: 404 });
+            console.error(`Transação ${depositId} não encontrada.`);
+            return NextResponse.json({ error: 'Transação inexistente' }, { status: 404 });
         }
 
+        // Evitar processamento duplo
         if (transactionDoc.data().status === 'Completed') {
-            console.log('Transação já processada anteriormente.');
-            return NextResponse.json({ message: 'Já processado' }, { status: 200 });
+            console.log('Transação já concluída anteriormente.');
+            return NextResponse.json({ message: 'OK' }, { status: 200 });
         }
 
-        // Regra de Conversão: R$ 1,00 BRL = 100 USDT (Multiplicador 100x)
+        // Regra de Conversão: R$ 1,00 BRL = 100 USDT
         const usdtToCredit = parseFloat(amount) * 100;
 
         const batch = writeBatch(firestore);
 
-        // 1. Atualiza saldo da conta principal
+        // 1. Incrementar saldo da conta
         batch.update(accountRef, { balance: increment(usdtToCredit) });
         
-        // 2. Atualiza status da transação para Concluído
+        // 2. Finalizar transação no histórico
         batch.update(transactionRef, { 
             status: 'Completed', 
             updatedAt: new Date().toISOString(),
             confirmedAmount: usdtToCredit,
-            pixUpTransactionId: transactionId || payload.id || 'N/A'
+            pixUpId: transactionId || payload.id || 'N/A'
         });
 
-        // 3. Lógica de Recompensa de Indicação (1 USDT no primeiro depósito)
+        // 3. Recompensa de Indicação (1 USDT no primeiro depósito)
         const userDoc = await getDoc(userRef);
         if (userDoc.exists() && !userDoc.data().hasMadeFirstDeposit) {
             batch.update(userRef, { hasMadeFirstDeposit: true });
@@ -95,12 +98,12 @@ export async function POST(request: Request) {
         }
 
         await batch.commit();
-        console.log(`SUCESSO: ${usdtToCredit} USDT creditados via Produção para o usuário ${userId}`);
+        console.log(`SUCESSO: ${usdtToCredit} USDT creditados para ${userId}`);
 
         return NextResponse.json({ success: true }, { status: 200 });
 
     } catch (error: any) {
-        console.error('ERRO CRÍTICO NO WEBHOOK (Produção):', error);
-        return NextResponse.json({ error: 'Erro Interno no Servidor' }, { status: 500 });
+        console.error('ERRO NO WEBHOOK:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

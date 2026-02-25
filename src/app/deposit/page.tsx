@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -13,7 +14,6 @@ import { useFirebase } from '@/firebase';
 import { generatePixQrCode } from '@/app/actions/pix';
 import { doc, collection, setDoc } from 'firebase/firestore';
 
-
 const PixLogo = () => (
     <svg aria-hidden="true" width="89" height="34" viewBox="0 0 89 34" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M17 1.66699L8.70879 5.83366L4.27212 14.417L5.99945 15.3337L8.70879 11.167L15.3321 8.00033V25.5837L8.70879 28.8337L17 1.66699Z" fill="#32BCAD"/>
@@ -27,7 +27,7 @@ const PixLogo = () => (
     </svg>
 );
 
-// Taxa solicitada para teste: R$ 0.01 = 1 USDT
+// Conversão solicitada: R$ 0,01 = 1 USDT (R$ 1,00 = 100 USDT)
 const BRL_MULTIPLIER_TO_USDT = 100;
 
 export default function DepositPage() {
@@ -55,17 +55,14 @@ export default function DepositPage() {
 
         setIsLoading(true);
         try {
-            // 1. Criar o registro da transação no Firestore PRIMEIRO para ter o ID
+            // 1. Criar transação pendente no Firestore
             const depositRef = doc(collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions'));
             const depositId = depositRef.id;
 
-            // 2. Definir o ID externo para o Webhook (userId:depositId)
             const externalId = `${user.uid}:${depositId}`;
-            
-            // Usamos window.location.origin para pegar o domínio dinâmico (ex: Netlify ou Localhost)
-            const postbackUrl = `${window.location.origin}/api/webhook/pixup`;
+            const postbackUrl = `https://dailygainx.netlify.app/api/webhook/pixup`;
 
-            // 3. Gerar o QR Code na PixUp
+            // 2. Chamar API PixUp (Produção)
             const response = await generatePixQrCode({ 
                 amount: amountInBrl,
                 payerName: user.displayName || 'Cliente DailyGainX',
@@ -74,12 +71,12 @@ export default function DepositPage() {
                 postbackUrl: postbackUrl
             });
 
-            // 4. Salvar os detalhes da transação (incluindo o ID real da PixUp)
+            // 3. Registrar no histórico
             await setDoc(depositRef, {
                 id: depositId,
                 userId: user.uid,
                 accountId: user.uid,
-                amount: amountInBrl * BRL_MULTIPLIER_TO_USDT, // Valor em USDT baseado no multiplicador
+                amount: amountInBrl * BRL_MULTIPLIER_TO_USDT, 
                 status: 'Pending',
                 method: 'Pix',
                 externalId: response.transactionId,
@@ -99,8 +96,8 @@ export default function DepositPage() {
             console.error(error);
             toast({
                 variant: 'destructive',
-                title: 'Erro ao gerar depósito',
-                description: error.message || 'Não foi possível se comunicar com o serviço de Pix.',
+                title: 'Erro na integração',
+                description: error.message || 'Não foi possível gerar o Pix de produção.',
             });
         } finally {
             setIsLoading(false);
@@ -112,7 +109,7 @@ export default function DepositPage() {
         navigator.clipboard.writeText(pixCopyPaste);
         toast({
             title: 'Copiado!',
-            description: 'A chave Pix foi copiada.',
+            description: 'Código Pix copiado com sucesso.',
         });
     };
     
@@ -129,16 +126,16 @@ export default function DepositPage() {
                     <Button variant="ghost" size="icon" onClick={resetDepositFlow}>
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <h1 className="text-lg font-semibold">Pagamento Real</h1>
+                    <h1 className="text-lg font-semibold">Pagamento</h1>
                     <div className="w-9 h-9" />
                 </header>
                 <main className="flex-1 p-4 sm:p-6">
                     <div className="container mx-auto max-w-md">
                         <Card>
                             <CardHeader>
-                                <CardTitle>QR Code do Pix</CardTitle>
+                                <CardTitle>QR Code Pix</CardTitle>
                                 <CardDescription>
-                                    Escaneie e pague. O saldo cairá na plataforma automaticamente via Webhook assim que a PixUp confirmar.
+                                    Pague agora e seu saldo será atualizado automaticamente em segundos.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
@@ -154,7 +151,7 @@ export default function DepositPage() {
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">Valor a pagar</p>
+                                        <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">Valor do Pagamento</p>
                                         <p className="text-2xl font-bold">R$ {parseFloat(brlAmount).toFixed(2)}</p>
                                         <p className="text-sm text-primary font-medium">({(parseFloat(brlAmount) * BRL_MULTIPLIER_TO_USDT).toFixed(2)} USDT)</p>
                                     </div>
@@ -174,13 +171,10 @@ export default function DepositPage() {
                                                 </Button>
                                             </div>
                                         </div>
-                                        <div className="flex items-center justify-center gap-3 rounded-xl bg-primary/10 text-primary p-4 text-sm animate-pulse border border-primary/20">
+                                        <div className="flex items-center justify-center gap-3 rounded-xl bg-primary/10 text-primary p-4 text-sm border border-primary/20">
                                             <Loader2 className="h-5 w-5 animate-spin" />
-                                            <span className="font-semibold">Aguardando confirmação real da PixUp...</span>
+                                            <span className="font-semibold">Aguardando confirmação automática...</span>
                                         </div>
-                                        <p className="text-[10px] text-center text-muted-foreground">
-                                            Você pode fechar esta página. O sistema atualizará seu saldo sozinho em tempo real.
-                                        </p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -216,7 +210,7 @@ export default function DepositPage() {
                 <div className="space-y-4">
                     <div className="flex justify-between items-center px-1">
                         <h2 className="font-semibold text-lg">Quanto deseja depositar?</h2>
-                        <p className="text-xs text-muted-foreground">(R$ 0,01 = 1 USDT)</p>
+                        <p className="text-xs text-muted-foreground">(R$ 1,00 = 100 USDT)</p>
                     </div>
                     <div className="relative group">
                         <Input
@@ -259,24 +253,13 @@ export default function DepositPage() {
                         {isLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                                Gerando Pix Oficial...
+                                Processando Produção...
                             </>
                         ) : (
-                            'Gerar QR Code'
+                            'Gerar QR Code Real'
                         )}
                     </Button>
                 </div>
-
-                <ul className="space-y-3 text-xs text-muted-foreground bg-muted/20 p-4 rounded-xl">
-                    <li className="flex gap-2">
-                        <span className="font-bold text-primary">1.</span>
-                        O crédito é instantâneo via Webhook após a confirmação.
-                    </li>
-                    <li className="flex gap-2">
-                        <span className="font-bold text-primary">2.</span>
-                        Taxa de conversão: R$ 0,01 = 1 USDT.
-                    </li>
-                </ul>
               </div>
             </main>
         </div>
