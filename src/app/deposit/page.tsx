@@ -120,11 +120,11 @@ export default function DepositPage() {
 
     const handleGenerateQrCode = async () => {
         const amountInBrl = parseFloat(brlAmount);
-        if (isNaN(amountInBrl) || amountInBrl < 25) {
+        if (isNaN(amountInBrl) || amountInBrl < 0.01) {
             toast({
                 variant: 'destructive',
                 title: 'Valor inválido',
-                description: 'Por favor, insira um valor de depósito válido (mínimo R$ 25).',
+                description: 'Por favor, insira um valor de depósito válido (mínimo R$ 0.01).',
             });
             return;
         }
@@ -276,7 +276,7 @@ export default function DepositPage() {
                         <Input
                             id="brlAmount"
                             type="number"
-                            placeholder="Limite 25 ~ 10000"
+                            placeholder="Mínimo R$ 0.01"
                             value={brlAmount}
                             onChange={(e) => setBrlAmount(e.target.value)}
                             className="h-14 text-lg pl-4 pr-12 bg-muted border-none"
@@ -303,7 +303,7 @@ export default function DepositPage() {
                     <Button 
                         onClick={handleGenerateQrCode} 
                         className="w-full h-12 text-lg" 
-                        disabled={!brlAmount || parseFloat(brlAmount) < 25 || isLoading}
+                        disabled={!brlAmount || parseFloat(brlAmount) < 0.01 || isLoading}
                     >
                         {isLoading ? (
                             <>
