@@ -18,16 +18,18 @@ interface GeneratePixOptions {
 // This function is intended to be run on the server.
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
     const { amount, payerName, payerEmail } = options;
-    const clientId = process.env.PIXUP_CLIENT_ID;
-    const clientSecret = process.env.PIXUP_CLIENT_SECRET;
 
-    if (!clientId || !clientSecret) {
-        throw new Error('As credenciais da API PixUp não foram configuradas no ambiente.');
+    // IMPORTANTE: Substitua os valores abaixo pelas suas credenciais reais da PixUp.
+    // Para um aplicativo de produção, armazene-as como segredos de ambiente.
+    const clientId = "SEU_CLIENT_ID_AQUI";
+    const clientSecret = "SEU_CLIENT_SECRET_AQUI";
+
+    if (clientId === "SEU_CLIENT_ID_AQUI" || clientSecret === "SEU_CLIENT_SECRET_AQUI") {
+        throw new Error('As credenciais da API PixUp não foram configuradas. Por favor, peça ao assistente para editar o arquivo `src/app/actions/pix.ts` com suas credenciais.');
     }
 
     try {
         // 1. Get Access Token
-        // The screenshot implies Basic Auth to get a token. This is a common OAuth flow.
         const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
         const tokenResponse = await fetch('https://api.pixupbr.com/v2/oauth/token', {
             method: 'POST',
@@ -75,7 +77,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         console.error('Erro ao gerar QR Code do Pix:', error);
         if (error instanceof Error) {
             // Re-throwing a simpler error message for the client
-            throw new Error(`Não foi possível gerar o QR Code do Pix. Tente novamente mais tarde.`);
+            throw new Error(error.message || `Não foi possível gerar o QR Code do Pix. Tente novamente mais tarde.`);
         }
         throw new Error('Ocorreu um erro desconhecido ao gerar o QR Code do Pix.');
     }
