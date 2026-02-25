@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAppContext } from '@/context/AppContext';
 import { ArrowLeft, CheckCircle, Copy, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -28,7 +27,8 @@ const PixLogo = () => (
     </svg>
 );
 
-const BRL_PER_USDT = 5.0;
+// Taxa solicitada para teste: R$ 0.01 = 1 USDT
+const BRL_MULTIPLIER_TO_USDT = 100;
 
 export default function DepositPage() {
     const [brlAmount, setBrlAmount] = useState('');
@@ -61,6 +61,8 @@ export default function DepositPage() {
 
             // 2. Definir o ID externo para o Webhook (userId:depositId)
             const externalId = `${user.uid}:${depositId}`;
+            
+            // Usamos window.location.origin para pegar o domínio dinâmico (ex: Netlify ou Localhost)
             const postbackUrl = `${window.location.origin}/api/webhook/pixup`;
 
             // 3. Gerar o QR Code na PixUp
@@ -77,7 +79,7 @@ export default function DepositPage() {
                 id: depositId,
                 userId: user.uid,
                 accountId: user.uid,
-                amount: usdtAmount,
+                amount: amountInBrl * BRL_MULTIPLIER_TO_USDT, // Valor em USDT baseado no multiplicador
                 status: 'Pending',
                 method: 'Pix',
                 externalId: response.transactionId,
@@ -90,7 +92,7 @@ export default function DepositPage() {
 
             toast({
                 title: 'QR Code Gerado!',
-                description: 'Aguardando o pagamento para creditar seu saldo.',
+                description: 'O saldo será creditado automaticamente assim que você pagar.',
             });
 
         } catch (error: any) {
@@ -127,7 +129,7 @@ export default function DepositPage() {
                     <Button variant="ghost" size="icon" onClick={resetDepositFlow}>
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <h1 className="text-lg font-semibold">Pagamento</h1>
+                    <h1 className="text-lg font-semibold">Pagamento Real</h1>
                     <div className="w-9 h-9" />
                 </header>
                 <main className="flex-1 p-4 sm:p-6">
@@ -136,12 +138,12 @@ export default function DepositPage() {
                             <CardHeader>
                                 <CardTitle>QR Code do Pix</CardTitle>
                                 <CardDescription>
-                                    Pague agora. Seu saldo será atualizado automaticamente assim que a PixUp confirmar o recebimento.
+                                    Escaneie e pague. O saldo cairá na plataforma automaticamente via Webhook assim que a PixUp confirmar.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="flex flex-col items-center text-center gap-4">
-                                    <div className="relative p-2 bg-white rounded-lg border">
+                                    <div className="relative p-2 bg-white rounded-lg border shadow-inner">
                                         <Image 
                                             src={qrCode} 
                                             alt="Pix QR Code" 
@@ -154,7 +156,7 @@ export default function DepositPage() {
                                     <div className="space-y-1">
                                         <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">Valor a pagar</p>
                                         <p className="text-2xl font-bold">R$ {parseFloat(brlAmount).toFixed(2)}</p>
-                                        <p className="text-sm text-primary font-medium">({usdtAmount.toFixed(2)} USDT)</p>
+                                        <p className="text-sm text-primary font-medium">({(parseFloat(brlAmount) * BRL_MULTIPLIER_TO_USDT).toFixed(2)} USDT)</p>
                                     </div>
                                     
                                     <div className="w-full space-y-4 pt-4 text-left">
@@ -165,7 +167,7 @@ export default function DepositPage() {
                                                     id="pix-copy-paste"
                                                     readOnly
                                                     value={pixCopyPaste}
-                                                    className="text-sm truncate"
+                                                    className="text-sm truncate bg-muted/30"
                                                 />
                                                 <Button variant="outline" size="icon" onClick={copyPixKeyToClipboard}>
                                                     <Copy className="h-4 w-4" />
@@ -174,10 +176,10 @@ export default function DepositPage() {
                                         </div>
                                         <div className="flex items-center justify-center gap-3 rounded-xl bg-primary/10 text-primary p-4 text-sm animate-pulse border border-primary/20">
                                             <Loader2 className="h-5 w-5 animate-spin" />
-                                            <span className="font-semibold">Aguardando confirmação bancária...</span>
+                                            <span className="font-semibold">Aguardando confirmação real da PixUp...</span>
                                         </div>
                                         <p className="text-[10px] text-center text-muted-foreground">
-                                            Você pode sair desta página se desejar. O saldo cairá automaticamente.
+                                            Você pode fechar esta página. O sistema atualizará seu saldo sozinho em tempo real.
                                         </p>
                                     </div>
                                 </div>
@@ -205,7 +207,7 @@ export default function DepositPage() {
               <div className="container mx-auto max-w-md space-y-6">
                 <div>
                     <Label className="text-sm font-normal text-muted-foreground">Método de Pagamento</Label>
-                    <div className="mt-2 flex items-center justify-between rounded-xl border-2 border-primary bg-primary/5 p-4">
+                    <div className="mt-2 flex items-center justify-between rounded-xl border-2 border-primary bg-primary/5 p-4 shadow-sm">
                         <PixLogo />
                         <CheckCircle className="h-6 w-6 text-primary" />
                     </div>
@@ -214,7 +216,7 @@ export default function DepositPage() {
                 <div className="space-y-4">
                     <div className="flex justify-between items-center px-1">
                         <h2 className="font-semibold text-lg">Quanto deseja depositar?</h2>
-                        <p className="text-xs text-muted-foreground">(1 USDT ≈ R$ 5,00)</p>
+                        <p className="text-xs text-muted-foreground">(R$ 0,01 = 1 USDT)</p>
                     </div>
                     <div className="relative group">
                         <Input
@@ -227,7 +229,7 @@ export default function DepositPage() {
                                 setBrlAmount(val);
                                 const amountInBrl = parseFloat(val);
                                 if (!isNaN(amountInBrl) && amountInBrl > 0) {
-                                    setUsdtAmount(amountInBrl / BRL_PER_USDT);
+                                    setUsdtAmount(amountInBrl * BRL_MULTIPLIER_TO_USDT);
                                 } else {
                                     setUsdtAmount(0);
                                 }
@@ -257,7 +259,7 @@ export default function DepositPage() {
                         {isLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                                Gerando Pix...
+                                Gerando Pix Oficial...
                             </>
                         ) : (
                             'Gerar QR Code'
@@ -268,11 +270,11 @@ export default function DepositPage() {
                 <ul className="space-y-3 text-xs text-muted-foreground bg-muted/20 p-4 rounded-xl">
                     <li className="flex gap-2">
                         <span className="font-bold text-primary">1.</span>
-                        O crédito é instantâneo após a confirmação bancária.
+                        O crédito é instantâneo via Webhook após a confirmação.
                     </li>
                     <li className="flex gap-2">
                         <span className="font-bold text-primary">2.</span>
-                        Não cobramos taxas de depósito.
+                        Taxa de conversão: R$ 0,01 = 1 USDT.
                     </li>
                 </ul>
               </div>

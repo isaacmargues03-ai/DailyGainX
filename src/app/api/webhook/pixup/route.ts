@@ -1,32 +1,33 @@
-
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
 import { doc, getDoc, updateDoc, increment, writeBatch } from 'firebase/firestore';
 
 /**
- * Endpoint oficial para receber notificações da PixUp.
- * Configure esta URL no painel da PixUp (Postback): https://seu-dominio.com/api/webhook/pixup
+ * Endpoint oficial para receber notificações da PixUp em tempo real.
+ * URL para cadastrar no painel da PixUp: https://dailygainx.netlify.app/api/webhook/pixup
  */
 export async function POST(request: Request) {
     try {
         const payload = await request.json();
-        console.log('--- Webhook PixUp Recebido ---');
+        console.log('--- Notificação PixUp Recebida ---');
         console.log('Payload:', JSON.stringify(payload, null, 2));
 
         const { status, external_id, amount } = payload;
 
-        // Validar se o pagamento foi concluído
-        if (status !== 'PAID' && status !== 'COMPLETED' && status !== 'CONCLUDED') {
-            console.log(`Pagamento ignorado (Status: ${status})`);
-            return NextResponse.json({ message: 'Status não conclusivo' }, { status: 200 });
+        // Validar se o pagamento foi concluído com sucesso
+        const isPaid = status === 'PAID' || status === 'COMPLETED' || status === 'CONCLUDED' || status === 'paid';
+        
+        if (!isPaid) {
+            console.log(`Pagamento ainda não concluído (Status atual: ${status})`);
+            return NextResponse.json({ message: 'Aguardando status final' }, { status: 200 });
         }
 
         if (!external_id) {
-            console.error('Erro: external_id ausente no payload.');
+            console.error('Erro: external_id ausente no payload da PixUp.');
             return NextResponse.json({ error: 'external_id ausente' }, { status: 400 });
         }
 
-        // Recuperar userId e depositId (salvos no formato userId:depositId)
+        // Recuperar userId e depositId salvos no formato userId:depositId
         const [userId, depositId] = external_id.split(':');
 
         if (!userId || !depositId) {
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
 
         const { firestore } = initializeFirebase();
         
-        // 1. Verificar a transação no Firestore
+        // 1. Localizar a transação no Firestore
         const transactionRef = doc(firestore, 'users', userId, 'accounts', userId, 'depositTransactions', depositId);
         const transactionDoc = await getDoc(transactionRef);
 
@@ -45,29 +46,32 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Transação não encontrada' }, { status: 404 });
         }
 
-        if (transactionDoc.data().status === 'Completed') {
-            console.log('Aviso: Transação já foi processada anteriormente.');
-            return NextResponse.json({ message: 'Já processado' }, { status: 200 });
+        const txData = transactionDoc.data();
+        if (txData.status === 'Completed') {
+            console.log('Aviso: Esta transação já foi processada e creditada.');
+            return NextResponse.json({ message: 'Já processado anteriormente' }, { status: 200 });
         }
 
-        // 2. Processar o crédito real (USDT)
+        // 2. Processar o crédito (USDT)
+        // Regra de Conversão: R$ 0.01 BRL = 1 USDT. 
+        // Se a PixUp enviar amount em BRL (ex: 1.00 para R$ 1,00), multiplicamos por 100.
+        const usdtToCredit = parseFloat(amount) * 100;
+
         const batch = writeBatch(firestore);
         const accountRef = doc(firestore, 'users', userId, 'accounts', userId);
         const userRef = doc(firestore, 'users', userId);
 
-        // Conversão de Teste solicitada: R$ 0.01 = 1 USDT
-        // Se amount vier em BRL, multiplicamos por 100 para converter R$ 0.01 em 1 USDT.
-        // Se for 1 Real (mínimo PixUp), vira 100 USDT.
-        const usdtAmount = parseFloat(amount) * 100;
-
-        batch.update(accountRef, { balance: increment(usdtAmount) });
+        // Atualiza saldo da conta principal
+        batch.update(accountRef, { balance: increment(usdtToCredit) });
+        
+        // Atualiza status da transação para Concluído
         batch.update(transactionRef, { 
             status: 'Completed', 
             updatedAt: new Date().toISOString(),
-            amount: usdtAmount // Atualiza o valor final em USDT na transação
+            confirmedAmount: usdtToCredit
         });
 
-        // 3. Lógica de Indicação (Bônus de 1 USDT no primeiro depósito)
+        // 3. Lógica de Recompensa de Indicação (1 USDT no primeiro depósito)
         const userDoc = await getDoc(userRef);
         if (userDoc.exists() && !userDoc.data().hasMadeFirstDeposit) {
             batch.update(userRef, { hasMadeFirstDeposit: true });
@@ -89,9 +93,9 @@ export async function POST(request: Request) {
         }
 
         await batch.commit();
-        console.log(`SUCESSO: ${usdtAmount} USDT creditados para o usuário ${userId}`);
+        console.log(`SUCESSO: ${usdtToCredit} USDT creditados automaticamente para o usuário ${userId}`);
 
-        return NextResponse.json({ success: true }, { status: 200 });
+        return NextResponse.json({ success: true, usdtCredited: usdtToCredit }, { status: 200 });
 
     } catch (error: any) {
         console.error('ERRO CRÍTICO NO WEBHOOK:', error);
