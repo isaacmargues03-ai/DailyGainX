@@ -33,7 +33,7 @@ export type Transaction = {
   type: 'deposit' | 'withdrawal';
   amount: number;
   timestamp: string;
-  status: 'Completed' | 'Pending' | 'Failed';
+  status: 'Completed' | 'Pending' | 'Failed' | 'validated' | 'claimed';
   method: 'Pix';
   externalId?: string;
 };
