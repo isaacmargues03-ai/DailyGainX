@@ -174,6 +174,13 @@ export default function ProfilePage() {
             const referralRef = doc(firestore, 'referrals', userData.referralId);
             referralDoc = await transaction.get(referralRef);
         }
+
+        // Busca a transação de histórico se houver vínculo
+        let historyTxDoc = null;
+        if (tokenData.transactionId && tokenData.transactionId !== "Manual-Site") {
+            const historyTxRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', tokenData.transactionId);
+            historyTxDoc = await transaction.get(historyTxRef);
+        }
         // ----------------------------------------------------------
 
         // Atualização de Saldo
@@ -196,6 +203,14 @@ export default function ProfilePage() {
           usedAt: new Date().toISOString(),
           usedBy: user.uid
         });
+
+        // Atualiza status da transação no histórico para "claimed" (Resgatado/Sucesso)
+        if (historyTxDoc && historyTxDoc.exists()) {
+            transaction.update(historyTxDoc.ref, {
+                status: 'claimed',
+                claimedAt: new Date().toISOString()
+            });
+        }
 
         // Recompensa de indicação no primeiro resgate de token
         if (userData && !userData.hasMadeFirstDeposit) {

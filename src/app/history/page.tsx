@@ -57,7 +57,7 @@ function TransactionItem({
                         transaction.status === 'Failed' && "bg-red-100 text-red-700"
                     )}>
                         {transaction.status === 'validated' ? 'Validado' : 
-                         transaction.status === 'claimed' ? 'Resgatado' : 
+                         transaction.status === 'claimed' ? 'Sucesso' : 
                          transaction.status}
                     </span>
                 </div>
