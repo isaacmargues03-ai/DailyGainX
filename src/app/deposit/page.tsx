@@ -28,6 +28,7 @@ const PixLogo = () => (
 
 // R$ 25,00 = 5 USDT => R$ 1,00 = 0.2 USDT
 const BRL_MULTIPLIER_TO_USDT = 0.2;
+const MIN_DEPOSIT_BRL = 25;
 
 export default function DepositPage() {
     const [brlAmount, setBrlAmount] = useState('');
@@ -42,11 +43,11 @@ export default function DepositPage() {
 
     const handleGenerateQrCode = async () => {
         const amountInBrl = parseFloat(brlAmount);
-        if (isNaN(amountInBrl) || amountInBrl < 1) {
+        if (isNaN(amountInBrl) || amountInBrl < MIN_DEPOSIT_BRL) {
             toast({
                 variant: 'destructive',
                 title: 'Valor inválido',
-                description: 'Por favor, insira um valor de depósito válido (mínimo R$ 1,00).',
+                description: `Por favor, insira um valor de depósito válido (mínimo R$ ${MIN_DEPOSIT_BRL.toFixed(2)}).`,
             });
             return;
         }
@@ -250,7 +251,7 @@ export default function DepositPage() {
                         <Input
                             id="brlAmount"
                             type="number"
-                            placeholder="Mínimo R$ 1,00"
+                            placeholder={`Mínimo R$ ${MIN_DEPOSIT_BRL.toFixed(2)}`}
                             value={brlAmount}
                             onChange={(e) => {
                                 const val = e.target.value;
@@ -282,7 +283,7 @@ export default function DepositPage() {
                     <Button 
                         onClick={handleGenerateQrCode} 
                         className="w-full h-14 text-xl rounded-2xl shadow-lg shadow-primary/20" 
-                        disabled={!brlAmount || parseFloat(brlAmount) < 1 || isLoading}
+                        disabled={!brlAmount || parseFloat(brlAmount) < MIN_DEPOSIT_BRL || isLoading}
                     >
                         {isLoading ? (
                             <>
