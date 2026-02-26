@@ -11,11 +11,15 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'isaacmargues03@gmail.com';
+    }
+
     match /tokens_resgate/{tokenId} {
       allow get: if isSignedIn();
-      // Apenas o sistema ou o bot (via Admin SDK) pode criar ou atualizar os tokens de forma segura.
-      // O usuário final apenas 'consome' via aplicação que valida o código.
-      allow create, update, delete: if false; 
+      allow list: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if false; 
     }
 
     match /referralCodes/{code} {
