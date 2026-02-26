@@ -100,13 +100,14 @@ export default function ProfilePage() {
   };
 
   const handleRedeemToken = async () => {
-    const tokenClean = tokenInput.trim();
+    const tokenClean = tokenInput.trim().toUpperCase();
     if (!tokenClean || !user || isRedeeming) return;
 
     setIsRedeeming(true);
 
     try {
       await runTransaction(firestore, async (transaction) => {
+        // Busca o token na coleção tokens_resgate
         const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
         const tokenDoc = await transaction.get(tokenRef);
 
@@ -116,11 +117,12 @@ export default function ProfilePage() {
 
         const tokenData = tokenDoc.data();
         
-        // Alinhado com a lógica do Bot: usado: false/true
+        // Verifica se o token já foi usado (campo 'usado' alinhado com o bot)
         if (tokenData.usado === true) {
           throw new Error('Este token já foi utilizado ou está expirado.');
         }
 
+        // Busca a conta do usuário para atualizar o saldo
         const accountRef = doc(firestore, 'users', user.uid, 'accounts', user.uid);
         const accountDoc = await transaction.get(accountRef);
 
@@ -128,13 +130,13 @@ export default function ProfilePage() {
           throw new Error('Conta do usuário não encontrada.');
         }
 
-        // 1. Credita o saldo (Bot usa 'valor')
+        // 1. Credita o saldo (campo 'valor' alinhado com o bot)
         const amount = tokenData.valor || 0;
         transaction.update(accountRef, {
           balance: (accountDoc.data().balance || 0) + amount
         });
 
-        // 2. Inativa o token (Bot usa 'usado')
+        // 2. Marca o token como usado
         transaction.update(tokenRef, {
           usado: true,
           usedAt: new Date().toISOString(),
@@ -258,7 +260,7 @@ export default function ProfilePage() {
             <DialogHeader>
               <DialogTitle>Resgatar Token</DialogTitle>
               <DialogDescription>
-                Insira o código do token recebido para creditar o saldo instantaneamente em sua conta.
+                Insira o código do token (ex: DGX-ABC123) recebido no bot para creditar o saldo em sua conta.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -266,7 +268,7 @@ export default function ProfilePage() {
                 <Label htmlFor="token-code">Código do Token</Label>
                 <Input
                   id="token-code"
-                  placeholder="Ex: ABCD-1234-EFGH"
+                  placeholder="DGX-XXXXXX"
                   value={tokenInput}
                   onChange={(e) => setTokenInput(e.target.value)}
                   disabled={isRedeeming}
@@ -282,10 +284,10 @@ export default function ProfilePage() {
                 {isRedeeming ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Validando...
+                    Resgatando...
                   </>
                 ) : (
-                  'Resgatar AGORA'
+                  'Confirmar Resgate'
                 )}
               </Button>
             </DialogFooter>
