@@ -97,7 +97,6 @@ export default function ProfilePage() {
 
   const tokensQuery = useMemoFirebase(() => {
     if (!isAdmin || !firestore) return null;
-    // Ordena pelo mesmo campo que o bot usa: dataCriacao
     return query(collection(firestore, 'tokens_resgate'), orderBy('dataCriacao', 'desc'), limit(20));
   }, [isAdmin, firestore]);
 
@@ -128,7 +127,6 @@ export default function ProfilePage() {
         newTokenCode += chars.charAt(Math.floor(Math.random() * chars.length));
       }
 
-      // Padronizado com os campos do Bot
       await setDoc(doc(firestore, 'tokens_resgate', newTokenCode), {
         token: newTokenCode,
         valor: value,
@@ -254,7 +252,7 @@ export default function ProfilePage() {
                       className="w-full h-14 bg-purple-600 hover:bg-purple-700 text-white font-black text-lg rounded-xl shadow-lg gap-3"
                     >
                       <Plus className="h-6 w-6" />
-                      GERAR NOVO TOKEN (ADMIN)
+                      GERAR NOVO TOKEN
                     </Button>
                   </div>
                 )}
@@ -281,7 +279,7 @@ export default function ProfilePage() {
           <DialogContent className="rounded-2xl">
             <DialogHeader>
               <DialogTitle>Resgatar Token</DialogTitle>
-              <DialogDescription>Digite o código DGX-XXXXXX recebido no bot para creditar seu saldo.</DialogDescription>
+              <DialogDescription>Digite o código DGX-XXXXXX para creditar seu saldo.</DialogDescription>
             </DialogHeader>
             <div className="py-4">
               <Input placeholder="EX: DGX-H72K9L" value={tokenInput} onChange={(e) => setTokenInput(e.target.value)} disabled={isRedeeming} className="uppercase font-mono text-center text-xl h-14 rounded-xl" />
@@ -304,7 +302,7 @@ export default function ProfilePage() {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>ID da Transação (PixUp)</Label>
-                <Input value={adminTxId} onChange={(e) => setAdminTxId(e.target.value)} placeholder="O bot usará este ID para entregar o token" className="h-12 rounded-xl" />
+                <Input value={adminTxId} onChange={(e) => setAdminTxId(e.target.value)} placeholder="O bot buscará o token por este ID" className="h-12 rounded-xl" />
               </div>
               <div className="space-y-2">
                 <Label>Valor USDT</Label>
@@ -312,17 +310,17 @@ export default function ProfilePage() {
               </div>
               <Button onClick={handleAdminGenerateToken} disabled={isGenerating} className="w-full bg-purple-600 h-14 rounded-xl font-bold">
                 {isGenerating ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <PlusCircle className="h-5 w-5 mr-2" />} 
-                GERAR TOKEN
+                CRIAR E VINCULAR TOKEN
               </Button>
               <div className="pt-4">
-                <Label className="text-xs uppercase font-bold text-muted-foreground">Últimos Tokens Gerados</Label>
+                <Label className="text-xs uppercase font-bold text-muted-foreground">Tokens Gerados Recentemente</Label>
                 <ScrollArea className="h-[150px] mt-2 border rounded-xl p-2 bg-muted/20">
                   <div className="space-y-2">
                     {allTokens?.map(t => (
                       <div key={t.token} className="flex items-center justify-between p-2 bg-card rounded-lg border text-xs">
                         <div>
                           <p className="font-mono font-bold">{t.token}</p>
-                          <p className="text-[10px] text-muted-foreground">ID: {t.transactionId}</p>
+                          <p className="text-[10px] text-muted-foreground">ID: {t.transactionId} | {t.valor} USDT</p>
                         </div>
                         <Badge variant={t.usado ? "secondary" : "default"}>{t.usado ? "Usado" : "Livre"}</Badge>
                       </div>
