@@ -177,13 +177,25 @@ export default function ProfilePage() {
         const accountRef = doc(firestore, 'users', user.uid, 'accounts', user.uid);
         const accountDoc = await transaction.get(accountRef);
 
+        let currentBalance = 0;
+        
+        // Se a conta não existir (usuário antigo ou falha no registro), nós a inicializamos agora
         if (!accountDoc.exists()) {
-          throw new Error('Sua conta não foi encontrada.');
+          transaction.set(accountRef, {
+            id: user.uid,
+            userId: user.uid,
+            balance: 0,
+            currency: 'USDT'
+          });
+          currentBalance = 0;
+        } else {
+          currentBalance = accountDoc.data().balance || 0;
         }
 
-        const amount = tokenData.valor || 0;
+        const amountToAdd = tokenData.valor || 0;
+        
         transaction.update(accountRef, {
-          balance: (accountDoc.data().balance || 0) + amount
+          balance: currentBalance + amountToAdd
         });
 
         transaction.update(tokenRef, {
@@ -192,13 +204,14 @@ export default function ProfilePage() {
           usedBy: user.uid
         });
 
-        return amount;
+        return amountToAdd;
       });
 
       toast({ title: 'Sucesso!', description: 'Saldo resgatado com sucesso!' });
       setIsTokenDialogOpen(false);
       setTokenInput('');
     } catch (error: any) {
+      console.error("Erro no resgate:", error);
       toast({ variant: 'destructive', title: 'Falha no Resgate', description: error.message });
     } finally {
       setIsRedeeming(false);
