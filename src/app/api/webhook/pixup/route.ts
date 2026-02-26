@@ -1,121 +1,82 @@
-
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
-import { doc, getDoc, increment, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, writeBatch } from 'firebase/firestore';
 
 /**
- * Endpoint de Webhook para Produção.
- * Recebe notificações da PixUp e atualiza o saldo do usuário automaticamente.
+ * Endpoint de Webhook para Produção - Fluxo de Validação Manual.
+ * Quando um pagamento é aprovado, o status muda para 'validated'.
+ * O usuário deve clicar em "Resgatar Saldo" no histórico para creditar.
  */
 export async function POST(request: Request) {
-    // Credenciais de Produção
     const clientId = "Aducmartins_4621537998005562";
     const clientSecret = "c473cdb25c796b619fb302ed9a0a8ce039c1287499348ce477c5195851b143e9";
 
     try {
         const payload = await request.json();
-        console.log('WEBHOOK RECEBIDO:', JSON.stringify(payload));
-
-        // Validação de segurança básica via cabeçalho Authorization
-        const authHeader = request.headers.get('authorization');
-        const expectedAuth = 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-        
-        // Nota: Ajustamos para aceitar o payload mesmo se o header variar, 
-        // mas mantemos a lógica de validação das credenciais conforme solicitado.
+        console.log('WEBHOOK PIXUP RECEBIDO:', JSON.stringify(payload));
 
         const { status, external_id, amount, transactionId } = payload;
 
-        // Lista de status considerados como aprovados pela PixUp (Case-insensitive e variações)
+        // Status que indicam que o dinheiro foi recebido pela PixUp
         const validStatuses = [
             'PAID', 'COMPLETED', 'CONCLUDED', 'CONCLUIDO', 
-            'APROVADO', 'Aprovado', 'aprovado', 'paid', 'concluido'
+            'APROVADO', 'Aprovado', 'aprovado'
         ];
         
         const statusString = String(status || '').trim();
         const isPaid = validStatuses.includes(statusString);
         
         if (!isPaid) {
-            console.log(`Status ignorado: ${statusString}`);
             return NextResponse.json({ message: 'Aguardando pagamento' }, { status: 200 });
         }
 
         if (!external_id) {
-            console.error('external_id ausente no payload.');
             return NextResponse.json({ error: 'external_id ausente' }, { status: 400 });
         }
 
-        // Recuperar IDs do external_id (formato userId:depositId)
         const [userId, depositId] = external_id.split(':');
 
         if (!userId || !depositId) {
-            console.error('external_id inválido:', external_id);
             return NextResponse.json({ error: 'external_id inválido' }, { status: 400 });
         }
 
-        // Inicializa Firebase no lado do servidor
         const { firestore } = initializeFirebase();
-        
-        // Referências no Firestore
         const transactionRef = doc(firestore, 'users', userId, 'accounts', userId, 'depositTransactions', depositId);
-        const accountRef = doc(firestore, 'users', userId, 'accounts', userId);
         const userRef = doc(firestore, 'users', userId);
 
         const transactionDoc = await getDoc(transactionRef);
 
         if (!transactionDoc.exists()) {
-            console.error(`Transação ${depositId} não encontrada.`);
             return NextResponse.json({ error: 'Transação inexistente' }, { status: 404 });
         }
 
-        // Idempotência: Evitar processamento duplo
-        if (transactionDoc.data().status === 'Completed') {
-            console.log('Transação já concluída anteriormente.');
-            return NextResponse.json({ message: 'OK' }, { status: 200 });
+        // Idempotência
+        if (transactionDoc.data().status === 'claimed' || transactionDoc.data().status === 'validated') {
+            return NextResponse.json({ message: 'Transação já processada' }, { status: 200 });
         }
-
-        // Regra de Conversão: R$ 1,00 = 100 USDT (R$ 0,01 = 1 USDT)
-        const usdtToCredit = parseFloat(amount) * 100;
 
         const batch = writeBatch(firestore);
 
-        // 1. Incrementar saldo da conta real
-        batch.update(accountRef, { balance: increment(usdtToCredit) });
-        
-        // 2. Finalizar status da transação no histórico real
+        // Muda status para 'validated' para habilitar o botão de Resgate na tela do usuário
         batch.update(transactionRef, { 
-            status: 'Completed', 
+            status: 'validated', 
             updatedAt: new Date().toISOString(),
-            confirmedAmount: usdtToCredit,
             pixUpId: transactionId || payload.id || 'N/A'
         });
 
-        // 3. Lógica de Recompensa de Indicação (1 USDT no primeiro depósito)
+        // Lógica de Primeira Indicação (mantida para marcar o depósito)
         const userDoc = await getDoc(userRef);
         if (userDoc.exists() && !userDoc.data().hasMadeFirstDeposit) {
             batch.update(userRef, { hasMadeFirstDeposit: true });
-            
-            const referralId = userDoc.data().referralId;
-            if (referralId) {
-                const referralRef = doc(firestore, 'referrals', referralId);
-                const referralDoc = await getDoc(referralRef);
-                
-                if (referralDoc.exists() && referralDoc.data().status === 'pending') {
-                    const referrerId = referralDoc.data().referrerId;
-                    const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
-                    
-                    batch.update(referralRef, { status: 'rewarded' });
-                    batch.update(referrerAccountRef, { balance: increment(1) });
-                }
-            }
         }
 
         await batch.commit();
-        console.log(`SUCESSO: ${usdtToCredit} USDT creditados para o usuário ${userId}`);
+        console.log(`WEBHOOK SUCESSO: Transação ${depositId} validada para resgate.`);
 
         return NextResponse.json({ success: true }, { status: 200 });
 
     } catch (error: any) {
-        console.error('ERRO NO PROCESSAMENTO DO WEBHOOK:', error);
+        console.error('ERRO NO WEBHOOK:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

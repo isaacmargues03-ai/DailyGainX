@@ -86,7 +86,7 @@ export default function DepositPage() {
 
             toast({
                 title: 'QR Code Gerado!',
-                description: 'Siga as instruções para validar seu saldo.',
+                description: 'Siga as instruções para resgatar seu saldo.',
             });
 
         } catch (error: any) {
@@ -94,7 +94,7 @@ export default function DepositPage() {
             toast({
                 variant: 'destructive',
                 title: 'Erro na integração',
-                description: error.message || 'Não foi possível gerar o Pix de produção.',
+                description: error.message || 'Não foi possível gerar o Pix.',
             });
         } finally {
             setIsLoading(false);

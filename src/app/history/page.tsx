@@ -25,7 +25,7 @@ function TransactionItem({
   const isValidated = transaction.status === 'validated';
   const isClaimed = transaction.status === 'claimed';
   
-  // URL do Bot do Telegram (Placeholder para o usuário substituir)
+  // URL do Bot do Telegram personalizada
   const telegramBotUrl = `https://t.me/DailyGainX_Bot?start=${transaction.id}`;
 
   return (
@@ -65,7 +65,7 @@ function TransactionItem({
             </div>
         </div>
 
-        {/* Ações baseadas no status */}
+        {/* Ações baseadas no status em tempo real */}
         <div className="flex flex-wrap gap-2">
             {isPending && (
                 <Button variant="outline" size="sm" className="w-full sm:w-auto gap-2" asChild>
@@ -80,7 +80,7 @@ function TransactionItem({
                 <Button 
                     variant="default" 
                     size="sm" 
-                    className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700"
+                    className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 animate-pulse"
                     onClick={() => onClaim(transaction)}
                 >
                     <CheckCircle2 className="h-3.5 w-3.5" />
@@ -92,7 +92,6 @@ function TransactionItem({
   );
 }
 
-
 export default function HistoryPage() {
     const { transactions } = useAppContext();
     const { firestore, user } = useFirebase();
@@ -102,21 +101,27 @@ export default function HistoryPage() {
     const handleClaim = async (transaction: Transaction) => {
         if (!user || !firestore || claimingId) return;
 
+        // Validação básica do valor
+        if (transaction.amount <= 0) {
+            toast({ variant: "destructive", title: "Erro", description: "Valor de transação inválido." });
+            return;
+        }
+
         setClaimingId(transaction.id);
         
         try {
             const batch = writeBatch(firestore);
             
-            // Referências
+            // Referências para atualização atômica
             const accountRef = doc(firestore, 'users', user.uid, 'accounts', user.uid);
             const transactionRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', transaction.id);
 
-            // 1. Soma o valor ao saldo
+            // 1. Soma o valor ao Saldo real do usuário
             batch.update(accountRef, {
                 balance: increment(transaction.amount)
             });
 
-            // 2. Atualiza o status para claimed
+            // 2. Atualiza o status para 'claimed' para evitar resgate duplo
             batch.update(transactionRef, {
                 status: 'claimed',
                 claimedAt: new Date().toISOString()
@@ -125,16 +130,16 @@ export default function HistoryPage() {
             await batch.commit();
 
             toast({
-                title: "Sucesso!",
-                description: `${transaction.amount.toFixed(2)} USDT foram adicionados ao seu saldo.`,
+                title: "Saldo Resgatado!",
+                description: `${transaction.amount.toFixed(2)} USDT foram adicionados à sua conta.`,
             });
 
         } catch (error: any) {
-            console.error("Erro ao resgatar:", error);
+            console.error("Erro ao resgatar saldo:", error);
             toast({
                 variant: "destructive",
-                title: "Erro no resgate",
-                description: "Não foi possível resgatar seu saldo. Tente novamente.",
+                title: "Falha no Resgate",
+                description: "Ocorreu um erro ao processar seu resgate. Tente novamente.",
             });
         } finally {
             setClaimingId(null);
@@ -162,7 +167,7 @@ export default function HistoryPage() {
                                 Histórico de Transações
                             </CardTitle>
                             <CardDescription>
-                                Seus depósitos e saques. Transações validadas podem ser resgatadas manualmente.
+                                Seus depósitos e saques. Transações validadas podem ser resgatadas manualmente para o seu saldo.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="p-0">
@@ -188,7 +193,7 @@ export default function HistoryPage() {
                         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
                             <div className="flex flex-col items-center gap-4">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                <p className="font-medium">Processando resgate...</p>
+                                <p className="font-medium">Processando seu resgate...</p>
                             </div>
                         </div>
                     )}
