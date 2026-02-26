@@ -17,25 +17,22 @@
         },
         "email": {
           "type": "string",
-          "description": "The user's email address, typically a Gmail account as per requirements.",
+          "description": "The user's email address.",
           "format": "email"
         },
         "profilePictureUrl": {
           "type": "string",
-          "description": "URL to the user's profile picture, if available.",
           "format": "uri"
         },
         "referralCode": {
           "type": "string",
-          "description": "The user's unique referral code to share with others."
+          "description": "Unique referral code."
         },
         "hasMadeFirstDeposit": {
-          "type": "boolean",
-          "description": "Tracks if the user has completed their first deposit to trigger referral rewards."
+          "type": "boolean"
         },
         "referralId": {
-          "type": "string",
-          "description": "The ID of the referral document if this user was referred by someone."
+          "type": "string"
         }
       },
       "required": [
@@ -50,23 +47,19 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserAccount",
       "type": "object",
-      "description": "Manages a user's financial balance and currency for deposits and investments within the DailyGainX platform.",
+      "description": "Financial balance for users.",
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Unique identifier for the UserAccount entity."
+          "type": "string"
         },
         "userId": {
-          "type": "string",
-          "description": "Reference to the UserProfile this account belongs to. (Relationship: UserProfile 1:1 UserAccount)"
+          "type": "string"
         },
         "balance": {
-          "type": "number",
-          "description": "The current balance of the account in the specified currency (USDT)."
+          "type": "number"
         },
         "currency": {
-          "type": "string",
-          "description": "The currency of the account balance (e.g., 'USDT')."
+          "type": "string"
         }
       },
       "required": [
@@ -76,177 +69,29 @@
         "currency"
       ]
     },
-    "DepositTransaction": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "DepositTransaction",
-      "type": "object",
-      "description": "Records individual deposit transactions made by a user into their account.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the DepositTransaction entity."
-        },
-        "accountId": {
-          "type": "string",
-          "description": "Reference to the UserAccount where the deposit was made. (Relationship: UserAccount 1:N DepositTransaction)"
-        },
-        "amount": {
-          "type": "number",
-          "description": "The amount of funds deposited in USDT."
-        },
-        "depositDate": {
-          "type": "string",
-          "description": "The date and time when the deposit was initiated.",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the deposit (e.g., 'pending', 'completed', 'failed')."
-        }
-      },
-      "required": [
-        "id",
-        "accountId",
-        "amount",
-        "depositDate",
-        "status"
-      ]
-    },
-    "Investment": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Investment",
-      "type": "object",
-      "description": "Represents a user's investment in a specific machine, such as the 'Rogério Machine', tracking its status and returns.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Investment entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the UserProfile who made the investment. (Relationship: UserProfile 1:N Investment)"
-        },
-        "machineType": {
-          "type": "string",
-          "description": "The type or name of the investment machine (e.g., 'Rogério')."
-        },
-        "investedAmount": {
-          "type": "number",
-          "description": "The initial amount invested in the machine (e.g., 20 USDT for Rogério Machine)."
-        },
-        "startDate": {
-          "type": "string",
-          "description": "The date and time when the investment started.",
-          "format": "date-time"
-        },
-        "maturityDate": {
-          "type": "string",
-          "description": "The date and time when the investment matures and becomes withdrawable (e.g., 5 days after startDate).",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the investment (e.g., 'active', 'matured', 'withdrawn')."
-        },
-        "expectedReturnAmount": {
-          "type": "number",
-          "description": "The total amount expected to be returned after the investment matures, including the invested amount and profit."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "machineType",
-        "investedAmount",
-        "startDate",
-        "maturityDate",
-        "status",
-        "expectedReturnAmount"
-      ]
-    },
-    "Referral": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Referral",
-      "type": "object",
-      "description": "Records a referral relationship between two users.",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "referrerId": {
-          "type": "string",
-          "description": "The UID of the user who referred."
-        },
-        "referredId": {
-          "type": "string",
-          "description": "The UID of the user who was referred."
-        },
-        "referredName": {
-          "type": "string",
-          "description": "Name of the referred user for display."
-        },
-        "referredEmail": {
-          "type": "string",
-          "description": "Email of the referred user for display."
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "pending",
-            "rewarded"
-          ],
-          "description": "Status of the referral."
-        }
-      },
-      "required": [
-        "id",
-        "referrerId",
-        "referredId",
-        "referredName",
-        "referredEmail",
-        "status"
-      ]
-    },
-    "ReferralCodeLookup": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ReferralCodeLookup",
-      "type": "object",
-      "description": "Maps a referral code to a user ID for quick lookups.",
-      "properties": {
-        "userId": {
-          "type": "string",
-          "description": "The UID of the user who owns this referral code."
-        }
-      },
-      "required": [
-        "userId"
-      ]
-    },
     "RedemptionToken": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "RedemptionToken",
       "type": "object",
-      "description": "Represents a single-use token generated by the system (or bot) to be redeemed for balance.",
+      "description": "Tokens for manual balance redemption.",
       "properties": {
         "token": {
-          "type": "string",
-          "description": "O código alfanumérico do token (ex: DGX-ABC123)."
+          "type": "string"
         },
         "valor": {
-          "type": "number",
-          "description": "O valor em USDT que o token credita."
+          "type": "number"
         },
         "usado": {
-          "type": "boolean",
-          "description": "Indica se o token já foi utilizado."
+          "type": "boolean"
         },
         "criadoEm": {
-          "type": "object",
-          "description": "Timestamp de criação no Firestore."
+          "type": "object"
         },
         "transactionId": {
-          "type": "string",
-          "description": "O ID da transação PixUp vinculada."
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
         },
         "usedAt": {
           "type": "string",
@@ -276,14 +121,7 @@
           "entityName": "UserProfile",
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores individual user profile data.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique ID of the user."
-            }
-          ]
+          }
         }
       },
       {
@@ -292,18 +130,7 @@
           "entityName": "UserAccount",
           "schema": {
             "$ref": "#/backend/entities/UserAccount"
-          },
-          "description": "Stores a user's financial account details.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique ID of the user."
-            },
-            {
-              "name": "userAccountId",
-              "description": "The unique ID of the user's account."
-            }
-          ]
+          }
         }
       },
       {
@@ -312,14 +139,7 @@
           "entityName": "RedemptionToken",
           "schema": {
             "$ref": "#/backend/entities/RedemptionToken"
-          },
-          "description": "Stores redemption tokens for balance addition.",
-          "params": [
-            {
-              "name": "tokenId",
-              "description": "The unique token code."
-            }
-          ]
+          }
         }
       }
     ]
