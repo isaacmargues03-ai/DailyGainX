@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
-import { doc, getDoc, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, writeBatch, increment } from 'firebase/firestore';
 
 /**
  * Endpoint de Webhook para Produção - Fluxo de Validação Manual.
@@ -8,9 +8,6 @@ import { doc, getDoc, writeBatch } from 'firebase/firestore';
  * O usuário deve clicar em "Resgatar Saldo" no histórico para creditar.
  */
 export async function POST(request: Request) {
-    const clientId = "Aducmartins_4621537998005562";
-    const clientSecret = "c473cdb25c796b619fb302ed9a0a8ce039c1287499348ce477c5195851b143e9";
-
     try {
         const payload = await request.json();
         console.log('WEBHOOK PIXUP RECEBIDO:', JSON.stringify(payload));
@@ -64,14 +61,35 @@ export async function POST(request: Request) {
             pixUpId: transactionId || payload.id || 'N/A'
         });
 
-        // Lógica de Primeira Indicação (mantida para marcar o depósito)
+        // Lógica de Indicação (Recompensa de 1 USDT no primeiro depósito)
         const userDoc = await getDoc(userRef);
         if (userDoc.exists() && !userDoc.data().hasMadeFirstDeposit) {
             batch.update(userRef, { hasMadeFirstDeposit: true });
+            
+            const userData = userDoc.data();
+            // Se o usuário foi indicado por alguém (possui referralId)
+            if (userData.referralId) {
+                const referralRef = doc(firestore, 'referrals', userData.referralId);
+                const referralDoc = await getDoc(referralRef);
+                
+                if (referralDoc.exists()) {
+                    const referralData = referralDoc.data();
+                    const referrerId = referralData.referrerId;
+                    
+                    // 1. Marca a indicação como recompensada
+                    batch.update(referralRef, { status: 'rewarded' });
+                    
+                    // 2. Credita 1 USDT na conta do padrinho (quem indicou)
+                    const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
+                    batch.update(referrerAccountRef, {
+                        balance: increment(1)
+                    });
+                }
+            }
         }
 
         await batch.commit();
-        console.log(`WEBHOOK SUCESSO: Transação ${depositId} validada para resgate.`);
+        console.log(`WEBHOOK SUCESSO: Transação ${depositId} validada.`);
 
         return NextResponse.json({ success: true }, { status: 200 });
 

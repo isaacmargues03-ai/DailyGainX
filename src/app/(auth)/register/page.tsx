@@ -38,7 +38,6 @@ export default function RegisterPage() {
 
     setIsLoading(true);
     try {
-        // Find referrer if code is provided
         let referrerId: string | null = null;
         if (referralCode) {
             const finalReferralCode = referralCode.trim().toUpperCase();
@@ -73,7 +72,6 @@ export default function RegisterPage() {
             hasMadeFirstDeposit: false,
         };
 
-        // 3. Create the referral record if applicable and add its ID to the user profile
         if (referrerId) {
             const referralDocRef = doc(collection(firestore, 'referrals'));
             batch.set(referralDocRef, {
@@ -87,11 +85,9 @@ export default function RegisterPage() {
             userProfilePayload.referralId = referralDocRef.id;
         }
         
-        // 1. Create user profile in Firestore
         const userDocRef = doc(firestore, "users", user.uid);
         batch.set(userDocRef, userProfilePayload);
 
-        // 2. Create UserAccount document
         const accountDocRef = doc(firestore, 'users', user.uid, 'accounts', user.uid);
         batch.set(accountDocRef, {
             id: user.uid,
@@ -100,7 +96,6 @@ export default function RegisterPage() {
             currency: 'USDT'
         });
 
-        // 4. Create the lookup document for the new user's referral code
         const newReferralCodeDocRef = doc(firestore, 'referralCodes', newReferralCode);
         batch.set(newReferralCodeDocRef, { userId: user.uid });
         
@@ -108,10 +103,10 @@ export default function RegisterPage() {
 
         toast({
             title: 'Cadastro bem-sucedido!',
-            description: 'Sua conta foi criada. Redirecionando para seu perfil.',
+            description: 'Sua conta foi criada.',
         });
         
-        router.push('/profile'); // Redirect to profile page after successful registration and login
+        router.push('/profile');
 
     } catch (error: any) {
         console.error("Registration Error: ", error);
@@ -119,12 +114,6 @@ export default function RegisterPage() {
         switch (error.code) {
             case 'auth/email-already-in-use':
                 description = 'Este email já está em uso por outra conta.';
-                break;
-            case 'auth/weak-password':
-                description = 'A senha é muito fraca. Use pelo menos 6 caracteres.';
-                break;
-            case 'auth/invalid-email':
-                description = 'O formato do email é inválido.';
                 break;
             default:
                 description = `Ocorreu um erro durante o cadastro: ${error.message}`;
@@ -147,71 +136,69 @@ export default function RegisterPage() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleRegister} className="space-y-4">
-            <>
-              <div className="space-y-2">
+            <div className="space-y-2">
                 <Label htmlFor="name">Nome de usuário</Label>
                 <Input
-                  id="name"
-                  type="text"
-                  placeholder="Seu nome"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={isLoading}
+                    id="name"
+                    type="text"
+                    placeholder="Seu nome"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={isLoading}
                 />
-              </div>
-              <div className="space-y-2">
+            </div>
+            <div className="space-y-2">
                 <Label htmlFor="email">Gmail</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
                 />
-              </div>
-              <div className="space-y-2">
+            </div>
+            <div className="space-y-2">
                 <Label htmlFor="password">Senha</Label>
                 <Input
-                  id="password"
-                  type="password"
-                  placeholder="Mínimo de 6 caracteres"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
+                    id="password"
+                    type="password"
+                    placeholder="Mínimo de 6 caracteres"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
                 />
-              </div>
-              <div className="space-y-2">
+            </div>
+            <div className="space-y-2">
                 <Label htmlFor="confirm-password">Confirmar senha</Label>
                 <Input
-                  id="confirm-password"
-                  type="password"
-                  placeholder="Confirme sua senha"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={isLoading}
+                    id="confirm-password"
+                    type="password"
+                    placeholder="Confirme sua senha"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={isLoading}
                 />
-              </div>
-               <div className="space-y-2">
+            </div>
+            <div className="space-y-2">
                 <Label htmlFor="referral-code">Código de Indicação (Opcional)</Label>
                 <Input
-                  id="referral-code"
-                  type="text"
-                  placeholder="Código de quem te convidou"
-                  value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value)}
-                  disabled={isLoading}
-                  autoCapitalize="characters"
+                    id="referral-code"
+                    type="text"
+                    placeholder="Código de quem te convidou"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value)}
+                    disabled={isLoading}
+                    autoCapitalize="characters"
                 />
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? 'Cadastrando...' : 'Cadastrar'}
-              </Button>
-            </>
+            </Button>
         </form>
         <div className="mt-4 text-center text-sm">
           Já tem uma conta?{' '}
