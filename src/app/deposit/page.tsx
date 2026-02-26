@@ -26,7 +26,8 @@ const PixLogo = () => (
     </svg>
 );
 
-const BRL_MULTIPLIER_TO_USDT = 100;
+// R$ 25,00 = 5 USDT => R$ 1,00 = 0.2 USDT
+const BRL_MULTIPLIER_TO_USDT = 0.2;
 
 export default function DepositPage() {
     const [brlAmount, setBrlAmount] = useState('');
@@ -243,7 +244,7 @@ export default function DepositPage() {
                 <div className="space-y-4">
                     <div className="flex justify-between items-center px-1">
                         <h2 className="font-semibold text-lg">Quanto deseja depositar?</h2>
-                        <p className="text-xs text-muted-foreground">(R$ 1,00 = 100 USDT)</p>
+                        <p className="text-xs text-muted-foreground">(R$ 25,00 = 5 USDT)</p>
                     </div>
                     <div className="relative group">
                         <Input

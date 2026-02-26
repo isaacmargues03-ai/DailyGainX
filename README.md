@@ -23,6 +23,6 @@ Cadastre a URL abaixo no painel da PixUp para que o saldo atualize automaticamen
 `https://dailygainx.netlify.app/api/webhook/pixup`
 
 **Regras de Negócio:**
-- Conversão: R$ 1,00 = 100 USDT.
-- Crédito: Automático via Webhook (Server-side).
+- Conversão: R$ 25,00 = 5 USDT (R$ 1,00 = 0.20 USDT).
+- Crédito: Automático via Webhook (Server-side) ou Resgate Manual via Token.
 - Recompensa: 1 USDT no primeiro depósito do indicado.
