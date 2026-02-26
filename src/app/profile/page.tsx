@@ -21,11 +21,10 @@ import {
   Loader2,
   ShieldCheck,
   PlusCircle,
-  Eye,
   Plus,
 } from 'lucide-react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { useAppContext } from '@/context/AppContext';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
@@ -44,7 +43,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
 
 function MenuItem({ href, icon, text }: { href: string; icon: React.ReactNode; text: string }) {
   return (
@@ -95,11 +93,12 @@ export default function ProfilePage() {
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
 
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{referralCode: string}>(userDocRef);
+  const { data: userProfile } = useDoc<{referralCode: string}>(userDocRef);
 
   const tokensQuery = useMemoFirebase(() => {
     if (!isAdmin || !firestore) return null;
-    return query(collection(firestore, 'tokens_resgate'), orderBy('criadoEm', 'desc'), limit(20));
+    // Ordena pelo mesmo campo que o bot usa: dataCriacao
+    return query(collection(firestore, 'tokens_resgate'), orderBy('dataCriacao', 'desc'), limit(20));
   }, [isAdmin, firestore]);
 
   const { data: allTokens } = useCollection<{token: string, valor: number, usado: boolean, transactionId: string}>(tokensQuery);
@@ -111,20 +110,13 @@ export default function ProfilePage() {
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast({
-      title: 'Copiado!',
-      description: `${label} copiado.`,
-    });
+    toast({ title: 'Copiado!', description: `${label} copiado.` });
   };
 
   const handleAdminGenerateToken = async () => {
     const value = parseFloat(adminTokenValue);
-    if (isNaN(value) || value <= 0) {
-      toast({ variant: 'destructive', title: 'Valor inválido' });
-      return;
-    }
-    if (!adminTxId.trim()) {
-      toast({ variant: 'destructive', title: 'ID Necessário', description: 'O ID da transação é obrigatório para o bot entregar o token.' });
+    if (isNaN(value) || value <= 0 || !adminTxId.trim()) {
+      toast({ variant: 'destructive', title: 'Dados Inválidos', description: 'Preencha o valor e o ID da transação.' });
       return;
     }
 
@@ -136,20 +128,21 @@ export default function ProfilePage() {
         newTokenCode += chars.charAt(Math.floor(Math.random() * chars.length));
       }
 
+      // Padronizado com os campos do Bot
       await setDoc(doc(firestore, 'tokens_resgate', newTokenCode), {
         token: newTokenCode,
         valor: value,
         usado: false,
-        criadoEm: serverTimestamp(),
-        createdBy: user?.uid,
+        dataCriacao: serverTimestamp(),
+        geradoPor: user?.email,
         transactionId: adminTxId.trim(),
       });
 
-      toast({ title: 'Token Gerado!', description: `Código ${newTokenCode} vinculado ao ID ${adminTxId}.` });
+      toast({ title: 'Token Gerado!', description: `Código ${newTokenCode} criado com sucesso.` });
       setAdminTokenValue('100.00');
       setAdminTxId('');
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Erro ao gerar', description: error.message });
+      toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } finally {
       setIsGenerating(false);
     }
@@ -166,14 +159,10 @@ export default function ProfilePage() {
         const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
         const tokenDoc = await transaction.get(tokenRef);
 
-        if (!tokenDoc.exists()) {
-          throw new Error('Código inválido.');
-        }
-
+        if (!tokenDoc.exists()) throw new Error('Código inválido ou inexistente.');
+        
         const tokenData = tokenDoc.data();
-        if (tokenData.usado === true) {
-          throw new Error('Este código já foi usado.');
-        }
+        if (tokenData.usado) throw new Error('Este código já foi utilizado.');
 
         const accountRef = doc(firestore, 'users', user.uid, 'accounts', user.uid);
         const accountDoc = await transaction.get(accountRef);
@@ -200,7 +189,7 @@ export default function ProfilePage() {
         return tokenData.valor;
       });
 
-      toast({ title: 'Sucesso!', description: 'Saldo creditado!' });
+      toast({ title: 'Sucesso!', description: 'Saldo creditado em sua conta!' });
       setIsTokenDialogOpen(false);
       setTokenInput('');
     } catch (error: any) {
@@ -221,7 +210,7 @@ export default function ProfilePage() {
                 
                 <div className="flex items-center gap-4 mb-6">
                     <Avatar className="w-16 h-16 border-2 border-primary shadow-sm">
-                        <AvatarImage src={user?.photoURL || mainProfilePic?.imageUrl} data-ai-hint={mainProfilePic?.imageHint}/>
+                        <AvatarImage src={user?.photoURL || mainProfilePic?.imageUrl} />
                         <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -265,18 +254,14 @@ export default function ProfilePage() {
                       className="w-full h-14 bg-purple-600 hover:bg-purple-700 text-white font-black text-lg rounded-xl shadow-lg gap-3"
                     >
                       <Plus className="h-6 w-6" />
-                      GERAR NOVO TOKEN
+                      GERAR NOVO TOKEN (ADMIN)
                     </Button>
                   </div>
                 )}
 
                 <div className="space-y-3">
                     <h3 className="text-[11px] font-black text-muted-foreground px-1 uppercase tracking-widest">Serviços</h3>
-                    <ActionMenuItem 
-                        onClick={() => setIsTokenDialogOpen(true)} 
-                        icon={<Ticket className="h-5 w-5"/>} 
-                        text="Resgatar Token" 
-                    />
+                    <ActionMenuItem onClick={() => setIsTokenDialogOpen(true)} icon={<Ticket className="h-5 w-5"/>} text="Resgatar Token" />
                     <MenuItem href="/investments" icon={<Briefcase className="h-5 w-5"/>} text="Meus Investimentos" />
                     <MenuItem href="/history" icon={<History className="h-5 w-5"/>} text="Histórico de Transações" />
                     <MenuItem href="/referrals" icon={<Gift className="h-5 w-5"/>} text="Indique e Ganhe" />
@@ -292,21 +277,14 @@ export default function ProfilePage() {
             </div>
         </main>
 
-        {/* Modal de Resgate */}
         <Dialog open={isTokenDialogOpen} onOpenChange={setIsTokenDialogOpen}>
           <DialogContent className="rounded-2xl">
             <DialogHeader>
               <DialogTitle>Resgatar Token</DialogTitle>
-              <DialogDescription>Digite o código DGX-XXXXXX para creditar seu saldo.</DialogDescription>
+              <DialogDescription>Digite o código DGX-XXXXXX recebido no bot para creditar seu saldo.</DialogDescription>
             </DialogHeader>
             <div className="py-4">
-              <Input 
-                placeholder="EX: DGX-H72K9L" 
-                value={tokenInput} 
-                onChange={(e) => setTokenInput(e.target.value)} 
-                disabled={isRedeeming} 
-                className="uppercase font-mono text-center text-xl h-14 rounded-xl" 
-              />
+              <Input placeholder="EX: DGX-H72K9L" value={tokenInput} onChange={(e) => setTokenInput(e.target.value)} disabled={isRedeeming} className="uppercase font-mono text-center text-xl h-14 rounded-xl" />
             </div>
             <DialogFooter>
               <Button onClick={handleRedeemToken} disabled={isRedeeming || !tokenInput.trim()} className="w-full h-12 rounded-xl">
@@ -316,55 +294,37 @@ export default function ProfilePage() {
           </DialogContent>
         </Dialog>
 
-        {/* Modal Admin */}
         <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
           <DialogContent className="sm:max-w-xl rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-2xl font-black text-purple-600 flex items-center gap-2">
                 <ShieldCheck className="h-6 w-6" /> Painel Admin
               </DialogTitle>
-              <DialogDescription>Gere tokens vinculados a um ID de transação.</DialogDescription>
             </DialogHeader>
-            
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>ID da Transação (PixUp/Manual)</Label>
-                <Input 
-                  value={adminTxId} 
-                  onChange={(e) => setAdminTxId(e.target.value)} 
-                  placeholder="ID que o usuário enviará no bot"
-                  className="h-12 rounded-xl"
-                />
+                <Label>ID da Transação (PixUp)</Label>
+                <Input value={adminTxId} onChange={(e) => setAdminTxId(e.target.value)} placeholder="O bot usará este ID para entregar o token" className="h-12 rounded-xl" />
               </div>
-              
               <div className="space-y-2">
                 <Label>Valor USDT</Label>
-                <Input 
-                  type="number" 
-                  value={adminTokenValue} 
-                  onChange={(e) => setAdminTokenValue(e.target.value)} 
-                  className="h-12 rounded-xl text-lg font-bold"
-                />
+                <Input type="number" value={adminTokenValue} onChange={(e) => setAdminTokenValue(e.target.value)} className="h-12 rounded-xl font-bold" />
               </div>
-
-              <Button onClick={handleAdminGenerateToken} disabled={isGenerating || !adminTxId} className="w-full bg-purple-600 hover:bg-purple-700 h-14 rounded-xl font-bold">
+              <Button onClick={handleAdminGenerateToken} disabled={isGenerating} className="w-full bg-purple-600 h-14 rounded-xl font-bold">
                 {isGenerating ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <PlusCircle className="h-5 w-5 mr-2" />} 
-                GERAR TOKEN VINCULADO
+                GERAR TOKEN
               </Button>
-
               <div className="pt-4">
-                <Label className="text-xs uppercase font-bold text-muted-foreground">Tokens Gerados Recentemente</Label>
+                <Label className="text-xs uppercase font-bold text-muted-foreground">Últimos Tokens Gerados</Label>
                 <ScrollArea className="h-[150px] mt-2 border rounded-xl p-2 bg-muted/20">
                   <div className="space-y-2">
                     {allTokens?.map(t => (
-                      <div key={t.id} className="flex items-center justify-between p-2 bg-card rounded-lg border text-xs">
+                      <div key={t.token} className="flex items-center justify-between p-2 bg-card rounded-lg border text-xs">
                         <div>
                           <p className="font-mono font-bold">{t.token}</p>
                           <p className="text-[10px] text-muted-foreground">ID: {t.transactionId}</p>
                         </div>
-                        <Badge variant={t.usado ? "secondary" : "default"}>
-                          {t.usado ? "Usado" : "Livre"}
-                        </Badge>
+                        <Badge variant={t.usado ? "secondary" : "default"}>{t.usado ? "Usado" : "Livre"}</Badge>
                       </div>
                     ))}
                   </div>
