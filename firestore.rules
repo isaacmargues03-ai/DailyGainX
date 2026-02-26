@@ -16,9 +16,16 @@ service cloud.firestore {
     }
 
     match /tokens_resgate/{tokenId} {
+      // Qualquer pessoa logada pode verificar se um token existe
       allow get: if isSignedIn();
-      allow list: if isAdmin();
-      allow create, update: if isAdmin();
+      // Apenas admin pode listar todos ou criar novos
+      allow list, create: if isAdmin();
+      // Permitir atualização se for o Admin OU se o usuário estiver marcando um token não usado como usado
+      allow update: if isAdmin() || (
+        isSignedIn() && 
+        resource.data.usado == false && 
+        request.resource.data.usado == true
+      );
       allow delete: if false; 
     }
 
