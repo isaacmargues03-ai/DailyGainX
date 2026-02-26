@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -25,7 +24,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useAppContext } from '@/context/AppContext';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { doc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { doc, runTransaction } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -39,7 +38,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-// Helper component for menu items that navigate
+// Componente auxiliar para itens de menu que navegam
 function MenuItem({ href, icon, text }: { href: string; icon: React.ReactNode; text: string }) {
   return (
     <Link href={href} className="block bg-card rounded-lg shadow-sm hover:bg-muted/80 transition-colors">
@@ -54,7 +53,7 @@ function MenuItem({ href, icon, text }: { href: string; icon: React.ReactNode; t
   );
 }
 
-// Helper component for menu items that trigger actions
+// Componente auxiliar para itens de menu que disparam ações (como o Resgate)
 function ActionMenuItem({ icon, text, onClick }: { icon: React.ReactNode; text: string; onClick: () => void }) {
   return (
     <button onClick={onClick} className="w-full text-left block bg-card rounded-lg shadow-sm hover:bg-muted/80 transition-colors">
@@ -102,10 +101,10 @@ export default function ProfilePage() {
   };
 
   const handleRedeemToken = async () => {
-    if (!tokenInput.trim() || !user || isRedeeming) return;
+    const tokenClean = tokenInput.trim();
+    if (!tokenClean || !user || isRedeeming) return;
 
     setIsRedeeming(true);
-    const tokenClean = tokenInput.trim();
 
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -128,13 +127,13 @@ export default function ProfilePage() {
           throw new Error('Conta do usuário não encontrada.');
         }
 
-        // 1. Credit balance
+        // 1. Credita o saldo
         const amount = tokenData.amount || 0;
         transaction.update(accountRef, {
           balance: (accountDoc.data().balance || 0) + amount
         });
 
-        // 2. Inactivate token
+        // 2. Inativa o token
         transaction.update(tokenRef, {
           status: 'used',
           usedAt: new Date().toISOString(),
@@ -172,7 +171,7 @@ export default function ProfilePage() {
         <main className="flex-1">
             <div className="container mx-auto max-lg py-6 px-4">
                 
-                {/* User Info Header */}
+                {/* Cabeçalho de Info do Usuário */}
                 <div className="flex items-center gap-4 mb-6">
                     <Avatar className="w-16 h-16 border-2 border-primary">
                         <AvatarImage src={user?.photoURL || mainProfilePic?.imageUrl} data-ai-hint={mainProfilePic?.imageHint}/>
@@ -198,10 +197,10 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Balance and Actions Card */}
+                {/* Card de Saldo e Ações Rápidas */}
                 <Card className="mb-8 shadow-sm">
                     <CardHeader className="pb-2">
-                        <p className="text-sm font-medium text-muted-foreground">Saldo</p>
+                        <p className="text-sm font-medium text-muted-foreground">Saldo Disponível</p>
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold mb-4">
@@ -228,9 +227,13 @@ export default function ProfilePage() {
                     </CardContent>
                 </Card>
 
-                {/* Menu List */}
+                {/* Lista de Itens do Menu */}
                 <div className="space-y-3">
-                    <ActionMenuItem onClick={() => setIsTokenDialogOpen(true)} icon={<Ticket className="h-5 w-5"/>} text="Resgatar Token" />
+                    <ActionMenuItem 
+                        onClick={() => setIsTokenDialogOpen(true)} 
+                        icon={<Ticket className="h-5 w-5"/>} 
+                        text="Resgatar Token" 
+                    />
                     <MenuItem href="/investments" icon={<Briefcase className="h-5 w-5"/>} text="Meus Investimentos" />
                     <MenuItem href="/history" icon={<History className="h-5 w-5"/>} text="Histórico" />
                     <MenuItem href="/referrals" icon={<Gift className="h-5 w-5"/>} text="Indicações" />
@@ -239,26 +242,27 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="mt-8">
-                    <Button variant="outline" className="w-full" onClick={handleLogout}>
+                    <Button variant="outline" className="w-full text-destructive hover:text-destructive" onClick={handleLogout}>
                         <LogOut className="mr-2 h-4 w-4" />
                         Sair da conta
                     </Button>
                 </div>
                 
-                {/* Footer */}
+                {/* Rodapé institucional */}
                 <footer className="mt-12 text-center text-xs text-muted-foreground/80">
-                    <p>EMPRESA DESDE 2016</p>
-                    <p>Na Tailândia</p>
+                    <p>EMPRESA ATIVA DESDE 2016</p>
+                    <p>Sede na Tailândia</p>
                 </footer>
             </div>
         </main>
 
+        {/* Modal de Resgate de Token */}
         <Dialog open={isTokenDialogOpen} onOpenChange={setIsTokenDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Resgatar Token</DialogTitle>
               <DialogDescription>
-                Insira o código do token recebido para creditar o saldo em sua conta.
+                Insira o código do token recebido para creditar o saldo instantaneamente em sua conta.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -270,21 +274,22 @@ export default function ProfilePage() {
                   value={tokenInput}
                   onChange={(e) => setTokenInput(e.target.value)}
                   disabled={isRedeeming}
+                  className="uppercase font-mono"
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsTokenDialogOpen(false)} disabled={isRedeeming}>
+            <DialogFooter className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsTokenDialogOpen(false)} disabled={isRedeeming} className="flex-1">
                 Cancelar
               </Button>
-              <Button onClick={handleRedeemToken} disabled={isRedeeming || !tokenInput.trim()}>
+              <Button onClick={handleRedeemToken} disabled={isRedeeming || !tokenInput.trim()} className="flex-1">
                 {isRedeeming ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processando...
+                    Validando...
                   </>
                 ) : (
-                  'Resgatar'
+                  'Resgatar AGORA'
                 )}
               </Button>
             </DialogFooter>
