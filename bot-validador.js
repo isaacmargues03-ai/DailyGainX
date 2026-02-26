@@ -15,12 +15,12 @@ const fs = require('fs');
 const serviceAccountPath = path.resolve(__dirname, 'firebase-key.json');
 
 if (!fs.existsSync(serviceAccountPath)) {
-  console.error("❌ ERRO CRÍTICO: Arquivo 'firebase-key.json' não encontrado na raiz do projeto.");
-  console.error("👉 COMO CORRIGIR:");
+  console.error("\n❌ ERRO CRÍTICO: Arquivo 'firebase-key.json' não encontrado na raiz do projeto.");
+  console.error("\n👉 COMO CORRIGIR:");
   console.error("1. Vá ao Console do Firebase > Configurações do Projeto > Contas de Serviço.");
   console.error("2. Clique em 'Gerar nova chave privada'.");
-  console.error("3. Renomeie o arquivo baixado para 'firebase-key.json'.");
-  console.error("4. Faça o upload dele para a raiz deste projeto no IDX.");
+  console.error("3. O arquivo será baixado. Renomeie ele para exatamente 'firebase-key.json'.");
+  console.error("4. Arraste e solte este arquivo para a pasta raiz deste projeto no painel à esquerda.\n");
   process.exit(1);
 }
 
@@ -37,7 +37,7 @@ try {
 
 const db = admin.firestore();
 
-// 2. Configuração do Bot (Token oficial do print)
+// 2. Configuração do Bot (Token oficial)
 const BOT_TOKEN = '8705097831:AAGWrokWxz-j1weHLEq7Kei-sRsWKw1xok4';
 const bot = new Telegraf(BOT_TOKEN);
 
@@ -82,6 +82,7 @@ bot.on('text', async (ctx) => {
       const newToken = gerarTokenDGX();
 
       // Grava na coleção tokens_resgate (Alinhado com o site)
+      // O site procura por: usado (boolean) e valor (number)
       await db.collection('tokens_resgate').doc(newToken).set({
         token: newToken,
         valor: amountInUsdt,
