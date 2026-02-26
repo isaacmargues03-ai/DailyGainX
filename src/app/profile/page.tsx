@@ -25,6 +25,7 @@ import {
   CheckCircle2,
   XCircle,
   Settings,
+  Plus,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,6 +47,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 function MenuItem({ href, icon, text }: { href: string; icon: React.ReactNode; text: string }) {
   return (
@@ -119,7 +121,6 @@ export default function ProfilePage() {
     });
   };
 
-  // Lógica exclusiva do Admin para criar novos tokens
   const handleAdminGenerateToken = async () => {
     const value = parseFloat(adminTokenValue);
     if (isNaN(value) || value <= 0) {
@@ -265,19 +266,27 @@ export default function ProfilePage() {
 
                 {/* Menu Admin - EXCLUSIVO isaacmargues03@gmail.com */}
                 {isAdmin && (
-                  <div className="mb-8 space-y-3">
+                  <div className="mb-8 space-y-4">
                     <div className="flex items-center justify-between px-1">
                       <h3 className="text-[11px] font-black text-purple-600 flex items-center gap-2 uppercase tracking-[0.15em]">
                         <ShieldCheck className="h-3.5 w-3.5" />
                         Painel Administrativo
                       </h3>
-                      <Settings className="h-3.5 w-3.5 text-purple-300" />
                     </div>
+                    
+                    <Button 
+                      onClick={() => setIsAdminDialogOpen(true)} 
+                      className="w-full h-14 bg-purple-600 hover:bg-purple-700 text-white font-black text-lg rounded-xl shadow-lg shadow-purple-200 gap-3"
+                    >
+                      <Plus className="h-6 w-6" />
+                      GERAR NOVO TOKEN
+                    </Button>
+                    
                     <ActionMenuItem 
                         variant="admin"
                         onClick={() => setIsAdminDialogOpen(true)} 
-                        icon={<PlusCircle className="h-5 w-5"/>} 
-                        text="Gerenciar & Criar Tokens" 
+                        icon={<Eye className="h-5 w-5"/>} 
+                        text="Ver Status dos Códigos" 
                     />
                   </div>
                 )}
@@ -336,16 +345,16 @@ export default function ProfilePage() {
               <DialogHeader>
                 <DialogTitle className="text-2xl font-black text-white flex items-center gap-3">
                   <ShieldCheck className="h-8 w-8" />
-                  Gerador de Tokens
+                  Painel Administrativo
                 </DialogTitle>
-                <DialogDescription className="text-purple-100">Crie códigos de bônus ou valide depósitos manuais.</DialogDescription>
+                <DialogDescription className="text-purple-100">Crie códigos de saldo ou monitore os resgates.</DialogDescription>
               </DialogHeader>
             </div>
             
             <div className="p-6 space-y-8">
               {/* Seção de Criação */}
               <div className="space-y-4">
-                <Label className="text-purple-600 font-black uppercase text-[10px] tracking-widest">Novo Token de Saldo</Label>
+                <Label className="text-purple-600 font-black uppercase text-[10px] tracking-widest">Gerar Novo Token</Label>
                 <div className="flex gap-3">
                   <div className="relative flex-1">
                     <Input 
@@ -369,7 +378,7 @@ export default function ProfilePage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label className="flex items-center gap-2 text-muted-foreground uppercase text-[10px] font-black tracking-widest">
-                    <Eye className="h-3.5 w-3.5" /> Tokens Recentes
+                    <Eye className="h-3.5 w-3.5" /> Monitor de Resgates
                   </Label>
                   {isTokensLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
                 </div>
