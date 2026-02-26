@@ -1,5 +1,7 @@
-'use client'; // Needs to be a client component to use hooks
 
+'use client';
+
+import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/header';
@@ -15,18 +17,29 @@ import {
   MessageSquare,
   Send,
   Copy,
+  Ticket,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useAppContext } from '@/context/AppContext';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { doc } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-
-// Helper component for menu items
+// Helper component for menu items that navigate
 function MenuItem({ href, icon, text }: { href: string; icon: React.ReactNode; text: string }) {
   return (
     <Link href={href} className="block bg-card rounded-lg shadow-sm hover:bg-muted/80 transition-colors">
@@ -41,11 +54,30 @@ function MenuItem({ href, icon, text }: { href: string; icon: React.ReactNode; t
   );
 }
 
+// Helper component for menu items that trigger actions
+function ActionMenuItem({ icon, text, onClick }: { icon: React.ReactNode; text: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="w-full text-left block bg-card rounded-lg shadow-sm hover:bg-muted/80 transition-colors">
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-4">
+          <div className="text-primary">{icon}</div>
+          <span className="font-medium">{text}</span>
+        </div>
+        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+      </div>
+    </button>
+  );
+}
+
 export default function ProfilePage() {
   const { balance, isBalanceLoading } = useAppContext();
   const { auth, user, firestore } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
+
+  const [isTokenDialogOpen, setIsTokenDialogOpen] = useState(false);
+  const [tokenInput, setTokenInput] = useState('');
+  const [isRedeeming, setIsRedeeming] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -69,6 +101,67 @@ export default function ProfilePage() {
     }
   };
 
+  const handleRedeemToken = async () => {
+    if (!tokenInput.trim() || !user || isRedeeming) return;
+
+    setIsRedeeming(true);
+    const tokenClean = tokenInput.trim();
+
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
+        const tokenDoc = await transaction.get(tokenRef);
+
+        if (!tokenDoc.exists()) {
+          throw new Error('Token inválido ou inexistente.');
+        }
+
+        const tokenData = tokenDoc.data();
+        if (tokenData.status !== 'active') {
+          throw new Error('Este token já foi utilizado ou está expirado.');
+        }
+
+        const accountRef = doc(firestore, 'users', user.uid, 'accounts', user.uid);
+        const accountDoc = await transaction.get(accountRef);
+
+        if (!accountDoc.exists()) {
+          throw new Error('Conta do usuário não encontrada.');
+        }
+
+        // 1. Credit balance
+        const amount = tokenData.amount || 0;
+        transaction.update(accountRef, {
+          balance: (accountDoc.data().balance || 0) + amount
+        });
+
+        // 2. Inactivate token
+        transaction.update(tokenRef, {
+          status: 'used',
+          usedAt: new Date().toISOString(),
+          usedBy: user.uid
+        });
+
+        return amount;
+      });
+
+      toast({
+        title: 'Sucesso!',
+        description: 'Token resgatado com sucesso! O valor foi adicionado ao seu saldo.',
+      });
+      setIsTokenDialogOpen(false);
+      setTokenInput('');
+    } catch (error: any) {
+      console.error('Erro ao resgatar token:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro no Resgate',
+        description: error.message || 'Ocorreu um erro ao processar o token.',
+      });
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
+
   const mainProfilePic = PlaceHolderImages.find(p => p.id === 'instagram-profile-pic');
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Usuário';
   const fallback = displayName.charAt(0).toUpperCase();
@@ -77,7 +170,7 @@ export default function ProfilePage() {
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
         <Header />
         <main className="flex-1">
-            <div className="container mx-auto max-w-lg py-6 px-4">
+            <div className="container mx-auto max-lg py-6 px-4">
                 
                 {/* User Info Header */}
                 <div className="flex items-center gap-4 mb-6">
@@ -137,11 +230,12 @@ export default function ProfilePage() {
 
                 {/* Menu List */}
                 <div className="space-y-3">
+                    <ActionMenuItem onClick={() => setIsTokenDialogOpen(true)} icon={<Ticket className="h-5 w-5"/>} text="Resgatar Token" />
                     <MenuItem href="/investments" icon={<Briefcase className="h-5 w-5"/>} text="Meus Investimentos" />
                     <MenuItem href="/history" icon={<History className="h-5 w-5"/>} text="Histórico" />
                     <MenuItem href="/referrals" icon={<Gift className="h-5 w-5"/>} text="Indicações" />
                     <MenuItem href="/feedback" icon={<MessageSquare className="h-5 w-5"/>} text="Feedback" />
-                    <MenuItem href="#" icon={<Send className="h-5 w-5"/>} text="Comunidade do Telegram" />
+                    <MenuItem href="https://t.me/DailyGainX_Comunidade" icon={<Send className="h-5 w-5"/>} text="Comunidade do Telegram" />
                 </div>
 
                 <div className="mt-8">
@@ -158,6 +252,44 @@ export default function ProfilePage() {
                 </footer>
             </div>
         </main>
+
+        <Dialog open={isTokenDialogOpen} onOpenChange={setIsTokenDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Resgatar Token</DialogTitle>
+              <DialogDescription>
+                Insira o código do token recebido para creditar o saldo em sua conta.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="token-code">Código do Token</Label>
+                <Input
+                  id="token-code"
+                  placeholder="Ex: ABCD-1234-EFGH"
+                  value={tokenInput}
+                  onChange={(e) => setTokenInput(e.target.value)}
+                  disabled={isRedeeming}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsTokenDialogOpen(false)} disabled={isRedeeming}>
+                Cancelar
+              </Button>
+              <Button onClick={handleRedeemToken} disabled={isRedeeming || !tokenInput.trim()}>
+                {isRedeeming ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  'Resgatar'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 }
