@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -82,7 +81,6 @@ export default function ProfilePage() {
   const [isAdminDialogOpen, setIsAdminDialogOpen] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
   const [adminTokenValue, setAdminTokenValue] = useState('100.00');
-  const [adminTxId, setAdminTxId] = useState('');
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -100,7 +98,7 @@ export default function ProfilePage() {
     return query(collection(firestore, 'tokens_resgate'), orderBy('dataCriacao', 'desc'), limit(20));
   }, [isAdmin, firestore]);
 
-  const { data: allTokens } = useCollection<{token: string, valor: number, usado: boolean, transactionId: string}>(tokensQuery);
+  const { data: allTokens } = useCollection<{token: string, valor: number, usado: boolean, transactionId?: string}>(tokensQuery);
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -114,8 +112,8 @@ export default function ProfilePage() {
 
   const handleAdminGenerateToken = async () => {
     const value = parseFloat(adminTokenValue);
-    if (isNaN(value) || value <= 0 || !adminTxId.trim()) {
-      toast({ variant: 'destructive', title: 'Dados Inválidos', description: 'Preencha o valor e o ID da transação.' });
+    if (isNaN(value) || value <= 0) {
+      toast({ variant: 'destructive', title: 'Valor Inválido', description: 'Por favor, insira um valor válido em USDT.' });
       return;
     }
 
@@ -133,12 +131,11 @@ export default function ProfilePage() {
         usado: false,
         dataCriacao: serverTimestamp(),
         geradoPor: user?.email,
-        transactionId: adminTxId.trim(),
+        transactionId: "Manual-Site", // Identificador genérico para tokens criados sem ID de transação
       });
 
-      toast({ title: 'Token Gerado!', description: `Código ${newTokenCode} criado com sucesso.` });
+      toast({ title: 'Token Gerado!', description: `Código ${newTokenCode} de ${value} USDT criado.` });
       setAdminTokenValue('100.00');
-      setAdminTxId('');
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } finally {
@@ -293,38 +290,43 @@ export default function ProfilePage() {
         </Dialog>
 
         <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
-          <DialogContent className="sm:max-w-xl rounded-2xl">
+          <DialogContent className="sm:max-w-md rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-2xl font-black text-purple-600 flex items-center gap-2">
-                <ShieldCheck className="h-6 w-6" /> Painel Admin
+                <ShieldCheck className="h-6 w-6" /> Gerar Código
               </DialogTitle>
+              <DialogDescription>Crie um token de saldo para enviar manualmente.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>ID da Transação (PixUp)</Label>
-                <Input value={adminTxId} onChange={(e) => setAdminTxId(e.target.value)} placeholder="O bot buscará o token por este ID" className="h-12 rounded-xl" />
-              </div>
-              <div className="space-y-2">
-                <Label>Valor USDT</Label>
-                <Input type="number" value={adminTokenValue} onChange={(e) => setAdminTokenValue(e.target.value)} className="h-12 rounded-xl font-bold" />
+                <Label>Valor em USDT</Label>
+                <Input type="number" value={adminTokenValue} onChange={(e) => setAdminTokenValue(e.target.value)} className="h-12 rounded-xl font-bold text-lg" placeholder="100.00" />
               </div>
               <Button onClick={handleAdminGenerateToken} disabled={isGenerating} className="w-full bg-purple-600 h-14 rounded-xl font-bold">
                 {isGenerating ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <PlusCircle className="h-5 w-5 mr-2" />} 
-                CRIAR E VINCULAR TOKEN
+                GERAR AGORA
               </Button>
               <div className="pt-4">
-                <Label className="text-xs uppercase font-bold text-muted-foreground">Tokens Gerados Recentemente</Label>
-                <ScrollArea className="h-[150px] mt-2 border rounded-xl p-2 bg-muted/20">
+                <Label className="text-xs uppercase font-bold text-muted-foreground">Últimos Tokens Gerados</Label>
+                <ScrollArea className="h-[200px] mt-2 border rounded-xl p-2 bg-muted/20">
                   <div className="space-y-2">
                     {allTokens?.map(t => (
-                      <div key={t.token} className="flex items-center justify-between p-2 bg-card rounded-lg border text-xs">
+                      <div key={t.token} className="flex items-center justify-between p-3 bg-card rounded-lg border text-sm">
                         <div>
-                          <p className="font-mono font-bold">{t.token}</p>
-                          <p className="text-[10px] text-muted-foreground">ID: {t.transactionId} | {t.valor} USDT</p>
+                          <p className="font-mono font-bold text-primary">{t.token}</p>
+                          <p className="text-[10px] text-muted-foreground">{t.valor} USDT</p>
                         </div>
-                        <Badge variant={t.usado ? "secondary" : "default"}>{t.usado ? "Usado" : "Livre"}</Badge>
+                        <div className="flex items-center gap-2">
+                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(t.token, 'Código')}>
+                                <Copy className="h-4 w-4" />
+                            </Button>
+                            <Badge variant={t.usado ? "secondary" : "default"}>{t.usado ? "Usado" : "Disponível"}</Badge>
+                        </div>
                       </div>
                     ))}
+                    {(!allTokens || allTokens.length === 0) && (
+                        <p className="text-center text-xs text-muted-foreground py-10">Nenhum token gerado ainda.</p>
+                    )}
                   </div>
                 </ScrollArea>
               </div>
