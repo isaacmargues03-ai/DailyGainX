@@ -27,8 +27,7 @@ const PixLogo = () => (
     </svg>
 );
 
-// R$ 25,00 = 5 USDT => R$ 1,00 = 0.2 USDT
-const BRL_MULTIPLIER_TO_USDT = 0.2;
+const BRL_MULTIPLIER_TO_USDT = 0.2; // R$ 25 = 5 USDT (1/5)
 const MIN_DEPOSIT_BRL = 25;
 
 export default function DepositPage() {
@@ -179,9 +178,10 @@ export default function DepositPage() {
                                                 <span>Instruções de depósito</span>
                                             </div>
                                             <div className="space-y-2 text-sm font-semibold uppercase tracking-tight">
-                                                <p>1. EFETUE O PAGAMENTO NO SEU APP</p>
-                                                <p>2. CLIQUE NO BOTÃO ABAIXO</p>
-                                                <p>3. RESGATE O CÓDIGO NO TELEGRAM</p>
+                                                <p>1. EFETUAR O PAGAMENTO</p>
+                                                <p>2. ACESSA LINK ABAIXO DO SUPORTE</p>
+                                                <p>3. ENVIAR COMPROVANTE</p>
+                                                <p>4. RESGATAR SEU DEPOSITO</p>
                                             </div>
                                         </div>
 
@@ -192,7 +192,7 @@ export default function DepositPage() {
                                         >
                                             <Link href={`https://t.me/DailyGainX_Bot?start=${transactionId}`} target="_blank">
                                                 <Send className="h-4 w-4" />
-                                                VALIDAR NO TELEGRAM
+                                                FALAR COM SUPORTE
                                             </Link>
                                         </Button>
                                     </div>
