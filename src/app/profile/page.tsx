@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -169,21 +170,21 @@ export default function ProfilePage() {
 
         const userData = userDoc.data();
 
-        let referralDoc = null;
-        if (userData && !userData.hasMadeFirstDeposit && userData.referralId) {
-            const referralRef = doc(firestore, 'referrals', userData.referralId);
-            referralDoc = await transaction.get(referralRef);
-        }
-
-        // Busca a transação de histórico se houver vínculo
+        // Tenta encontrar a transação de histórico vinculada
         let historyTxDoc = null;
         if (tokenData.transactionId && tokenData.transactionId !== "Manual-Site") {
             const historyTxRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', tokenData.transactionId);
             historyTxDoc = await transaction.get(historyTxRef);
         }
+
+        let referralDoc = null;
+        if (userData && !userData.hasMadeFirstDeposit && userData.referralId) {
+            const referralRef = doc(firestore, 'referrals', userData.referralId);
+            referralDoc = await transaction.get(referralRef);
+        }
         // ----------------------------------------------------------
 
-        // Atualização de Saldo
+        // 1. Atualização de Saldo
         if (!accountDoc.exists()) {
           transaction.set(accountRef, {
             id: user.uid,
@@ -197,14 +198,14 @@ export default function ProfilePage() {
           });
         }
 
-        // Marca Token como usado
+        // 2. Marca Token como usado
         transaction.update(tokenRef, {
           usado: true,
           usedAt: new Date().toISOString(),
           usedBy: user.uid
         });
 
-        // Atualiza status da transação no histórico para "claimed" (Resgatado/Sucesso)
+        // 3. ATUALIZA STATUS NO HISTÓRICO (Muito importante)
         if (historyTxDoc && historyTxDoc.exists()) {
             transaction.update(historyTxDoc.ref, {
                 status: 'claimed',
@@ -212,7 +213,7 @@ export default function ProfilePage() {
             });
         }
 
-        // Recompensa de indicação no primeiro resgate de token
+        // 4. Recompensa de indicação no primeiro resgate de token
         if (userData && !userData.hasMadeFirstDeposit) {
             transaction.update(userRef, { hasMadeFirstDeposit: true });
             

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -21,7 +22,7 @@ function TransactionItem({
   onClaim: (tx: Transaction) => void 
 }) {
   const isDeposit = transaction.type === 'deposit';
-  const isPending = transaction.status === 'Pending';
+  const isPending = transaction.status === 'Pending' || transaction.status === 'PENDING';
   const isValidated = transaction.status === 'validated';
   const isClaimed = transaction.status === 'claimed';
   
@@ -65,7 +66,7 @@ function TransactionItem({
         </div>
 
         <div className="flex flex-wrap gap-2">
-            {isPending && (
+            {isPending && isDeposit && (
                 <Button variant="outline" size="sm" className="w-full sm:w-auto gap-2" asChild>
                     <Link href={telegramBotUrl} target="_blank">
                         <Send className="h-3.5 w-3.5" />
@@ -113,7 +114,11 @@ export default function HistoryPage() {
                 const userRef = doc(firestore, 'users', user.uid);
 
                 // --- TODAS AS LEITURAS DEVEM OCORRER ANTES DAS ESCRITAS ---
-                const userDoc = await tx.get(userRef);
+                const [userDoc, transactionDoc] = await Promise.all([
+                    tx.get(userRef),
+                    tx.get(transactionRef)
+                ]);
+
                 const userData = userDoc.data();
                 
                 let referralDoc = null;
