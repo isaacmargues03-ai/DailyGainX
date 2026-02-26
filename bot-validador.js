@@ -8,17 +8,30 @@ const { Telegraf } = require('telegraf');
 const admin = require('firebase-admin');
 const axios = require('axios');
 const path = require('path');
+const fs = require('fs');
 
 // 1. Configuração do Firebase Admin
-// Certifique-se de que o arquivo firebase-key.json esteja na raiz do projeto.
+// O arquivo firebase-key.json DEVE estar na raiz do projeto.
+const serviceAccountPath = path.resolve(__dirname, 'firebase-key.json');
+
+if (!fs.existsSync(serviceAccountPath)) {
+  console.error("❌ ERRO CRÍTICO: Arquivo 'firebase-key.json' não encontrado na raiz do projeto.");
+  console.error("👉 COMO CORRIGIR:");
+  console.error("1. Vá ao Console do Firebase > Configurações do Projeto > Contas de Serviço.");
+  console.error("2. Clique em 'Gerar nova chave privada'.");
+  console.error("3. Renomeie o arquivo baixado para 'firebase-key.json'.");
+  console.error("4. Faça o upload dele para a raiz deste projeto no IDX.");
+  process.exit(1);
+}
+
 try {
-  const serviceAccount = require("./firebase-key.json");
+  const serviceAccount = require(serviceAccountPath);
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
   });
   console.log("✅ Firebase Admin inicializado com sucesso.");
 } catch (error) {
-  console.error("❌ Erro ao carregar firebase-key.json. Verifique se o arquivo existe na raiz.");
+  console.error("❌ Erro ao inicializar o Firebase Admin:", error.message);
   process.exit(1);
 }
 
@@ -60,16 +73,8 @@ bot.on('text', async (ctx) => {
   try {
     /**
      * LOGICA DE VALIDAÇÃO REAL (SIMULADA)
-     * No futuro, você pode descomentar o código abaixo para integrar com a API real da PixUp.
+     * No futuro, você pode integrar com a API real da PixUp usando axios.
      */
-    /*
-    const response = await axios.get(`https://api.pixupbr.com/v2/pix/status/${transactionId}`, {
-      headers: { 'Authorization': 'Bearer SEU_TOKEN_AQUI' }
-    });
-    const isPaid = response.data.status === 'PAID';
-    const amount = response.data.amount * 100; // Conversão para USDT
-    */
-
     const isPaid = true; // Simulação: Sempre aprovando para teste
     const amountInUsdt = 100.00; // Valor fixo de exemplo (100 USDT)
 
