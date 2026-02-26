@@ -1,17 +1,18 @@
 /**
  * @fileOverview Bot do Telegram para validação de depósitos e geração de tokens de resgate.
  * 
- * Dependências necessárias: telegraf, firebase-admin, axios
+ * Funcionalidades:
+ * - Suporte a Deep Linking: Captura o ID da transação vindo do link do site.
+ * - Validação de Transação: Simula consulta na API PixUp.
+ * - Geração de Tokens: Cria códigos de resgate compatíveis com o site.
  */
 
 const { Telegraf } = require('telegraf');
 const admin = require('firebase-admin');
-const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 
 // 1. Configuração do Firebase Admin
-// O arquivo firebase-key.json DEVE estar na raiz do projeto.
 const serviceAccountPath = path.resolve(__dirname, 'firebase-key.json');
 
 if (!fs.existsSync(serviceAccountPath)) {
@@ -37,7 +38,7 @@ try {
 
 const db = admin.firestore();
 
-// 2. Configuração do Bot (Token oficial)
+// 2. Configuração do Bot
 const BOT_TOKEN = '8705097831:AAGWrokWxz-j1weHLEq7Kei-sRsWKw1xok4';
 const bot = new Telegraf(BOT_TOKEN);
 
@@ -51,38 +52,23 @@ const gerarTokenDGX = () => {
   return result;
 };
 
-// Comando inicial
-bot.start((ctx) => {
-  ctx.reply(
-    "👋 Bem-vindo ao validador oficial DailyGainX!\n\n" +
-    "Para validar seu depósito e receber seu saldo, por favor, envie o **ID da Transação** gerado no site."
-  );
-});
-
-// Lógica de recebimento de mensagens (ID da Transação)
-bot.on('text', async (ctx) => {
-  const transactionId = ctx.message.text.trim();
-
-  // Validação básica do formato do ID
-  if (transactionId.length < 8) {
-    return ctx.reply("⚠️ O ID enviado parece ser muito curto. Por favor, verifique o código da transação no seu histórico ou tela de depósito.");
+// Lógica de Validação e Geração
+const processarValidacao = async (ctx, transactionId) => {
+  if (!transactionId || transactionId.length < 5) {
+    return ctx.reply("⚠️ ID de transação inválido ou não fornecido.");
   }
 
-  ctx.reply("🔍 Verificando seu pagamento nos servidores da PixUp...");
+  await ctx.reply(`🔍 Verificando transação: \`${transactionId}\`...`, { parse_mode: 'MarkdownV2' });
 
   try {
-    /**
-     * LOGICA DE VALIDAÇÃO REAL (SIMULADA)
-     * No futuro, você pode integrar com a API real da PixUp usando axios.
-     */
-    const isPaid = true; // Simulação: Sempre aprovando para teste
-    const amountInUsdt = 100.00; // Valor fixo de exemplo (100 USDT)
+    // Simulação de sucesso (Em produção, aqui entraria a consulta à API PixUp)
+    const isPaid = true;
+    const amountInUsdt = 100.00; // Valor simulado
 
     if (isPaid) {
       const newToken = gerarTokenDGX();
 
-      // Grava na coleção tokens_resgate (Alinhado com o site)
-      // O site procura por: usado (boolean) e valor (number)
+      // Grava na coleção tokens_resgate (Exatamente como o site espera)
       await db.collection('tokens_resgate').doc(newToken).set({
         token: newToken,
         valor: amountInUsdt,
@@ -92,34 +78,53 @@ bot.on('text', async (ctx) => {
         status: 'active'
       });
 
-      ctx.reply(
-        `✅ DEPÓSITO VALIDADO!\n\n` +
+      await ctx.reply(
+        `✅ *DEPÓSITO VALIDADO\!*\n\n` +
         `Seu código de resgate exclusivo é:\n\n` +
         `👉 \`${newToken}\`\n\n` +
         `**COMO USAR:**\n` +
-        `1. Vá no seu **Perfil** no site.\n` +
-        `2. Clique em **Resgatar Token**.\n` +
-        `3. Cole o código acima e confirme.\n\n` +
-        `O valor de **${amountInUsdt.toFixed(2)} USDT** será creditado na hora!`
+        `1\. Vá no seu **Perfil** no site\.\n` +
+        `2\. Clique em **Resgatar Token**\.\n` +
+        `3\. Cole o código acima e confirme\.\n\n` +
+        `O valor de **${amountInUsdt.toFixed(2)} USDT** será creditado na hora\!`,
+        { parse_mode: 'MarkdownV2' }
       );
       
       console.log(`Token gerado: ${newToken} para transação ${transactionId}`);
-
     } else {
       ctx.reply("❌ Pagamento não identificado ou ainda pendente. Certifique-se de que o Pix foi concluído.");
     }
-
   } catch (error) {
-    console.error("Erro no processamento do bot:", error);
-    ctx.reply("🚫 Ocorreu um erro técnico ao validar sua transação. Por favor, tente novamente em instantes ou contate o suporte.");
+    console.error("Erro no processamento:", error);
+    ctx.reply("🚫 Ocorreu um erro técnico. Tente novamente em instantes.");
+  }
+};
+
+// Comando /start - Suporta deep linking: /start ID_TRANSACAO
+bot.start(async (ctx) => {
+  const payload = ctx.payload; // Captura o ID se vier do link do site
+  if (payload) {
+    await processarValidacao(ctx, payload);
+  } else {
+    ctx.reply(
+      "👋 Bem-vindo ao validador oficial DailyGainX!\n\n" +
+      "Para validar seu depósito, envie o **ID da Transação** gerado no site."
+    );
   }
 });
 
-// Inicialização do Bot
+// Recebimento manual de texto (ID digitado)
+bot.on('text', async (ctx) => {
+  const text = ctx.message.text.trim();
+  if (text.startsWith('/')) return; // Ignora outros comandos
+  await processarValidacao(ctx, text);
+});
+
+// Inicialização
 bot.launch().then(() => {
   console.log("🚀 Bot DailyGainX Online e aguardando validações!");
 });
 
-// Graceful stop
+// Parada graciosa
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
