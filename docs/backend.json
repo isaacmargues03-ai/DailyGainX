@@ -231,19 +231,21 @@
         "id": {
           "type": "string"
         },
-        "amount": {
-          "type": "number"
+        "valor": {
+          "type": "number",
+          "description": "O valor em USDT que o token credita."
         },
-        "status": {
-          "type": "string",
-          "enum": [
-            "active",
-            "used"
-          ]
+        "usado": {
+          "type": "boolean",
+          "description": "Indica se o token já foi utilizado."
         },
-        "createdAt": {
+        "dataCriacao": {
+          "type": "object",
+          "description": "Timestamp de criação no Firestore."
+        },
+        "idTransacao": {
           "type": "string",
-          "format": "date-time"
+          "description": "O ID da transação PixUp vinculada."
         },
         "usedAt": {
           "type": "string",
@@ -255,9 +257,8 @@
       },
       "required": [
         "id",
-        "amount",
-        "status",
-        "createdAt"
+        "valor",
+        "usado"
       ]
     }
   },

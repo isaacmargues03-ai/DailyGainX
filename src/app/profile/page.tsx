@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -38,7 +39,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-// Componente auxiliar para itens de menu que navegam
 function MenuItem({ href, icon, text }: { href: string; icon: React.ReactNode; text: string }) {
   return (
     <Link href={href} className="block bg-card rounded-lg shadow-sm hover:bg-muted/80 transition-colors">
@@ -53,7 +53,6 @@ function MenuItem({ href, icon, text }: { href: string; icon: React.ReactNode; t
   );
 }
 
-// Componente auxiliar para itens de menu que disparam ações (como o Resgate)
 function ActionMenuItem({ icon, text, onClick }: { icon: React.ReactNode; text: string; onClick: () => void }) {
   return (
     <button onClick={onClick} className="w-full text-left block bg-card rounded-lg shadow-sm hover:bg-muted/80 transition-colors">
@@ -116,7 +115,9 @@ export default function ProfilePage() {
         }
 
         const tokenData = tokenDoc.data();
-        if (tokenData.status !== 'active') {
+        
+        // Alinhado com a lógica do Bot: usado: false/true
+        if (tokenData.usado === true) {
           throw new Error('Este token já foi utilizado ou está expirado.');
         }
 
@@ -127,15 +128,15 @@ export default function ProfilePage() {
           throw new Error('Conta do usuário não encontrada.');
         }
 
-        // 1. Credita o saldo
-        const amount = tokenData.amount || 0;
+        // 1. Credita o saldo (Bot usa 'valor')
+        const amount = tokenData.valor || 0;
         transaction.update(accountRef, {
           balance: (accountDoc.data().balance || 0) + amount
         });
 
-        // 2. Inativa o token
+        // 2. Inativa o token (Bot usa 'usado')
         transaction.update(tokenRef, {
-          status: 'used',
+          usado: true,
           usedAt: new Date().toISOString(),
           usedBy: user.uid
         });
@@ -171,7 +172,6 @@ export default function ProfilePage() {
         <main className="flex-1">
             <div className="container mx-auto max-lg py-6 px-4">
                 
-                {/* Cabeçalho de Info do Usuário */}
                 <div className="flex items-center gap-4 mb-6">
                     <Avatar className="w-16 h-16 border-2 border-primary">
                         <AvatarImage src={user?.photoURL || mainProfilePic?.imageUrl} data-ai-hint={mainProfilePic?.imageHint}/>
@@ -197,7 +197,6 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Card de Saldo e Ações Rápidas */}
                 <Card className="mb-8 shadow-sm">
                     <CardHeader className="pb-2">
                         <p className="text-sm font-medium text-muted-foreground">Saldo Disponível</p>
@@ -227,7 +226,6 @@ export default function ProfilePage() {
                     </CardContent>
                 </Card>
 
-                {/* Lista de Itens do Menu */}
                 <div className="space-y-3">
                     <ActionMenuItem 
                         onClick={() => setIsTokenDialogOpen(true)} 
@@ -248,7 +246,6 @@ export default function ProfilePage() {
                     </Button>
                 </div>
                 
-                {/* Rodapé institucional */}
                 <footer className="mt-12 text-center text-xs text-muted-foreground/80">
                     <p>EMPRESA ATIVA DESDE 2016</p>
                     <p>Sede na Tailândia</p>
@@ -256,7 +253,6 @@ export default function ProfilePage() {
             </div>
         </main>
 
-        {/* Modal de Resgate de Token */}
         <Dialog open={isTokenDialogOpen} onOpenChange={setIsTokenDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
