@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -172,31 +173,15 @@ export default function DepositPage() {
                                             </div>
                                         </div>
 
-                                        <div className="space-y-2">
-                                            <Label htmlFor="transaction-code">Código da Transação</Label>
-                                            <div className="flex items-center space-x-2">
-                                                <Input
-                                                    id="transaction-code"
-                                                    readOnly
-                                                    value={transactionId}
-                                                    className="text-sm truncate bg-muted/30 font-mono"
-                                                />
-                                                <Button variant="outline" size="icon" onClick={() => copyToClipboard(transactionId, 'Código da transação')}>
-                                                    <Copy className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </div>
-
                                         <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
                                             <div className="flex items-center gap-2 font-bold text-primary mb-1">
                                                 <Info className="h-4 w-4" />
                                                 <span>Instruções de depósito</span>
                                             </div>
                                             <div className="space-y-2 text-sm font-semibold uppercase tracking-tight">
-                                                <p>1. EFETUAR O PAGAMENTO</p>
-                                                <p>2. COPIE CÓDIGO DA TRANSAÇÃO</p>
-                                                <p>3. ENVIE PARA BOT TELEGRAM</p>
-                                                <p>4. RESGATE CÓDIGO QUE ELE MANDA</p>
+                                                <p>1. EFETUE O PAGAMENTO NO SEU APP</p>
+                                                <p>2. CLIQUE NO BOTÃO ABAIXO</p>
+                                                <p>3. RESGATE O CÓDIGO NO TELEGRAM</p>
                                             </div>
                                         </div>
 
@@ -207,7 +192,7 @@ export default function DepositPage() {
                                         >
                                             <Link href={`https://t.me/DailyGainX_Bot?start=${transactionId}`} target="_blank">
                                                 <Send className="h-4 w-4" />
-                                                VALIDAR SEU DEPÓSITO NO TELEGRAM
+                                                VALIDAR NO TELEGRAM
                                             </Link>
                                         </Button>
                                     </div>
