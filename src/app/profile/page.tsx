@@ -152,20 +152,31 @@ export default function ProfilePage() {
     try {
       await runTransaction(firestore, async (transaction) => {
         const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
-        const tokenDoc = await transaction.get(tokenRef);
+        const userRef = doc(firestore, 'users', user.uid);
+        const accountRef = doc(firestore, 'users', user.uid, 'accounts', user.uid);
+
+        // --- TODAS AS LEITURAS DEVEM OCORRER ANTES DAS ESCRITAS ---
+        const [tokenDoc, userDoc, accountDoc] = await Promise.all([
+          transaction.get(tokenRef),
+          transaction.get(userRef),
+          transaction.get(accountRef)
+        ]);
 
         if (!tokenDoc.exists()) throw new Error('Código inválido ou inexistente.');
         
         const tokenData = tokenDoc.data();
         if (tokenData.usado) throw new Error('Este código já foi utilizado.');
 
-        const userRef = doc(firestore, 'users', user.uid);
-        const userDoc = await transaction.get(userRef);
         const userData = userDoc.data();
 
-        const accountRef = doc(firestore, 'users', user.uid, 'accounts', user.uid);
-        const accountDoc = await transaction.get(accountRef);
+        let referralDoc = null;
+        if (userData && !userData.hasMadeFirstDeposit && userData.referralId) {
+            const referralRef = doc(firestore, 'referrals', userData.referralId);
+            referralDoc = await transaction.get(referralRef);
+        }
+        // ----------------------------------------------------------
 
+        // Atualização de Saldo
         if (!accountDoc.exists()) {
           transaction.set(accountRef, {
             id: user.uid,
@@ -179,6 +190,7 @@ export default function ProfilePage() {
           });
         }
 
+        // Marca Token como usado
         transaction.update(tokenRef, {
           usado: true,
           usedAt: new Date().toISOString(),
@@ -189,21 +201,16 @@ export default function ProfilePage() {
         if (userData && !userData.hasMadeFirstDeposit) {
             transaction.update(userRef, { hasMadeFirstDeposit: true });
             
-            if (userData.referralId) {
-                const referralRef = doc(firestore, 'referrals', userData.referralId);
-                const referralDoc = await transaction.get(referralRef);
+            if (referralDoc && referralDoc.exists()) {
+                const referralData = referralDoc.data();
+                const referrerId = referralData.referrerId;
                 
-                if (referralDoc.exists()) {
-                    const referralData = referralDoc.data();
-                    const referrerId = referralData.referrerId;
-                    
-                    transaction.update(referralRef, { status: 'rewarded' });
-                    
-                    const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
-                    transaction.update(referrerAccountRef, {
-                        balance: increment(1)
-                    });
-                }
+                transaction.update(referralDoc.ref, { status: 'rewarded' });
+                
+                const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
+                transaction.update(referrerAccountRef, {
+                    balance: increment(1)
+                });
             }
         }
 
@@ -214,6 +221,7 @@ export default function ProfilePage() {
       setIsTokenDialogOpen(false);
       setTokenInput('');
     } catch (error: any) {
+      console.error("Erro no resgate:", error);
       toast({ variant: 'destructive', title: 'Falha no Resgate', description: error.message });
     } finally {
       setIsRedeeming(false);

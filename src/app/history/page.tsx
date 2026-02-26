@@ -112,8 +112,16 @@ export default function HistoryPage() {
                 const transactionRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', transaction.id);
                 const userRef = doc(firestore, 'users', user.uid);
 
+                // --- TODAS AS LEITURAS DEVEM OCORRER ANTES DAS ESCRITAS ---
                 const userDoc = await tx.get(userRef);
                 const userData = userDoc.data();
+                
+                let referralDoc = null;
+                if (userData && !userData.hasMadeFirstDeposit && userData.referralId) {
+                    const referralRef = doc(firestore, 'referrals', userData.referralId);
+                    referralDoc = await tx.get(referralRef);
+                }
+                // ----------------------------------------------------------
 
                 // 1. Soma o valor ao Saldo real do usuário
                 tx.update(accountRef, {
@@ -130,23 +138,18 @@ export default function HistoryPage() {
                 if (userData && !userData.hasMadeFirstDeposit) {
                     tx.update(userRef, { hasMadeFirstDeposit: true });
                     
-                    if (userData.referralId) {
-                        const referralRef = doc(firestore, 'referrals', userData.referralId);
-                        const referralDoc = await tx.get(referralRef);
+                    if (referralDoc && referralDoc.exists()) {
+                        const referralData = referralDoc.data();
+                        const referrerId = referralData.referrerId;
                         
-                        if (referralDoc.exists()) {
-                            const referralData = referralDoc.data();
-                            const referrerId = referralData.referrerId;
-                            
-                            // Marca indicação como recompensada
-                            tx.update(referralRef, { status: 'rewarded' });
-                            
-                            // Credita 1 USDT na conta do padrinho
-                            const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
-                            tx.update(referrerAccountRef, {
-                                balance: increment(1)
-                            });
-                        }
+                        // Marca indicação como recompensada
+                        tx.update(referralDoc.ref, { status: 'rewarded' });
+                        
+                        // Credita 1 USDT na conta do padrinho
+                        const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
+                        tx.update(referrerAccountRef, {
+                            balance: increment(1)
+                        });
                     }
                 }
             });
