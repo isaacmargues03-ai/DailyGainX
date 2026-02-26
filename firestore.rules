@@ -11,6 +11,13 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    match /tokens_resgate/{tokenId} {
+      allow get: if isSignedIn();
+      // Apenas o sistema ou o bot (via Admin SDK) pode criar ou atualizar os tokens de forma segura.
+      // O usuário final apenas 'consome' via aplicação que valida o código.
+      allow create, update, delete: if false; 
+    }
+
     match /referralCodes/{code} {
       allow get: if true;
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
@@ -21,7 +28,6 @@ service cloud.firestore {
       allow get: if (isSignedIn() && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId)) || (request.auth == null);
       allow list: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.referredId;
-      // Permite que o Webhook (sem auth) atualize o status da indicação
       allow update: if (isSignedIn() && request.auth.uid == resource.data.referredId) || (request.auth == null); 
       allow delete: if false;
     }
@@ -30,21 +36,18 @@ service cloud.firestore {
       allow get: if isOwner(userId) || (request.auth == null);
       allow list: if false;
       allow create: if isOwner(userId);
-      // Permite que o Webhook atualize o campo hasMadeFirstDeposit
       allow update: if isOwner(userId) || (request.auth == null);
       allow delete: if isOwner(userId);
 
       match /accounts/{userAccountId} {
         allow get: if isOwner(userId) || (request.auth == null);
         allow list, create: if isOwner(userId);
-        // Permite que o Webhook atualize o saldo (balance)
         allow update: if isOwner(userId) || (request.auth == null);
         allow delete: if isOwner(userId);
 
         match /depositTransactions/{depositTransactionId} {
           allow get: if isOwner(userId) || (request.auth == null);
           allow list, create: if isOwner(userId);
-          // Permite que o Webhook atualize o status da transação
           allow update: if isOwner(userId) || (request.auth == null);
           allow delete: if isOwner(userId);
         }
