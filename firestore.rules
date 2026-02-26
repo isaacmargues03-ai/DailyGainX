@@ -16,56 +16,58 @@ service cloud.firestore {
     }
 
     match /tokens_resgate/{tokenId} {
-      // Qualquer pessoa logada pode verificar se um token existe
+      // Qualquer pessoa logada pode verificar e atualizar um token para resgate
       allow get: if isSignedIn();
-      // Apenas admin pode listar todos ou criar novos
       allow list, create: if isAdmin();
-      // Permitir atualização se for o Admin OU se o usuário estiver marcando um token não usado como usado
-      allow update: if isAdmin() || (
-        isSignedIn() && 
-        resource.data.usado == false && 
-        request.resource.data.usado == true
+      allow update: if isSignedIn() && (
+        isAdmin() || (
+          resource.data.usado == false && 
+          request.resource.data.usado == true
+        )
       );
       allow delete: if false; 
     }
 
     match /referralCodes/{code} {
       allow get: if true;
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow create: if isSignedIn();
       allow update, delete: if false;
     }
 
     match /referrals/{referralId} {
-      allow get: if (isSignedIn() && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId)) || (request.auth == null);
+      // Participantes da indicação podem ler e atualizar o status
+      allow get: if isSignedIn() && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
       allow list: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.referredId;
-      allow update: if (isSignedIn() && request.auth.uid == resource.data.referredId) || (request.auth == null); 
+      allow create: if isSignedIn();
+      allow update: if isSignedIn(); 
       allow delete: if false;
     }
 
     match /users/{userId} {
-      allow get: if isOwner(userId) || (request.auth == null);
-      allow list: if false;
+      // Perfis são legíveis por qualquer usuário logado (necessário para validar indicações)
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || (request.auth == null);
-      allow delete: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
 
       match /accounts/{userAccountId} {
-        allow get: if isOwner(userId) || (request.auth == null);
-        allow list, create: if isOwner(userId);
-        allow update: if isOwner(userId) || (request.auth == null);
-        allow delete: if isOwner(userId);
+        // Regra flexível para permitir que o sistema de recompensas atualize saldos
+        allow get: if isSignedIn();
+        allow list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) || isAdmin();
+        allow update: if isSignedIn(); 
+        allow delete: if isAdmin();
 
         match /depositTransactions/{depositTransactionId} {
-          allow get: if isOwner(userId) || (request.auth == null);
-          allow list, create: if isOwner(userId);
-          allow update: if isOwner(userId) || (request.auth == null);
-          allow delete: if isOwner(userId);
+          allow get, list: if isOwner(userId) || isAdmin();
+          allow create, update: if isOwner(userId) || isAdmin();
+          allow delete: if isAdmin();
         }
       }
 
       match /investments/{investmentId} {
-        allow get, list, create, update, delete: if isOwner(userId);
+        allow get, list, create, update, delete: if isOwner(userId) || isAdmin();
       }
     }
   }
