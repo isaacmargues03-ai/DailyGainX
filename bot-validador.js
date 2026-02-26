@@ -1,10 +1,10 @@
 /**
- * @fileOverview Bot do Telegram para validação de depósitos e geração de tokens de resgate.
+ * @fileOverview Bot do Telegram para entrega de tokens gerados pelo Admin.
  * 
- * Funcionalidades:
- * - Suporte a Deep Linking: Captura o ID da transação vindo do link do site.
- * - Validação de Transação: Simula consulta na API PixUp.
- * - Geração de Tokens: Cria códigos de resgate compatíveis com o site.
+ * Fluxo:
+ * 1. Admin gera token no site vinculado a um ID de transação.
+ * 2. Usuário envia o ID para o bot.
+ * 3. Bot busca o token na coleção 'tokens_resgate' e entrega ao usuário.
  */
 
 const { Telegraf } = require('telegraf');
@@ -12,16 +12,12 @@ const admin = require('firebase-admin');
 const path = require('path');
 const fs = require('fs');
 
-// 1. Configuração do Firebase Admin
+// 1. Configuração do Firebase Admin com caminho absoluto corrigido
 const serviceAccountPath = path.resolve(__dirname, 'firebase-key.json');
 
 if (!fs.existsSync(serviceAccountPath)) {
-  console.error("\n❌ ERRO CRÍTICO: Arquivo 'firebase-key.json' não encontrado na raiz do projeto.");
-  console.error("\n👉 COMO CORRIGIR:");
-  console.error("1. Vá ao Console do Firebase > Configurações do Projeto > Contas de Serviço.");
-  console.error("2. Clique em 'Gerar nova chave privada'.");
-  console.error("3. O arquivo será baixado. Renomeie ele para exatamente 'firebase-key.json'.");
-  console.error("4. Arraste e solte este arquivo para a pasta raiz deste projeto no painel à esquerda.\n");
+  console.error("\n❌ ERRO: Arquivo 'firebase-key.json' não encontrado.");
+  console.log("👉 Certifique-se de que o arquivo está na raiz do projeto.\n");
   process.exit(1);
 }
 
@@ -30,9 +26,9 @@ try {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
   });
-  console.log("✅ Firebase Admin inicializado com sucesso.");
+  console.log("✅ Firebase Admin inicializado.");
 } catch (error) {
-  console.error("❌ Erro ao inicializar o Firebase Admin:", error.message);
+  console.error("❌ Erro ao inicializar Firebase:", error.message);
   process.exit(1);
 }
 
@@ -42,89 +38,77 @@ const db = admin.firestore();
 const BOT_TOKEN = '8705097831:AAGWrokWxz-j1weHLEq7Kei-sRsWKw1xok4';
 const bot = new Telegraf(BOT_TOKEN);
 
-// Função para gerar o token no formato DGX-XXXXXX
-const gerarTokenDGX = () => {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let result = "DGX-";
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-};
-
-// Lógica de Validação e Geração
-const processarValidacao = async (ctx, transactionId) => {
+// Lógica de Busca e Entrega
+const buscarTokenEEntregar = async (ctx, transactionId) => {
   if (!transactionId || transactionId.length < 5) {
-    return ctx.reply("⚠️ ID de transação inválido ou não fornecido.");
+    return ctx.reply("⚠️ ID de transação inválido.");
   }
 
-  await ctx.reply(`🔍 Verificando transação: \`${transactionId}\`...`, { parse_mode: 'MarkdownV2' });
+  await ctx.reply(`🔍 Buscando seu código de resgate para o ID: \`${transactionId}\`...`, { parse_mode: 'MarkdownV2' });
 
   try {
-    // Simulação de sucesso (Em produção, aqui entraria a consulta à API PixUp)
-    const isPaid = true;
-    const amountInUsdt = 100.00; // Valor simulado
+    // Busca na coleção tokens_resgate um token que bata com o transactionId e não tenha sido usado
+    const tokensRef = db.collection('tokens_resgate');
+    const snapshot = await tokensRef
+      .where('transactionId', '==', transactionId)
+      .where('usado', '==', false)
+      .limit(1)
+      .get();
 
-    if (isPaid) {
-      const newToken = gerarTokenDGX();
-
-      // Grava na coleção tokens_resgate (Exatamente como o site espera)
-      await db.collection('tokens_resgate').doc(newToken).set({
-        token: newToken,
-        valor: amountInUsdt,
-        usado: false,
-        criadoEm: admin.firestore.FieldValue.serverTimestamp(),
-        transactionId: transactionId,
-        status: 'active'
-      });
-
-      await ctx.reply(
-        `✅ *DEPÓSITO VALIDADO\!*\n\n` +
-        `Seu código de resgate exclusivo é:\n\n` +
-        `👉 \`${newToken}\`\n\n` +
-        `**COMO USAR:**\n` +
-        `1\. Vá no seu **Perfil** no site\.\n` +
-        `2\. Clique em **Resgatar Token**\.\n` +
-        `3\. Cole o código acima e confirme\.\n\n` +
-        `O valor de **${amountInUsdt.toFixed(2)} USDT** será creditado na hora\!`,
+    if (snapshot.empty) {
+      return ctx.reply(
+        "❌ *TOKEN NÃO ENCONTRADO OU JÁ RESGATADO*\n\n" +
+        "Pode ser que o administrador ainda não tenha validado seu depósito no sistema ou o ID esteja incorreto\.\n\n" +
+        "Tente novamente em alguns minutos\.",
         { parse_mode: 'MarkdownV2' }
       );
-      
-      console.log(`Token gerado: ${newToken} para transação ${transactionId}`);
-    } else {
-      ctx.reply("❌ Pagamento não identificado ou ainda pendente. Certifique-se de que o Pix foi concluído.");
     }
+
+    const tokenDoc = snapshot.docs[0];
+    const data = tokenDoc.data();
+
+    await ctx.reply(
+      `✅ *DEPÓSITO ENCONTRADO\!*\n\n` +
+      `Seu código de resgate exclusivo é:\n\n` +
+      `👉 \`${data.token}\`\n\n` +
+      `**COMO USAR:**\n` +
+      `1\. Vá no seu **Perfil** no site\.\n` +
+      `2\. Clique em **Resgatar Token**\.\n` +
+      `3\. Cole o código acima e confirme\.\n\n` +
+      `O valor de **${data.valor.toFixed(2)} USDT** será creditado\!`,
+      { parse_mode: 'MarkdownV2' }
+    );
+    
+    console.log(`Token ${data.token} entregue para a transação ${transactionId}`);
+
   } catch (error) {
-    console.error("Erro no processamento:", error);
-    ctx.reply("🚫 Ocorreu um erro técnico. Tente novamente em instantes.");
+    console.error("Erro na busca:", error);
+    ctx.reply("🚫 Ocorreu um erro técnico. Tente novamente mais tarde.");
   }
 };
 
-// Comando /start - Suporta deep linking: /start ID_TRANSACAO
+// Comandos
 bot.start(async (ctx) => {
-  const payload = ctx.payload; // Captura o ID se vier do link do site
+  const payload = ctx.payload; 
   if (payload) {
-    await processarValidacao(ctx, payload);
+    await buscarTokenEEntregar(ctx, payload);
   } else {
     ctx.reply(
-      "👋 Bem-vindo ao validador oficial DailyGainX!\n\n" +
-      "Para validar seu depósito, envie o **ID da Transação** gerado no site."
+      "👋 Bem-vindo ao DailyGainX!\n\n" +
+      "Se você já fez o Pix e o administrador validou, envie o **ID da Transação** para receber seu código de resgate."
     );
   }
 });
 
-// Recebimento manual de texto (ID digitado)
 bot.on('text', async (ctx) => {
   const text = ctx.message.text.trim();
-  if (text.startsWith('/')) return; // Ignora outros comandos
-  await processarValidacao(ctx, text);
+  if (text.startsWith('/')) return;
+  await buscarTokenEEntregar(ctx, text);
 });
 
-// Inicialização
 bot.launch().then(() => {
-  console.log("🚀 Bot DailyGainX Online e aguardando validações!");
+  console.log("🚀 Bot DailyGainX Online - Modo Entregador Ativo!");
 });
 
-// Parada graciosa
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));

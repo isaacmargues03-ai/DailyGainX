@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -87,10 +86,10 @@ export default function ProfilePage() {
   const [isAdminDialogOpen, setIsAdminDialogOpen] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
   const [adminTokenValue, setAdminTokenValue] = useState('100.00');
+  const [adminTxId, setAdminTxId] = useState('');
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Email exclusivo de administrador conforme solicitado
   const isAdmin = user?.email === 'isaacmargues03@gmail.com';
 
   const userDocRef = useMemoFirebase(() => {
@@ -100,13 +99,12 @@ export default function ProfilePage() {
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<{referralCode: string}>(userDocRef);
 
-  // Consulta para admin ver os tokens recentes na coleção
   const tokensQuery = useMemoFirebase(() => {
     if (!isAdmin || !firestore) return null;
     return query(collection(firestore, 'tokens_resgate'), orderBy('criadoEm', 'desc'), limit(20));
   }, [isAdmin, firestore]);
 
-  const { data: allTokens, isLoading: isTokensLoading } = useCollection<{token: string, valor: number, usado: boolean}>(tokensQuery);
+  const { data: allTokens, isLoading: isTokensLoading } = useCollection<{token: string, valor: number, usado: boolean, transactionId: string}>(tokensQuery);
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -127,6 +125,10 @@ export default function ProfilePage() {
       toast({ variant: 'destructive', title: 'Valor inválido', description: 'Insira um valor maior que zero.' });
       return;
     }
+    if (!adminTxId.trim()) {
+      toast({ variant: 'destructive', title: 'ID Necessário', description: 'Informe o ID da Transação para o bot entregar.' });
+      return;
+    }
 
     setIsGenerating(true);
     try {
@@ -142,11 +144,13 @@ export default function ProfilePage() {
         usado: false,
         criadoEm: serverTimestamp(),
         createdBy: user?.uid,
+        transactionId: adminTxId.trim(),
         status: 'active'
       });
 
-      toast({ title: 'Token Gerado!', description: `Código ${newTokenCode} criado com sucesso.` });
+      toast({ title: 'Token Gerado!', description: `Código ${newTokenCode} vinculado à transação ${adminTxId}.` });
       setAdminTokenValue('100.00');
+      setAdminTxId('');
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Erro ao gerar', description: error.message });
     } finally {
@@ -179,7 +183,6 @@ export default function ProfilePage() {
 
         let currentBalance = 0;
         
-        // Se a conta não existir (usuário antigo ou falha no registro), nós a inicializamos agora
         if (!accountDoc.exists()) {
           transaction.set(accountRef, {
             id: user.uid,
@@ -228,7 +231,6 @@ export default function ProfilePage() {
         <main className="flex-1">
             <div className="container mx-auto max-lg py-6 px-4">
                 
-                {/* Cabeçalho do Perfil */}
                 <div className="flex items-center gap-4 mb-6">
                     <Avatar className="w-16 h-16 border-2 border-primary shadow-sm">
                         <AvatarImage src={user?.photoURL || mainProfilePic?.imageUrl} data-ai-hint={mainProfilePic?.imageHint}/>
@@ -257,7 +259,6 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Card de Saldo */}
                 <Card className="mb-8 border-none shadow-md bg-gradient-to-br from-card to-muted/30">
                     <CardHeader className="pb-2">
                         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Saldo Total</p>
@@ -277,7 +278,6 @@ export default function ProfilePage() {
                     </CardContent>
                 </Card>
 
-                {/* Menu Admin - EXCLUSIVO isaacmargues03@gmail.com */}
                 {isAdmin && (
                   <div className="mb-8 space-y-4">
                     <div className="flex items-center justify-between px-1">
@@ -294,17 +294,9 @@ export default function ProfilePage() {
                       <Plus className="h-6 w-6" />
                       GERAR NOVO TOKEN
                     </Button>
-                    
-                    <ActionMenuItem 
-                        variant="admin"
-                        onClick={() => setIsAdminDialogOpen(true)} 
-                        icon={<Eye className="h-5 w-5"/>} 
-                        text="Ver Status dos Códigos" 
-                    />
                   </div>
                 )}
 
-                {/* Menu Geral */}
                 <div className="space-y-3">
                     <h3 className="text-[11px] font-black text-muted-foreground px-1 uppercase tracking-[0.15em]">Serviços</h3>
                     <ActionMenuItem 
@@ -327,7 +319,6 @@ export default function ProfilePage() {
             </div>
         </main>
 
-        {/* Modal: Resgatar Token (Usuário) */}
         <Dialog open={isTokenDialogOpen} onOpenChange={setIsTokenDialogOpen}>
           <DialogContent className="sm:max-w-md rounded-2xl">
             <DialogHeader>
@@ -351,87 +342,77 @@ export default function ProfilePage() {
           </DialogContent>
         </Dialog>
 
-        {/* Modal: Painel Administrativo (Exclusivo Admin) */}
         <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
           <DialogContent className="sm:max-w-xl rounded-2xl p-0 overflow-hidden">
             <div className="bg-purple-600 p-6 text-white">
               <DialogHeader>
                 <DialogTitle className="text-2xl font-black text-white flex items-center gap-3">
                   <ShieldCheck className="h-8 w-8" />
-                  Painel Administrativo
+                  Gerar Token para Entrega
                 </DialogTitle>
-                <DialogDescription className="text-purple-100">Crie códigos de saldo ou monitore os resgates.</DialogDescription>
+                <DialogDescription className="text-purple-100">Vincule um valor a um ID de transação para o bot entregar ao usuário.</DialogDescription>
               </DialogHeader>
             </div>
             
-            <div className="p-6 space-y-8">
-              {/* Seção de Criação */}
+            <div className="p-6 space-y-6">
               <div className="space-y-4">
-                <Label className="text-purple-600 font-black uppercase text-[10px] tracking-widest">Gerar Novo Token</Label>
-                <div className="flex gap-3">
-                  <div className="relative flex-1">
+                <div className="space-y-2">
+                  <Label className="text-purple-600 font-black uppercase text-[10px] tracking-widest">ID da Transação (PixUp)</Label>
+                  <Input 
+                    value={adminTxId} 
+                    onChange={(e) => setAdminTxId(e.target.value)} 
+                    placeholder="Cole o ID que o cliente vai mandar no bot"
+                    className="h-12 rounded-xl font-mono border-purple-100 focus:border-purple-500"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-purple-600 font-black uppercase text-[10px] tracking-widest">Valor USDT</Label>
+                  <div className="relative">
                     <Input 
                       type="number" 
                       value={adminTokenValue} 
                       onChange={(e) => setAdminTokenValue(e.target.value)} 
-                      disabled={isGenerating} 
                       placeholder="Valor USDT"
                       className="h-14 rounded-xl text-xl font-bold pr-16 border-purple-100 focus:border-purple-500"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-purple-300">USDT</span>
                   </div>
-                  <Button onClick={handleAdminGenerateToken} disabled={isGenerating} className="bg-purple-600 hover:bg-purple-700 h-14 px-6 rounded-xl shadow-lg shadow-purple-200">
-                    {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <PlusCircle className="h-5 w-5 mr-2" />} 
-                    Gerar
-                  </Button>
                 </div>
+
+                <Button onClick={handleAdminGenerateToken} disabled={isGenerating || !adminTxId} className="w-full bg-purple-600 hover:bg-purple-700 h-14 rounded-xl shadow-lg shadow-purple-200 font-bold text-lg">
+                  {isGenerating ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <PlusCircle className="h-5 w-5 mr-2" />} 
+                  GERAR E VINCULAR
+                </Button>
               </div>
 
-              {/* Lista de Monitoramento */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="flex items-center gap-2 text-muted-foreground uppercase text-[10px] font-black tracking-widest">
-                    <Eye className="h-3.5 w-3.5" /> Monitor de Resgates
-                  </Label>
-                  {isTokensLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-                </div>
+                <Label className="flex items-center gap-2 text-muted-foreground uppercase text-[10px] font-black tracking-widest">
+                  <Eye className="h-3.5 w-3.5" /> Tokens Recentes
+                </Label>
                 
-                <ScrollArea className="h-[320px] rounded-xl border-2 border-dashed bg-muted/20 p-2">
+                <ScrollArea className="h-[200px] rounded-xl border-2 border-dashed bg-muted/20 p-2">
                   <div className="space-y-2">
-                    {allTokens?.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-                        <Ticket className="h-10 w-10 mb-2 opacity-20" />
-                        <p className="text-xs font-bold uppercase">Nenhum token encontrado</p>
-                      </div>
-                    ) : (
-                      allTokens?.map(t => (
-                        <div key={t.id} className="flex items-center justify-between p-4 bg-card rounded-xl border-2 border-white shadow-sm">
-                          <div className="flex flex-col">
-                            <span className="font-mono font-black text-base">{t.token}</span>
-                            <span className="text-[11px] font-bold text-muted-foreground">{t.valor.toFixed(2)} USDT</span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Badge variant={t.usado ? "secondary" : "outline"} className={cn(
-                              "px-3 py-1 rounded-full border-none font-black text-[9px] uppercase",
-                              t.usado ? "bg-gray-200 text-gray-500" : "bg-green-100 text-green-700"
-                            )}>
-                              {t.usado ? "Resgatado" : "Disponível"}
-                            </Badge>
-                            {!t.usado && (
-                              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-purple-50 text-purple-600" onClick={() => copyToClipboard(t.token, 'Token')}>
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
+                    {allTokens?.map(t => (
+                      <div key={t.id} className="flex items-center justify-between p-3 bg-card rounded-lg border shadow-sm">
+                        <div className="flex flex-col">
+                          <span className="font-mono font-bold text-sm">{t.token}</span>
+                          <span className="text-[10px] text-muted-foreground">ID: {t.transactionId}</span>
                         </div>
-                      ))
-                    )}
+                        <Badge variant={t.usado ? "secondary" : "outline"} className={cn(
+                          "px-2 py-0.5 rounded-full text-[9px] uppercase font-black",
+                          t.usado ? "bg-gray-200 text-gray-500" : "bg-green-100 text-green-700"
+                        )}>
+                          {t.usado ? "Resgatado" : "Disponível"}
+                        </Badge>
+                      </div>
+                    ))}
                   </div>
                 </ScrollArea>
               </div>
             </div>
-            <div className="p-6 border-t bg-muted/10">
-              <Button variant="outline" onClick={() => setIsAdminDialogOpen(false)} className="w-full h-12 rounded-xl font-bold">Fechar Painel</Button>
+            <div className="p-4 border-t bg-muted/10 text-center">
+              <Button variant="ghost" onClick={() => setIsAdminDialogOpen(false)} className="text-muted-foreground">Fechar</Button>
             </div>
           </DialogContent>
         </Dialog>
