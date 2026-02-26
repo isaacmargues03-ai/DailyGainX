@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CheckCircle, Copy, Loader2, Send } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Copy, Loader2, Send, Info } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useFirebase } from '@/firebase';
@@ -86,7 +86,7 @@ export default function DepositPage() {
 
             toast({
                 title: 'QR Code Gerado!',
-                description: 'O saldo será creditado automaticamente assim que você pagar.',
+                description: 'Siga as instruções para validar seu saldo.',
             });
 
         } catch (error: any) {
@@ -133,7 +133,7 @@ export default function DepositPage() {
                             <CardHeader>
                                 <CardTitle>QR Code Pix</CardTitle>
                                 <CardDescription>
-                                    Pague agora e seu saldo será atualizado automaticamente em segundos.
+                                    Finalize seu depósito seguindo as etapas abaixo.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
@@ -170,9 +170,22 @@ export default function DepositPage() {
                                             </div>
                                         </div>
 
+                                        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                                            <div className="flex items-center gap-2 font-bold text-primary mb-1">
+                                                <Info className="h-4 w-4" />
+                                                <span>Instruções de depósito</span>
+                                            </div>
+                                            <div className="space-y-2 text-sm font-semibold uppercase tracking-tight">
+                                                <p>1. EFETUAR O PAGAMENTO</p>
+                                                <p>2. COPIE CÓDIGO DA TRANSAÇÃO</p>
+                                                <p>3. ENVIE PARA BOT TELEGRAM</p>
+                                                <p>4. RESGATE CÓDIGO QUE ELE MANDA</p>
+                                            </div>
+                                        </div>
+
                                         <Button 
-                                            variant="outline" 
-                                            className="w-full gap-2 border-primary text-primary hover:bg-primary/5 h-12 font-bold" 
+                                            variant="default" 
+                                            className="w-full gap-2 h-12 font-bold uppercase" 
                                             asChild
                                         >
                                             <Link href={`https://t.me/DailyGainX_Bot?start=${transactionId}`} target="_blank">
@@ -180,11 +193,6 @@ export default function DepositPage() {
                                                 VALIDAR SEU DEPÓSITO NO TELEGRAM
                                             </Link>
                                         </Button>
-
-                                        <div className="flex items-center justify-center gap-3 rounded-xl bg-primary/10 text-primary p-4 text-sm border border-primary/20">
-                                            <Loader2 className="h-5 w-5 animate-spin" />
-                                            <span className="font-semibold">Aguardando confirmação automática...</span>
-                                        </div>
                                     </div>
                                 </div>
                             </CardContent>
@@ -263,10 +271,10 @@ export default function DepositPage() {
                         {isLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                                Processando Produção...
+                                Processando...
                             </>
                         ) : (
-                            'Gerar QR Code Real'
+                            'Gerar QR Code Pix'
                         )}
                     </Button>
                 </div>
