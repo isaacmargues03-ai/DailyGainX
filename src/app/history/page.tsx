@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { ArrowDownToLine, ArrowUpFromLine, History as HistoryIcon, ArrowLeft, Send, CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useFirebase } from '@/firebase';
-import { doc, writeBatch, increment } from 'firebase/firestore';
+import { doc, runTransaction, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 function TransactionItem({ 
@@ -25,7 +25,6 @@ function TransactionItem({
   const isValidated = transaction.status === 'validated';
   const isClaimed = transaction.status === 'claimed';
   
-  // URL do Bot do Telegram personalizada
   const telegramBotUrl = `https://t.me/DailyGainX_Bot?start=${transaction.id}`;
 
   return (
@@ -65,7 +64,6 @@ function TransactionItem({
             </div>
         </div>
 
-        {/* Ações baseadas no status em tempo real */}
         <div className="flex flex-wrap gap-2">
             {isPending && (
                 <Button variant="outline" size="sm" className="w-full sm:w-auto gap-2" asChild>
@@ -101,7 +99,6 @@ export default function HistoryPage() {
     const handleClaim = async (transaction: Transaction) => {
         if (!user || !firestore || claimingId) return;
 
-        // Validação básica do valor
         if (transaction.amount <= 0) {
             toast({ variant: "destructive", title: "Erro", description: "Valor de transação inválido." });
             return;
@@ -110,24 +107,49 @@ export default function HistoryPage() {
         setClaimingId(transaction.id);
         
         try {
-            const batch = writeBatch(firestore);
-            
-            // Referências para atualização atômica
-            const accountRef = doc(firestore, 'users', user.uid, 'accounts', user.uid);
-            const transactionRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', transaction.id);
+            await runTransaction(firestore, async (tx) => {
+                const accountRef = doc(firestore, 'users', user.uid, 'accounts', user.uid);
+                const transactionRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', transaction.id);
+                const userRef = doc(firestore, 'users', user.uid);
 
-            // 1. Soma o valor ao Saldo real do usuário
-            batch.update(accountRef, {
-                balance: increment(transaction.amount)
+                const userDoc = await tx.get(userRef);
+                const userData = userDoc.data();
+
+                // 1. Soma o valor ao Saldo real do usuário
+                tx.update(accountRef, {
+                    balance: increment(transaction.amount)
+                });
+
+                // 2. Atualiza o status para 'claimed'
+                tx.update(transactionRef, {
+                    status: 'claimed',
+                    claimedAt: new Date().toISOString()
+                });
+
+                // 3. Lógica de Indicação no primeiro depósito
+                if (userData && !userData.hasMadeFirstDeposit) {
+                    tx.update(userRef, { hasMadeFirstDeposit: true });
+                    
+                    if (userData.referralId) {
+                        const referralRef = doc(firestore, 'referrals', userData.referralId);
+                        const referralDoc = await tx.get(referralRef);
+                        
+                        if (referralDoc.exists()) {
+                            const referralData = referralDoc.data();
+                            const referrerId = referralData.referrerId;
+                            
+                            // Marca indicação como recompensada
+                            tx.update(referralRef, { status: 'rewarded' });
+                            
+                            // Credita 1 USDT na conta do padrinho
+                            const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
+                            tx.update(referrerAccountRef, {
+                                balance: increment(1)
+                            });
+                        }
+                    }
+                }
             });
-
-            // 2. Atualiza o status para 'claimed' para evitar resgate duplo
-            batch.update(transactionRef, {
-                status: 'claimed',
-                claimedAt: new Date().toISOString()
-            });
-
-            await batch.commit();
 
             toast({
                 title: "Saldo Resgatado!",
@@ -139,7 +161,7 @@ export default function HistoryPage() {
             toast({
                 variant: "destructive",
                 title: "Falha no Resgate",
-                description: "Ocorreu um erro ao processar seu resgate. Tente novamente.",
+                description: error.message || "Ocorreu um erro ao processar seu resgate.",
             });
         } finally {
             setClaimingId(null);

@@ -27,7 +27,7 @@ import { Card } from '@/components/ui/card';
 import { useAppContext } from '@/context/AppContext';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { doc, runTransaction, setDoc, serverTimestamp, collection, query, orderBy, limit } from 'firebase/firestore';
+import { doc, runTransaction, setDoc, serverTimestamp, collection, query, orderBy, limit, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -91,7 +91,7 @@ export default function ProfilePage() {
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
 
-  const { data: userProfile } = useDoc<{referralCode: string}>(userDocRef);
+  const { data: userProfile } = useDoc<{referralCode: string, referralId?: string, hasMadeFirstDeposit?: boolean}>(userDocRef);
 
   const tokensQuery = useMemoFirebase(() => {
     if (!isAdmin || !firestore) return null;
@@ -131,7 +131,7 @@ export default function ProfilePage() {
         usado: false,
         dataCriacao: serverTimestamp(),
         geradoPor: user?.email,
-        transactionId: "Manual-Site", // Identificador genérico para tokens criados sem ID de transação
+        transactionId: "Manual-Site",
       });
 
       toast({ title: 'Token Gerado!', description: `Código ${newTokenCode} de ${value} USDT criado.` });
@@ -159,6 +159,10 @@ export default function ProfilePage() {
         const tokenData = tokenDoc.data();
         if (tokenData.usado) throw new Error('Este código já foi utilizado.');
 
+        const userRef = doc(firestore, 'users', user.uid);
+        const userDoc = await transaction.get(userRef);
+        const userData = userDoc.data();
+
         const accountRef = doc(firestore, 'users', user.uid, 'accounts', user.uid);
         const accountDoc = await transaction.get(accountRef);
 
@@ -180,6 +184,28 @@ export default function ProfilePage() {
           usedAt: new Date().toISOString(),
           usedBy: user.uid
         });
+
+        // Recompensa de indicação no primeiro resgate de token
+        if (userData && !userData.hasMadeFirstDeposit) {
+            transaction.update(userRef, { hasMadeFirstDeposit: true });
+            
+            if (userData.referralId) {
+                const referralRef = doc(firestore, 'referrals', userData.referralId);
+                const referralDoc = await transaction.get(referralRef);
+                
+                if (referralDoc.exists()) {
+                    const referralData = referralDoc.data();
+                    const referrerId = referralData.referrerId;
+                    
+                    transaction.update(referralRef, { status: 'rewarded' });
+                    
+                    const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
+                    transaction.update(referrerAccountRef, {
+                        balance: increment(1)
+                    });
+                }
+            }
+        }
 
         return tokenData.valor;
       });
