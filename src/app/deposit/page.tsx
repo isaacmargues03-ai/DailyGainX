@@ -101,12 +101,12 @@ export default function DepositPage() {
         }
     };
 
-    const copyPixKeyToClipboard = () => {
-        if (!pixCopyPaste) return;
-        navigator.clipboard.writeText(pixCopyPaste);
+    const copyToClipboard = (text: string, label: string) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
         toast({
             title: 'Copiado!',
-            description: 'Código Pix copiado com sucesso.',
+            description: `${label} copiado com sucesso.`,
         });
     };
     
@@ -164,7 +164,22 @@ export default function DepositPage() {
                                                     value={pixCopyPaste}
                                                     className="text-sm truncate bg-muted/30"
                                                 />
-                                                <Button variant="outline" size="icon" onClick={copyPixKeyToClipboard}>
+                                                <Button variant="outline" size="icon" onClick={() => copyToClipboard(pixCopyPaste, 'Código Pix')}>
+                                                    <Copy className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="transaction-code">Código da Transação</Label>
+                                            <div className="flex items-center space-x-2">
+                                                <Input
+                                                    id="transaction-code"
+                                                    readOnly
+                                                    value={transactionId}
+                                                    className="text-sm truncate bg-muted/30 font-mono"
+                                                />
+                                                <Button variant="outline" size="icon" onClick={() => copyToClipboard(transactionId, 'Código da transação')}>
                                                     <Copy className="h-4 w-4" />
                                                 </Button>
                                             </div>
