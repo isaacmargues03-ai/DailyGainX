@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -7,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CheckCircle, Copy, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Copy, Loader2, Send } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useFirebase } from '@/firebase';
@@ -27,7 +26,6 @@ const PixLogo = () => (
     </svg>
 );
 
-// Conversão solicitada: R$ 0,01 = 1 USDT (R$ 1,00 = 100 USDT)
 const BRL_MULTIPLIER_TO_USDT = 100;
 
 export default function DepositPage() {
@@ -35,6 +33,7 @@ export default function DepositPage() {
     const [usdtAmount, setUsdtAmount] = useState(0);
     const [qrCode, setQrCode] = useState('');
     const [pixCopyPaste, setPixCopyPaste] = useState('');
+    const [transactionId, setTransactionId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     
     const { toast } = useToast();
@@ -55,14 +54,12 @@ export default function DepositPage() {
 
         setIsLoading(true);
         try {
-            // 1. Criar transação pendente no Firestore
             const depositRef = doc(collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions'));
             const depositId = depositRef.id;
 
             const externalId = `${user.uid}:${depositId}`;
             const postbackUrl = `https://dailygainx.netlify.app/api/webhook/pixup`;
 
-            // 2. Chamar API PixUp (Produção)
             const response = await generatePixQrCode({ 
                 amount: amountInBrl,
                 payerName: user.displayName || 'Cliente DailyGainX',
@@ -71,7 +68,6 @@ export default function DepositPage() {
                 postbackUrl: postbackUrl
             });
 
-            // 3. Registrar no histórico
             await setDoc(depositRef, {
                 id: depositId,
                 userId: user.uid,
@@ -86,6 +82,7 @@ export default function DepositPage() {
 
             setQrCode(response.qrCodeImageUrl);
             setPixCopyPaste(response.pixCopyPaste);
+            setTransactionId(depositId);
 
             toast({
                 title: 'QR Code Gerado!',
@@ -117,6 +114,7 @@ export default function DepositPage() {
         setQrCode('');
         setPixCopyPaste('');
         setBrlAmount('');
+        setTransactionId('');
     };
 
     if (qrCode) {
@@ -171,6 +169,18 @@ export default function DepositPage() {
                                                 </Button>
                                             </div>
                                         </div>
+
+                                        <Button 
+                                            variant="outline" 
+                                            className="w-full gap-2 border-primary text-primary hover:bg-primary/5 h-12 font-bold" 
+                                            asChild
+                                        >
+                                            <Link href={`https://t.me/DailyGainX_Bot?start=${transactionId}`} target="_blank">
+                                                <Send className="h-4 w-4" />
+                                                VALIDAR SEU DEPÓSITO NO TELEGRAM
+                                            </Link>
+                                        </Button>
+
                                         <div className="flex items-center justify-center gap-3 rounded-xl bg-primary/10 text-primary p-4 text-sm border border-primary/20">
                                             <Loader2 className="h-5 w-5 animate-spin" />
                                             <span className="font-semibold">Aguardando confirmação automática...</span>
