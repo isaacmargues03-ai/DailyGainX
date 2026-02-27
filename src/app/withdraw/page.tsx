@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/AppContext';
+import { useFirebase } from '@/firebase';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -24,13 +25,16 @@ export default function WithdrawPage() {
     const [pixKey, setPixKey] = useState('');
     const [fullName, setFullName] = useState('');
     const { toast } = useToast();
+    const { user } = useFirebase();
     const { balance, isBalanceLoading, addTransaction, activeInvestments } = useAppContext();
+
+    const isAdmin = user?.email === 'isaacmargues03@gmail.com';
 
     const handleWithdraw = () => {
         const withdrawAmount = parseFloat(amount);
 
-        // Verifica se o usuário já fez algum investimento
-        if (activeInvestments.length === 0) {
+        // Verifica se o usuário já fez algum investimento (Ignora se for Admin)
+        if (!isAdmin && activeInvestments.length === 0) {
             toast({
                 variant: 'destructive',
                 title: 'Saque bloqueado',
@@ -83,7 +87,6 @@ export default function WithdrawPage() {
         setFullName('');
     };
 
-    // Removida a verificação de activeInvestments.length === 0 do disabled para que o usuário possa clicar e ver o aviso
     const isButtonDisabled = isBalanceLoading || !amount || !pixKey || !fullName || parseFloat(amount) <= 0 || parseFloat(amount) > balance || parseFloat(amount) < 5 || parseFloat(amount) > 10000;
 
     return (
