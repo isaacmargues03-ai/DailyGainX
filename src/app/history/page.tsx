@@ -65,7 +65,7 @@ function TransactionItem({
                     )}>
                         {transaction.status === 'validated' ? 'Validado' : 
                          isClaimed ? 'Concluído' : 
-                         transaction.status === 'Pending' ? 'Pendente' :
+                         isPending ? 'Pendente' :
                          transaction.status}
                     </span>
                 </div>
