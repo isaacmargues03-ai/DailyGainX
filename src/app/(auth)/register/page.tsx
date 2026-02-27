@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,7 @@ import { useFirebase } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, getDoc, writeBatch, collection } from 'firebase/firestore';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,6 +23,14 @@ export default function RegisterPage() {
   const { auth, firestore } = useFirebase();
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) {
+      setReferralCode(ref.toUpperCase());
+    }
+  }, [searchParams]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,5 +216,13 @@ export default function RegisterPage() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="text-center p-8">Carregando formulário...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

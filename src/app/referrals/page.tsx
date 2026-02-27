@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, collection, query, where } from 'firebase/firestore';
 import { Header } from '@/components/header';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Gift, User, CheckCircle, CreditCard } from 'lucide-react';
+import { Copy, Gift, User, CheckCircle, CreditCard, Link as LinkIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +33,7 @@ interface Referral {
 export default function ReferralsPage() {
   const { user, firestore } = useFirebase();
   const { toast } = useToast();
+  const [referralLink, setReferralLink] = useState('');
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -57,13 +58,29 @@ export default function ReferralsPage() {
     return referrals.filter(r => r.status === 'rewarded').length;
   }, [referrals]);
 
+  useEffect(() => {
+    if (userProfile?.referralCode && typeof window !== 'undefined') {
+      const baseUrl = window.location.origin;
+      setReferralLink(`${baseUrl}/register?ref=${userProfile.referralCode}`);
+    }
+  }, [userProfile]);
 
-  const copyToClipboard = () => {
+  const copyCodeToClipboard = () => {
     if (userProfile?.referralCode) {
       navigator.clipboard.writeText(userProfile.referralCode);
       toast({
         title: 'Copiado!',
-        description: 'Seu código de indicação foi copiado para a área de transferência.',
+        description: 'Seu código de indicação foi copiado.',
+      });
+    }
+  };
+
+  const copyLinkToClipboard = () => {
+    if (referralLink) {
+      navigator.clipboard.writeText(referralLink);
+      toast({
+        title: 'Link Copiado!',
+        description: 'Seu link de indicação foi copiado para a área de transferência.',
       });
     }
   };
@@ -72,7 +89,7 @@ export default function ReferralsPage() {
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />
       <main className="flex-1 p-4 sm:p-6">
-        <div className="container mx-auto max-w-2xl space-y-8">
+        <div className="container mx-auto max-w-2xl space-y-6">
           <div className="text-center">
             <h1 className="text-3xl font-bold tracking-tight">Indique e Ganhe</h1>
             <p className="text-muted-foreground mt-2">Convide seus amigos e ganhe 1 USDT para cada amigo que fizer o primeiro depósito.</p>
@@ -97,6 +114,36 @@ export default function ReferralsPage() {
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <LinkIcon className="h-6 w-6 text-primary" />
+                Seu Link de Indicação
+              </CardTitle>
+              <CardDescription>
+                Compartilhe este link. Ao clicar, o código será preenchido automaticamente para seu amigo.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isProfileLoading ? (
+                <div className="flex space-x-2">
+                    <Skeleton className="h-10 flex-grow" />
+                    <Skeleton className="h-10 w-10" />
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <Input
+                    readOnly
+                    value={referralLink || 'Gerando link...'}
+                    className="text-sm"
+                  />
+                  <Button variant="outline" size="icon" onClick={copyLinkToClipboard} disabled={!referralLink}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
@@ -105,7 +152,7 @@ export default function ReferralsPage() {
                 Seu Código de Indicação
               </CardTitle>
               <CardDescription>
-                Compartilhe este código com seus amigos. Eles devem inseri-lo durante o cadastro.
+                Se preferir, compartilhe apenas o código para inserção manual.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -119,9 +166,9 @@ export default function ReferralsPage() {
                   <Input
                     readOnly
                     value={userProfile?.referralCode || 'Nenhum código encontrado'}
-                    className="text-lg font-mono tracking-widest"
+                    className="text-lg font-mono tracking-widest uppercase"
                   />
-                  <Button variant="outline" size="icon" onClick={copyToClipboard} disabled={!userProfile?.referralCode}>
+                  <Button variant="outline" size="icon" onClick={copyCodeToClipboard} disabled={!userProfile?.referralCode}>
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
@@ -129,9 +176,9 @@ export default function ReferralsPage() {
               <div className="text-sm text-muted-foreground p-4 bg-background rounded-lg border">
                 <h4 className="font-semibold mb-2">Como funciona:</h4>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>Seu amigo se cadastra usando seu código.</li>
-                  <li>Ele faz o primeiro depósito de qualquer valor.</li>
-                  <li>Você recebe 1 USDT de bônus na sua recompensa.</li>
+                  <li>Seu amigo se cadastra usando seu link ou código.</li>
+                  <li>Ele faz o primeiro depósito e resgata o saldo.</li>
+                  <li>Você recebe 1 USDT de bônus automaticamente.</li>
                 </ul>
               </div>
             </CardContent>
@@ -147,13 +194,6 @@ export default function ReferralsPage() {
             <CardContent>
               {isReferralsLoading ? (
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-4 p-3">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <div className="space-y-2 flex-1">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-4 w-1/2" />
-                    </div>
-                  </div>
                   <div className="flex items-center space-x-4 p-3">
                     <Skeleton className="h-12 w-12 rounded-full" />
                     <div className="space-y-2 flex-1">
@@ -192,7 +232,7 @@ export default function ReferralsPage() {
                 <div className="text-center text-muted-foreground py-8">
                   <User className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
                   <p className="font-semibold">Você ainda não convidou ninguém.</p>
-                  <p className="text-sm">Compartilhe seu código para começar a ganhar!</p>
+                  <p className="text-sm">Compartilhe seu link para começar a ganhar!</p>
                 </div>
               )}
             </CardContent>
