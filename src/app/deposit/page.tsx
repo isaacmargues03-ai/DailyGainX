@@ -76,6 +76,7 @@ export default function DepositPage() {
                 amount: amountInBrl * BRL_MULTIPLIER_TO_USDT, 
                 status: 'Pending',
                 method: 'Pix',
+                type: 'deposit', // Campo crucial para identificar no histórico
                 externalId: response.transactionId,
                 pixCopyPaste: response.pixCopyPaste,
                 depositDate: new Date().toISOString()

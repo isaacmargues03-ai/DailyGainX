@@ -99,7 +99,7 @@ export default function WithdrawPage() {
                         <ArrowLeft className="h-5 w-5" />
                     </Link>
                 </Button>
-                <h1 className="text-lg font-semibold">Retirada</h1>
+                <h1 className="text-lg font-semibold">Saque</h1>
                 <div className="w-9 h-9" />
             </header>
             <main className="flex-1 p-4 sm:p-6">
@@ -108,7 +108,7 @@ export default function WithdrawPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <PixIcon />
-                                Retirada via Pix
+                                Saque via Pix
                             </CardTitle>
                             <CardDescription>
                                 Insira os detalhes abaixo para solicitar sua retirada.
@@ -135,7 +135,7 @@ export default function WithdrawPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="amount">Valor da Retirada (USDT)</Label>
+                                <Label htmlFor="amount">Valor do Saque (USDT)</Label>
                                 <Input
                                     id="amount"
                                     type="number"
@@ -152,7 +152,7 @@ export default function WithdrawPage() {
                                 className="w-full h-12 text-lg font-bold" 
                                 disabled={isButtonDisabled}
                             >
-                                Solicitar Retirada
+                                Solicitar Saque
                             </Button>
                         </CardFooter>
                     </Card>

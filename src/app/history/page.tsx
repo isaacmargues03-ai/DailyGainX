@@ -49,7 +49,7 @@ function TransactionItem({
                     )}
                 </div>
                 <div>
-                    <p className="font-semibold capitalize">{isDeposit ? 'Depósito' : 'Retirada'}</p>
+                    <p className="font-semibold capitalize">{isDeposit ? 'Depósito' : 'Saque'}</p>
                     <p className="text-sm text-muted-foreground">{transaction.timestamp}</p>
                 </div>
             </div>
@@ -244,7 +244,7 @@ export default function HistoryPage() {
                                 <div className="space-y-4 py-2">
                                     <div className="flex justify-between items-center pb-2 border-b">
                                         <span className="text-sm text-muted-foreground">Tipo</span>
-                                        <span className="font-bold capitalize">{selectedTx.type === 'deposit' ? 'Depósito' : 'Retirada'}</span>
+                                        <span className="font-bold capitalize">{selectedTx.type === 'deposit' ? 'Depósito' : 'Saque'}</span>
                                     </div>
                                     <div className="flex justify-between items-center pb-2 border-b">
                                         <span className="text-sm text-muted-foreground">Status</span>
