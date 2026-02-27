@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useAppContext } from '@/context/AppContext';
 import { Transaction } from '@/lib/types';
 import { cn } from '@/lib/utils';
