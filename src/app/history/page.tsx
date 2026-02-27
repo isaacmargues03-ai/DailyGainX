@@ -8,15 +8,14 @@ import { Badge } from '@/components/ui/badge';
 import { useAppContext } from '@/context/AppContext';
 import { Transaction } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { ArrowDownToLine, ArrowUpFromLine, History as HistoryIcon, ArrowLeft, Send, CheckCircle2, Loader2, Info, User, Key, Calendar, Trash2 } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, History as HistoryIcon, ArrowLeft, Send, CheckCircle2, Loader2, Info, User, Key, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { useFirebase } from '@/firebase';
-import { doc, runTransaction, increment, collection, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, runTransaction, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -111,34 +110,7 @@ export default function HistoryPage() {
     const { firestore, user } = useFirebase();
     const { toast } = useToast();
     const [claimingId, setClaimingId] = useState<string | null>(null);
-    const [isCleaning, setIsCleaning] = useState(false);
     const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
-
-    const isAdmin = user?.email === 'isaacmargues03@gmail.com';
-
-    const handleClearHistory = async () => {
-        if (!user || !firestore || !isAdmin) return;
-        
-        if (!confirm("Deseja realmente apagar TODO o seu histórico de transações?")) return;
-
-        setIsCleaning(true);
-        try {
-            const txCollectionRef = collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions');
-            const snapshot = await getDocs(txCollectionRef);
-            
-            const batch = writeBatch(firestore);
-            snapshot.docs.forEach((doc) => {
-                batch.delete(doc.ref);
-            });
-            
-            await batch.commit();
-            toast({ title: "Histórico Limpo!", description: "Todas as suas transações foram removidas." });
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Erro ao limpar", description: error.message });
-        } finally {
-            setIsCleaning(false);
-        }
-    };
 
     const handleClaim = async (transaction: Transaction) => {
         if (!user || !firestore || claimingId) return;
@@ -218,19 +190,6 @@ export default function HistoryPage() {
                                 Perfil
                             </Link>
                         </Button>
-                        
-                        {isAdmin && transactions.length > 0 && (
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 gap-2"
-                                onClick={handleClearHistory}
-                                disabled={isCleaning}
-                            >
-                                {isCleaning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                Limpar Tudo
-                            </Button>
-                        )}
                     </div>
 
                     <Card className="border-none shadow-xl rounded-2xl overflow-hidden bg-card">
@@ -266,7 +225,7 @@ export default function HistoryPage() {
                         </CardContent>
                     </Card>
                     
-                    {(claimingId || isCleaning) && (
+                    {claimingId && (
                         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
                             <div className="flex flex-col items-center gap-4 p-8 bg-card rounded-2xl shadow-2xl border">
                                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -277,12 +236,12 @@ export default function HistoryPage() {
 
                     <Dialog open={!!selectedTx} onOpenChange={() => setSelectedTx(null)}>
                         <DialogContent className="rounded-3xl max-w-xs border-none shadow-2xl overflow-hidden p-0">
-                            <DialogHeader className="p-6 bg-primary text-primary-foreground">
-                                <DialogTitle className="flex items-center gap-2 text-lg font-black">
+                            <div className="p-6 bg-primary text-primary-foreground">
+                                <h3 className="flex items-center gap-2 text-lg font-black">
                                     <Info className="h-5 w-5" />
                                     DETALHES
-                                </DialogTitle>
-                            </DialogHeader>
+                                </h3>
+                            </div>
                             {selectedTx && (
                                 <div className="p-6 space-y-5">
                                     <div className="flex justify-between items-center text-sm">
