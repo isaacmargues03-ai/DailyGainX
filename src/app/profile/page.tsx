@@ -204,7 +204,7 @@ export default function ProfilePage() {
           usedBy: user.uid
         });
 
-        // 3. ATUALIZA STATUS NO HISTÓRICO
+        // 3. ATUALIZA STATUS NO HISTÓRICO PARA CONCLUÍDO (claimed)
         if (historyTxDoc && historyTxDoc.exists()) {
             transaction.update(historyTxDoc.ref, {
                 status: 'claimed',

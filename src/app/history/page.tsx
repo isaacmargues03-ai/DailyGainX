@@ -67,7 +67,7 @@ function TransactionItem({
                         transaction.status === 'Failed' && "bg-red-100 text-red-700"
                     )}>
                         {transaction.status === 'validated' ? 'Validado' : 
-                         transaction.status === 'claimed' ? 'Sucesso' : 
+                         transaction.status === 'claimed' ? 'Concluído' : 
                          transaction.status}
                     </span>
                 </div>
@@ -249,7 +249,7 @@ export default function HistoryPage() {
                                     <div className="flex justify-between items-center pb-2 border-b">
                                         <span className="text-sm text-muted-foreground">Status</span>
                                         <Badge variant={selectedTx.status === 'claimed' || selectedTx.status === 'Completed' ? "default" : "secondary"}>
-                                            {selectedTx.status === 'claimed' ? 'Sucesso' : selectedTx.status}
+                                            {selectedTx.status === 'claimed' ? 'Concluído' : selectedTx.status}
                                         </Badge>
                                     </div>
                                     <div className="flex justify-between items-center pb-2 border-b">
