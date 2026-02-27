@@ -205,7 +205,7 @@ export default function HistoryPage() {
                                     <div className="flex justify-between items-center text-xs">
                                         <span className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Status</span>
                                         <Badge variant={(selectedTx.status === 'claimed' || selectedTx.status === 'Completed') ? "default" : "secondary"} className="font-black text-[9px] uppercase">
-                                            {selectedTx.status === 'claimed' || selectedTx.status === 'Completed' ? 'Concluído' : selectedTx.status === 'Pending' ? 'Pendente' : selectedTx.status}
+                                            {selectedTx.status === 'claimed' || selectedTx.status === 'Completed' ? 'Concluído' : selectedTx.status === 'Pending' ? 'Pendente' : selectedTx.status === 'validated' ? 'Validado' : selectedTx.status}
                                         </Badge>
                                     </div>
                                     <div className="flex justify-between items-center text-xs">
