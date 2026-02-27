@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
@@ -25,6 +26,7 @@ function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Preenchimento automático do código de indicação via URL
   useEffect(() => {
     const ref = searchParams.get('ref');
     if (ref) {
