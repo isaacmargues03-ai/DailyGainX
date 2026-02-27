@@ -14,25 +14,26 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, getDoc, writeBatch, collection } from 'firebase/firestore';
 
 function RegisterForm() {
+  const searchParams = useSearchParams();
+  const refFromUrl = searchParams.get('ref');
+  
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [referralCode, setReferralCode] = useState('');
+  const [referralCode, setReferralCode] = useState(refFromUrl?.toUpperCase() || '');
   const [isLoading, setIsLoading] = useState(false);
   
   const { auth, firestore } = useFirebase();
   const { toast } = useToast();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  // Preenchimento automático do código de indicação via URL
+  // Atualiza o código se o parâmetro da URL mudar
   useEffect(() => {
-    const ref = searchParams.get('ref');
-    if (ref) {
-      setReferralCode(ref.toUpperCase());
+    if (refFromUrl) {
+      setReferralCode(refFromUrl.toUpperCase());
     }
-  }, [searchParams]);
+  }, [refFromUrl]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
