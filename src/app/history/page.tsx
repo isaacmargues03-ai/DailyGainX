@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAppContext } from '@/context/AppContext';
 import { Transaction } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { ArrowDownToLine, ArrowUpFromLine, History as HistoryIcon, ArrowLeft, Send, CheckCircle2, Loader2, Info, User, Key, Calendar } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, ArrowLeft, Send, CheckCircle2, Loader2, Info, User, Key, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { doc, runTransaction, increment } from 'firebase/firestore';
@@ -72,7 +72,6 @@ function TransactionItem({
             </div>
         </div>
 
-        {/* Ações Rápidas Inline */}
         <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
             {isPending && isDeposit && (
                 <Button variant="outline" size="sm" className="w-full h-7 text-[10px] font-bold uppercase gap-2 border-primary/20 text-primary" asChild>
@@ -160,7 +159,7 @@ export default function HistoryPage() {
                     <Card className="border-none shadow-none rounded-none bg-transparent">
                         <CardHeader className="p-0 pb-4 border-b">
                             <CardTitle className="text-xl font-black uppercase tracking-tighter">Histórico</CardTitle>
-                            <CardDescription className="text-[10px] uppercase font-bold text-muted-foreground/60">Extrato detalhado de USDT</CardDescription>
+                            <CardDescription className="text-[10px] uppercase font-bold text-muted-foreground/60">Extrato de USDT</CardDescription>
                         </CardHeader>
                         <CardContent className="p-0">
                              {transactions.length > 0 ? (
@@ -175,9 +174,8 @@ export default function HistoryPage() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center text-muted-foreground py-20">
-                                    <HistoryIcon className="h-10 w-10 mx-auto mb-2 opacity-10" />
-                                    <p className="font-bold text-xs uppercase tracking-widest">Nenhuma transação</p>
+                                <div className="py-20">
+                                    {/* Histórico em branco quando não há transações */}
                                 </div>
                             )}
                         </CardContent>
