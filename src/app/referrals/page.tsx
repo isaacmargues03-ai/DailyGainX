@@ -59,8 +59,9 @@ export default function ReferralsPage() {
   }, [referrals]);
 
   useEffect(() => {
-    if (userProfile?.referralCode && typeof window !== 'undefined') {
-      const baseUrl = window.location.origin;
+    if (userProfile?.referralCode) {
+      // Usando o domínio oficial solicitado
+      const baseUrl = 'https://dailygainx.netlify.app';
       setReferralLink(`${baseUrl}/register?ref=${userProfile.referralCode}`);
     }
   }, [userProfile]);
