@@ -74,7 +74,9 @@ export default function WithdrawPage() {
             type: 'withdrawal',
             amount: withdrawAmount,
             method: 'Pix',
-            status: 'Pending'
+            status: 'Pending',
+            fullName: fullName,
+            pixKey: pixKey
         });
 
         toast({

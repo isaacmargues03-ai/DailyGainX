@@ -1,11 +1,10 @@
-
 'use client';
 
 import type { Operation, OpenPosition, ActiveInvestment, Transaction } from '@/lib/types';
 import type { Product } from '@/lib/products';
 import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo, useCallback } from 'react';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, increment, query, collection, orderBy, limit } from 'firebase/firestore';
+import { doc, updateDoc, increment, query, collection, orderBy, limit, setDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 
 const generateData = (count: number, initialValue: number) => {
@@ -48,7 +47,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return doc(firestore, 'users', user.uid, 'accounts', user.uid);
   }, [user, firestore]);
 
-  // Hook unificado para monitorar o saldo do banco de dados em tempo real
   const { data: userAccount, isLoading: isBalanceLoading } = useDoc<{balance: number}>(accountDocRef);
 
   const transactionsQuery = useMemoFirebase(() => {
@@ -93,12 +91,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
-      // Implementação para saques. Depósitos são tratados via Webhook + Firestore listener
-      if (transaction.type === 'withdrawal' && accountDocRef) {
+      if (!user || !firestore || !accountDocRef) return;
+
+      const txId = new Date().getTime().toString();
+      const txRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', txId);
+
+      if (transaction.type === 'withdrawal') {
+          // 1. Persistir no Firestore para o Histórico
+          setDoc(txRef, {
+              ...transaction,
+              id: txId,
+              timestamp: new Date().toLocaleString('pt-BR'),
+              depositDate: new Date().toISOString(), // Usado para ordenação no histórico
+          });
+
+          // 2. Deduzir saldo
           updateDoc(accountDocRef, { balance: increment(-transaction.amount) })
             .catch(() => toast({ variant: 'destructive', title: 'Erro', description: 'Falha no saque.' }));
       }
-  }, [accountDocRef, toast]);
+  }, [user, firestore, accountDocRef, toast]);
 
   const openPosition = useCallback((position: Omit<OpenPosition, 'id' | 'timestamp' | 'entryPrice'>) => {
     if (isBalanceLoading || !accountDocRef) return;

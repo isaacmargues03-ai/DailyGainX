@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -8,18 +7,27 @@ import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/context/AppContext';
 import { Transaction } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { ArrowDownToLine, ArrowUpFromLine, History as HistoryIcon, ArrowLeft, Send, CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, History as HistoryIcon, ArrowLeft, Send, CheckCircle2, Loader2, Info, User, Key, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { doc, runTransaction, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 function TransactionItem({ 
   transaction, 
-  onClaim 
+  onClaim,
+  onViewDetails
 }: { 
   transaction: Transaction; 
-  onClaim: (tx: Transaction) => void 
+  onClaim: (tx: Transaction) => void;
+  onViewDetails: (tx: Transaction) => void;
 }) {
   const isDeposit = transaction.type === 'deposit';
   const isPending = transaction.status === 'Pending' || transaction.status === 'PENDING';
@@ -29,7 +37,7 @@ function TransactionItem({
   const telegramBotUrl = `https://t.me/DailyGainX_Bot?start=${transaction.id}`;
 
   return (
-    <div className="flex flex-col p-4 border-b last:border-b-0 gap-3">
+    <div className="flex flex-col p-4 border-b last:border-b-0 gap-3 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => onViewDetails(transaction)}>
         <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
                 <div className={cn("flex h-10 w-10 items-center justify-center rounded-full", isDeposit ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900')}>
@@ -65,7 +73,7 @@ function TransactionItem({
             </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
             {isPending && isDeposit && (
                 <Button variant="outline" size="sm" className="w-full sm:w-auto gap-2" asChild>
                     <Link href={telegramBotUrl} target="_blank">
@@ -96,6 +104,7 @@ export default function HistoryPage() {
     const { firestore, user } = useFirebase();
     const { toast } = useToast();
     const [claimingId, setClaimingId] = useState<string | null>(null);
+    const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
     const handleClaim = async (transaction: Transaction) => {
         if (!user || !firestore || claimingId) return;
@@ -113,7 +122,6 @@ export default function HistoryPage() {
                 const transactionRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', transaction.id);
                 const userRef = doc(firestore, 'users', user.uid);
 
-                // --- TODAS AS LEITURAS DEVEM OCORRER ANTES DAS ESCRITAS ---
                 const [userDoc, transactionDoc] = await Promise.all([
                     tx.get(userRef),
                     tx.get(transactionRef)
@@ -126,20 +134,16 @@ export default function HistoryPage() {
                     const referralRef = doc(firestore, 'referrals', userData.referralId);
                     referralDoc = await tx.get(referralRef);
                 }
-                // ----------------------------------------------------------
 
-                // 1. Soma o valor ao Saldo real do usuário
                 tx.update(accountRef, {
                     balance: increment(transaction.amount)
                 });
 
-                // 2. Atualiza o status para 'claimed'
                 tx.update(transactionRef, {
                     status: 'claimed',
                     claimedAt: new Date().toISOString()
                 });
 
-                // 3. Lógica de Indicação no primeiro depósito
                 if (userData && !userData.hasMadeFirstDeposit) {
                     tx.update(userRef, { hasMadeFirstDeposit: true });
                     
@@ -147,10 +151,8 @@ export default function HistoryPage() {
                         const referralData = referralDoc.data();
                         const referrerId = referralData.referrerId;
                         
-                        // Marca indicação como recompensada
                         tx.update(referralDoc.ref, { status: 'rewarded' });
                         
-                        // Credita 1 USDT na conta do padrinho
                         const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
                         tx.update(referrerAccountRef, {
                             balance: increment(1)
@@ -197,7 +199,7 @@ export default function HistoryPage() {
                                 Histórico de Transações
                             </CardTitle>
                             <CardDescription>
-                                Seus depósitos e saques. Transações validadas podem ser resgatadas manualmente para o seu saldo.
+                                Seus depósitos e saques. Clique em uma transação para ver detalhes.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="p-0">
@@ -208,6 +210,7 @@ export default function HistoryPage() {
                                             key={tx.id} 
                                             transaction={tx} 
                                             onClaim={handleClaim}
+                                            onViewDetails={setSelectedTx}
                                         />
                                     ))}
                                 </div>
@@ -227,6 +230,69 @@ export default function HistoryPage() {
                             </div>
                         </div>
                     )}
+
+                    <Dialog open={!!selectedTx} onOpenChange={() => setSelectedTx(null)}>
+                        <DialogContent className="rounded-2xl max-w-sm">
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2">
+                                    <Info className="h-5 w-5 text-primary" />
+                                    Detalhes da Transação
+                                </DialogTitle>
+                            </DialogHeader>
+                            {selectedTx && (
+                                <div className="space-y-4 py-2">
+                                    <div className="flex justify-between items-center pb-2 border-b">
+                                        <span className="text-sm text-muted-foreground">Tipo</span>
+                                        <span className="font-bold capitalize">{selectedTx.type === 'deposit' ? 'Depósito' : 'Retirada'}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center pb-2 border-b">
+                                        <span className="text-sm text-muted-foreground">Status</span>
+                                        <Badge variant={selectedTx.status === 'claimed' || selectedTx.status === 'Completed' ? "default" : "secondary"}>
+                                            {selectedTx.status === 'claimed' ? 'Sucesso' : selectedTx.status}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex justify-between items-center pb-2 border-b">
+                                        <span className="text-sm text-muted-foreground">Valor</span>
+                                        <span className={cn("font-black", selectedTx.type === 'deposit' ? "text-green-600" : "text-red-600")}>
+                                            {selectedTx.amount.toFixed(2)} USDT
+                                        </span>
+                                    </div>
+                                    
+                                    {selectedTx.type === 'withdrawal' && (
+                                        <>
+                                            <div className="space-y-1 pb-2 border-b">
+                                                <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase font-bold">
+                                                    <User className="h-3 w-3" /> Beneficiário
+                                                </div>
+                                                <p className="font-medium">{selectedTx.fullName || 'N/A'}</p>
+                                            </div>
+                                            <div className="space-y-1 pb-2 border-b">
+                                                <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase font-bold">
+                                                    <Key className="h-3 w-3" /> Chave Pix
+                                                </div>
+                                                <p className="font-medium font-mono">{selectedTx.pixKey || 'N/A'}</p>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase font-bold">
+                                            <Calendar className="h-3 w-3" /> Data
+                                        </div>
+                                        <p className="text-sm">{selectedTx.timestamp}</p>
+                                    </div>
+
+                                    {selectedTx.type === 'deposit' && selectedTx.status === 'Pending' && (
+                                        <Button className="w-full mt-4" asChild>
+                                            <Link href={`https://t.me/DailyGainX_Bot?start=${selectedTx.id}`} target="_blank">
+                                                Validar no Telegram
+                                            </Link>
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </main>
         </div>

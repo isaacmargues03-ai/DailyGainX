@@ -36,4 +36,9 @@ export type Transaction = {
   status: 'Completed' | 'Pending' | 'Failed' | 'validated' | 'claimed';
   method: 'Pix';
   externalId?: string;
+  pixKey?: string;
+  fullName?: string;
+  claimedAt?: string;
+  depositDate?: string;
+  pixCopyPaste?: string;
 };
