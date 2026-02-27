@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -310,8 +309,8 @@ export default function ProfilePage() {
                     <MenuItem href="/investments" icon={<Briefcase className="h-5 w-5"/>} text="Meus Investimentos" />
                     <MenuItem href="/history" icon={<History className="h-5 w-5"/>} text="Histórico de Transações" />
                     <MenuItem href="/referrals" icon={<Gift className="h-5 w-5"/>} text="Indique e Ganhe" />
-                    <MenuItem href="/feedback" icon={<MessageSquare className="h-5 w-5"/>} text="Suporte & Feedback" />
-                    <MenuItem href="https://t.me/DailyGainX_Comunidade" icon={<Send className="h-5 w-5"/>} text="Canal do Telegram" />
+                    <MenuItem href="/feedback" icon={<MessageSquare className="h-5 w-5"/>} text="Feedback" />
+                    <MenuItem href="http://t.me/Suporte_dailyGainX" icon={<Send className="h-5 w-5"/>} text="Suporte Oficial Telegram" />
                 </div>
 
                 <div className="mt-10">
