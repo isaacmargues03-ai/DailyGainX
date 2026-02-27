@@ -29,6 +29,7 @@ export default function WithdrawPage() {
     const handleWithdraw = () => {
         const withdrawAmount = parseFloat(amount);
 
+        // Verifica se o usuário já fez algum investimento
         if (activeInvestments.length === 0) {
             toast({
                 variant: 'destructive',
@@ -82,7 +83,8 @@ export default function WithdrawPage() {
         setFullName('');
     };
 
-    const isButtonDisabled = isBalanceLoading || !amount || !pixKey || !fullName || parseFloat(amount) <= 0 || parseFloat(amount) > balance || activeInvestments.length === 0 || parseFloat(amount) < 5 || parseFloat(amount) > 10000;
+    // Removida a verificação de activeInvestments.length === 0 do disabled para que o usuário possa clicar e ver o aviso
+    const isButtonDisabled = isBalanceLoading || !amount || !pixKey || !fullName || parseFloat(amount) <= 0 || parseFloat(amount) > balance || parseFloat(amount) < 5 || parseFloat(amount) > 10000;
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -136,13 +138,13 @@ export default function WithdrawPage() {
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
                                 />
-                                <p className="text-xs text-muted-foreground">Saldo disponível: {balance.toFixed(2)} USDT</p>
+                                <p className="text-sm text-muted-foreground font-medium">Saldo disponível: {balance.toFixed(2)} USDT</p>
                             </div>
                         </CardContent>
                         <CardFooter>
                             <Button 
                                 onClick={handleWithdraw} 
-                                className="w-full" 
+                                className="w-full h-12 text-lg font-bold" 
                                 disabled={isButtonDisabled}
                             >
                                 Solicitar Retirada
