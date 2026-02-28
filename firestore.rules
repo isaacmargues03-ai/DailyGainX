@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Função central para identificar o administrador
+    // Função central para identificar o administrador com segurança máxima
     function isAdmin() {
       return request.auth != null && (
         request.auth.uid == 'skTsvEKxywUKcBKPHzG9h7WkK7K2' || 
@@ -10,9 +10,14 @@ service cloud.firestore {
       );
     }
 
-    // REGRA MESTRA: Administrador tem acesso total a qualquer documento em qualquer caminho
+    // REGRA MESTRA: Administrador tem acesso total e irrestrito a qualquer documento ou coleção
     match /{document=**} {
       allow read, write: if isAdmin();
+    }
+
+    // Regra específica para suporte a Collection Group Queries (Essencial para listar saques de todos)
+    match /{path=**}/depositTransactions/{docId} {
+      allow read, list: if isAdmin();
     }
 
     // Regras específicas para usuários comuns (segurança de dados próprios)
@@ -28,25 +33,21 @@ service cloud.firestore {
       }
     }
 
-    // Regras para Resgate de Tokens (Abertas para verificação e uso)
+    // Regras para Resgate de Tokens
     match /tokens_resgate/{tokenId} {
       allow get, update: if request.auth != null;
+      allow read, write: if isAdmin();
     }
 
     // Sistema de indicações
     match /referralCodes/{code} {
       allow get: if true;
-      allow create: if request.auth != null;
+      allow create, write: if request.auth != null;
     }
 
     match /referrals/{referralId} {
-      allow read: if request.auth != null && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
+      allow read: if request.auth != null && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId || isAdmin());
       allow create: if request.auth != null;
-    }
-    
-    // Suporte explícito para consultas de grupo (Collection Group)
-    match /{path=**}/depositTransactions/{id} {
-      allow read, list: if isAdmin();
     }
   }
 }
