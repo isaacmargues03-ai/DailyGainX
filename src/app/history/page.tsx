@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -38,15 +39,13 @@ function TransactionItem({
 
   return (
     <div 
-        className="flex flex-col py-6 px-0 border-b last:border-b-0 gap-3 hover:bg-muted/5 transition-colors cursor-pointer" 
+        className="flex flex-col py-6 border-b last:border-b-0 gap-3 cursor-pointer hover:bg-muted/5 transition-colors" 
         onClick={() => onViewDetails(transaction)}
     >
         <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-                <div>
-                    <p className="font-black text-sm tracking-tight">{isDeposit ? 'DEPÓSITO' : 'SAQUE'}</p>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{transaction.timestamp}</p>
-                </div>
+            <div>
+                <p className="font-black text-sm tracking-tight">{isDeposit ? 'DEPÓSITO' : 'SAQUE'}</p>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{transaction.timestamp}</p>
             </div>
             <div className="text-right">
                 <p className={cn("text-lg font-black tracking-tighter", isDeposit ? 'text-green-600' : 'text-red-600')}>
@@ -155,11 +154,10 @@ export default function HistoryPage() {
                     <div className="space-y-8">
                         <div className="pb-6 border-b-2 border-black">
                             <h2 className="text-3xl font-black uppercase tracking-tighter leading-none">Histórico</h2>
-                            <p className="text-[11px] uppercase font-bold text-muted-foreground/60 mt-2 tracking-[0.2em]">Extrato de USDT</p>
                         </div>
 
                         <div className="space-y-2">
-                             {transactions.length > 0 && (
+                             {transactions.length > 0 ? (
                                 <div className="divide-y divide-muted/30">
                                     {transactions.map((tx) => (
                                         <TransactionItem 
@@ -169,6 +167,10 @@ export default function HistoryPage() {
                                             onViewDetails={setSelectedTx}
                                         />
                                     ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-20">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">Sem transações registradas</p>
                                 </div>
                             )}
                         </div>
