@@ -38,19 +38,13 @@ function TransactionItem({
 
   return (
     <div 
-        className="flex flex-col py-6 px-2 border-b last:border-b-0 gap-3 hover:bg-muted/10 transition-colors cursor-pointer" 
+        className="flex flex-col py-6 px-0 border-b last:border-b-0 gap-3 hover:bg-muted/5 transition-colors cursor-pointer" 
         onClick={() => onViewDetails(transaction)}
     >
         <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-                <div className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full border-2", 
-                    isDeposit ? 'bg-green-50 border-green-200 text-green-600' : 'bg-red-50 border-red-200 text-red-600'
-                )}>
-                    {isDeposit ? <ArrowDownToLine className="h-5 w-5" /> : <ArrowUpFromLine className="h-5 w-5" />}
-                </div>
                 <div>
-                    <p className="font-black text-sm uppercase tracking-tight">{isDeposit ? 'Depósito' : 'Saque'}</p>
+                    <p className="font-black text-sm tracking-tight">{isDeposit ? 'DEPÓSITO' : 'SAQUE'}</p>
                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{transaction.timestamp}</p>
                 </div>
             </div>
@@ -200,7 +194,7 @@ export default function HistoryPage() {
                                 <div className="p-8 space-y-6">
                                     <div className="flex justify-between items-center text-xs">
                                         <span className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Operação</span>
-                                        <span className="font-black uppercase">{selectedTx.type === 'deposit' ? 'Depósito' : 'Saque'}</span>
+                                        <span className="font-black uppercase">{selectedTx.type === 'deposit' ? 'DEPÓSITO' : 'SAQUE'}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-xs">
                                         <span className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Status</span>
