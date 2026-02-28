@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -21,14 +20,9 @@ function TransactionItem({
   transaction: Transaction; 
   onViewDetails: (tx: Transaction) => void;
 }) {
-  const isDeposit = transaction.type === 'deposit';
-  
-  // Lógica de rótulos ultra-limpa:
-  // Depósito só é CONCLUÍDO se tiver o status 'claimed'. Caso contrário, é PENDENTE.
-  let displayLabel = 'SAQUE';
-  if (isDeposit) {
-    displayLabel = transaction.status === 'claimed' ? 'DEPÓSITO CONCLUÍDO' : 'DEPÓSITO PENDENTE';
-  }
+  // Apenas saques chegam aqui agora, mas mantemos a segurança
+  const isWithdrawal = transaction.type === 'withdrawal';
+  if (!isWithdrawal) return null;
   
   return (
     <div 
@@ -36,9 +30,9 @@ function TransactionItem({
         onClick={() => onViewDetails(transaction)}
     >
         <div className="flex items-center justify-between">
-            <p className="font-black text-lg tracking-tighter uppercase">{displayLabel}</p>
-            <p className={cn("text-lg font-black tracking-tighter", isDeposit ? 'text-green-600' : 'text-red-600')}>
-                {isDeposit ? '+' : '-'}{transaction.amount.toFixed(2)} USDT
+            <p className="font-black text-lg tracking-tighter uppercase">SAQUE</p>
+            <p className="text-lg font-black tracking-tighter text-red-600">
+                -{transaction.amount.toFixed(2)} USDT
             </p>
         </div>
     </div>
@@ -48,6 +42,9 @@ function TransactionItem({
 export default function HistoryPage() {
     const { transactions } = useAppContext();
     const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+
+    // Filtra para mostrar apenas SAQUES (withdrawals)
+    const withdrawalTransactions = transactions.filter(tx => tx.type === 'withdrawal');
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-background">
@@ -68,9 +65,9 @@ export default function HistoryPage() {
                         </div>
 
                         <div className="space-y-0">
-                             {transactions.length > 0 ? (
+                             {withdrawalTransactions.length > 0 ? (
                                 <div className="divide-y divide-black/5">
-                                    {transactions.map((tx) => (
+                                    {withdrawalTransactions.map((tx) => (
                                         <TransactionItem 
                                             key={tx.id} 
                                             transaction={tx} 
@@ -95,15 +92,11 @@ export default function HistoryPage() {
                                 <div className="p-8 space-y-6 text-black">
                                     <div className="flex justify-between items-center text-xs">
                                         <span className="font-black uppercase tracking-widest text-[10px]">Operação</span>
-                                        <span className="font-black uppercase">
-                                            {selectedTx.type === 'deposit' 
-                                                ? (selectedTx.status === 'claimed' ? 'DEPÓSITO CONCLUÍDO' : 'DEPÓSITO PENDENTE') 
-                                                : 'SAQUE'}
-                                        </span>
+                                        <span className="font-black uppercase">SAQUE</span>
                                     </div>
                                     <div className="flex justify-between items-center text-xs">
                                         <span className="font-black uppercase tracking-widest text-[10px]">Valor</span>
-                                        <span className={cn("text-xl font-black tracking-tighter", selectedTx.type === 'deposit' ? "text-green-600" : "text-red-600")}>
+                                        <span className="text-xl font-black tracking-tighter text-red-600">
                                             {selectedTx.amount.toFixed(2)} USDT
                                         </span>
                                     </div>
@@ -113,15 +106,10 @@ export default function HistoryPage() {
                                         <p className="text-xs font-bold uppercase">{selectedTx.timestamp}</p>
                                     </div>
 
-                                    {selectedTx.type === 'deposit' && selectedTx.status !== 'claimed' && (
-                                        <div className="pt-4 space-y-2">
-                                            <Button className="w-full bg-black text-white hover:bg-black/90 font-black uppercase text-[10px] tracking-widest h-12 rounded-none" asChild>
-                                                <Link href="http://t.me/Suporte_dailyGainX" target="_blank">
-                                                    Validar no Telegram
-                                                </Link>
-                                            </Button>
-                                        </div>
-                                    )}
+                                    <div className="pt-4 border-t-2 border-black/5 space-y-1">
+                                        <div className="text-[9px] uppercase font-black tracking-widest text-muted-foreground">Status</div>
+                                        <p className="text-xs font-bold uppercase text-primary">PENDENTE</p>
+                                    </div>
                                 </div>
                             )}
                         </DialogContent>
