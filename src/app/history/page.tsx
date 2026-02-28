@@ -6,9 +6,8 @@ import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/context/AppContext';
 import { Transaction } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
   DialogContent,
@@ -39,42 +38,19 @@ function TransactionItem({
 }
 
 export default function HistoryPage() {
-    const { transactions, clearHistory } = useAppContext();
-    const { toast } = useToast();
+    const { transactions } = useAppContext();
     const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
-    const [isClearing, setIsClearing] = useState(false);
-
-    const handleClear = async () => {
-        setIsClearing(true);
-        try {
-            await clearHistory();
-            toast({ title: "HISTÓRICO ZERADO" });
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "ERRO AO ZERAR" });
-        } finally {
-            setIsClearing(false);
-        }
-    };
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-background">
             <Header />
             <main className="flex-1 p-6">
                 <div className="container mx-auto max-w-lg">
-                    <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center justify-start mb-8">
                         <Button variant="ghost" size="sm" asChild className="pl-0 hover:bg-transparent">
                             <Link href="/profile" className="flex items-center gap-2 text-[11px] text-muted-foreground font-black uppercase tracking-widest transition-all">
                                 <ArrowLeft className="h-4 w-4" /> Voltar
                             </Link>
-                        </Button>
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={handleClear} 
-                            disabled={isClearing || transactions.length === 0}
-                            className="text-[11px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 hover:bg-transparent"
-                        >
-                            {isClearing ? 'Zerando...' : 'Zerar Histórico'}
                         </Button>
                     </div>
 
