@@ -20,7 +20,7 @@ export const products: Product[] = [
     id: 'vale-company',
     instructorName: 'Ricardo Almeida',
     companyName: 'Vale',
-    period: 25,
+    period: 10,
     minInvestment: 10,
     profit: 8,
   },
