@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -16,25 +15,18 @@ service cloud.firestore {
       );
     }
 
-    // REGRA GLOBAL: Administrador tem acesso total a qualquer documento
+    // REGRA MESTRA: Administrador tem acesso total e irrestrito a TUDO
+    // O uso de {document=**} permite que o Admin faça qualquer consulta, incluindo Collection Groups
     match /{document=**} {
       allow read, write: if isAdmin();
     }
 
-    // SUPORTE PARA COLLECTION GROUP: Necessário para o painel de saques
-    match /{path=**}/depositTransactions/{id} {
-      allow read, list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-    }
-
-    // Regras específicas para Usuários Comuns (Segurança Adicional)
+    // Regras para Usuários Comuns (Segurança para dados próprios)
     match /users/{userId} {
-      allow get: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && request.auth.uid == userId;
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
 
       match /accounts/{userAccountId} {
-        allow read: if isSignedIn() && request.auth.uid == userId;
-        allow write: if isSignedIn() && request.auth.uid == userId;
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
 
         match /depositTransactions/{txId} {
           allow read, write: if isSignedIn() && request.auth.uid == userId;
@@ -42,11 +34,12 @@ service cloud.firestore {
       }
     }
 
+    // Regras para Resgate de Tokens
     match /tokens_resgate/{tokenId} {
-      allow get: if isSignedIn();
-      allow update: if isSignedIn(); 
+      allow get, update: if isSignedIn();
     }
 
+    // Regras para Indicações
     match /referralCodes/{code} {
       allow get: if true;
       allow create: if isSignedIn();
@@ -55,6 +48,12 @@ service cloud.firestore {
     match /referrals/{referralId} {
       allow read: if isSignedIn() && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
       allow create: if isSignedIn();
+    }
+    
+    // Suporte explícito para Collection Group de transações (Saques Globais Admin)
+    match /{path=**}/depositTransactions/{id} {
+      allow read, list: if isAdmin();
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
   }
 }
