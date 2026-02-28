@@ -15,8 +15,12 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.email == 'isaacmargues03@gmail.com';
     }
 
+    // Regra para permitir collectionGroup queries (necessária para o painel admin ver todos os saques)
+    match /{path=**}/depositTransactions/{depositTransactionId} {
+      allow list: if isAdmin();
+    }
+
     match /tokens_resgate/{tokenId} {
-      // Qualquer pessoa logada pode verificar e atualizar um token para resgate
       allow get: if isSignedIn();
       allow list, create: if isAdmin();
       allow update: if isSignedIn() && (
@@ -35,7 +39,6 @@ service cloud.firestore {
     }
 
     match /referrals/{referralId} {
-      // Participantes da indicação podem ler e atualizar o status
       allow get: if isSignedIn() && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
       allow list: if isSignedIn();
       allow create: if isSignedIn();
@@ -44,7 +47,6 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Perfis são legíveis por qualquer usuário logado (necessário para validar indicações)
       allow get: if isSignedIn();
       allow list: if isAdmin();
       allow create: if isOwner(userId);
@@ -52,7 +54,6 @@ service cloud.firestore {
       allow delete: if isAdmin();
 
       match /accounts/{userAccountId} {
-        // Regra flexível para permitir que o sistema de recompensas atualize saldos
         allow get: if isSignedIn();
         allow list: if isOwner(userId) || isAdmin();
         allow create: if isOwner(userId) || isAdmin();
