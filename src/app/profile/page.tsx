@@ -75,9 +75,12 @@ function ActionMenuItem({ icon, text, onClick }: { icon: React.ReactNode; text: 
   );
 }
 
+const ADMIN_EMAIL = 'isaacmargues03@gmail.com';
+const ADMIN_UID = 'skTsvEKxywUKcBKPHzG9h7WkK7K2';
+
 export default function ProfilePage() {
   const { balance, isBalanceLoading } = useAppContext();
-  const { auth, user, firestore } = useFirebase();
+  const { auth, user, isUserLoading, firestore } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -90,8 +93,8 @@ export default function ProfilePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [processingWithdrawId, setProcessingWithdrawId] = useState<string | null>(null);
 
-  // Verificação de administrador consistente com as regras de segurança
-  const isAdmin = user?.email === 'isaacmargues03@gmail.com' || user?.uid === 'skTsvEKxywUKcBKPHzG9h7WkK7K2';
+  // Verificação de administrador consistente
+  const isAdmin = !isUserLoading && user && (user.email === ADMIN_EMAIL || user.uid === ADMIN_UID);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -106,6 +109,7 @@ export default function ProfilePage() {
   }, [user, firestore]);
 
   const tokensQuery = useMemoFirebase(() => {
+    // Só cria a query se for Admin, evitando erros de permissão durante o carregamento
     if (!isAdmin || !firestore) return null;
     return query(collection(firestore, 'tokens_resgate'), orderBy('dataCriacao', 'desc'), limit(20));
   }, [isAdmin, firestore]);
@@ -113,8 +117,8 @@ export default function ProfilePage() {
   const { data: allTokens } = useCollection<{token: string, valor: number, usado: boolean, transactionId?: string}>(tokensQuery);
 
   const withdrawsQuery = useMemoFirebase(() => {
+    // Só cria a query se for Admin, evitando erros de permissão durante o carregamento
     if (!isAdmin || !firestore) return null;
-    // Query de grupo para buscar saques de todos os usuários
     return query(
         collectionGroup(firestore, 'depositTransactions'), 
         where('type', '==', 'withdrawal'),
@@ -287,6 +291,15 @@ export default function ProfilePage() {
 
   const mainProfilePic = PlaceHolderImages.find(p => p.id === 'instagram-profile-pic');
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Usuário';
+
+  if (isUserLoading) {
+    return (
+        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="mt-4 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Carregando Perfil...</p>
+        </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
