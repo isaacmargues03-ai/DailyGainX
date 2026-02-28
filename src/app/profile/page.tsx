@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -155,7 +156,6 @@ export default function ProfilePage() {
         const userRef = doc(firestore, 'users', user.uid);
         const accountRef = doc(firestore, 'users', user.uid, 'accounts', user.uid);
 
-        // --- TODAS AS LEITURAS DEVEM OCORRER ANTES DAS ESCRITAS ---
         const [tokenDoc, userDoc, accountDoc] = await Promise.all([
           transaction.get(tokenRef),
           transaction.get(userRef),
@@ -181,7 +181,6 @@ export default function ProfilePage() {
             const referralRef = doc(firestore, 'referrals', userData.referralId);
             referralDoc = await transaction.get(referralRef);
         }
-        // ----------------------------------------------------------
 
         // 1. Atualização de Saldo
         if (!accountDoc.exists()) {
@@ -204,7 +203,7 @@ export default function ProfilePage() {
           usedBy: user.uid
         });
 
-        // 3. ATUALIZA STATUS NO HISTÓRICO PARA CONCLUÍDO (claimed)
+        // 3. ATUALIZA STATUS NO HISTÓRICO PARA CONCLUÍDO (claimed -> DEPÓSITO CONCLUÍDO)
         if (historyTxDoc && historyTxDoc.exists()) {
             transaction.update(historyTxDoc.ref, {
                 status: 'claimed',

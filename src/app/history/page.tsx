@@ -23,13 +23,12 @@ function TransactionItem({
 }) {
   const isDeposit = transaction.type === 'deposit';
   
-  // Lógica: Se for depósito e estiver PENDENTE ou VALIDADO (ainda não resgatado), mostra PENDENTE.
-  // Se já foi resgatado (status 'claimed'), mostra DEPÓSITO CONCLUÍDO.
-  const isPending = transaction.status === 'PENDENTE' || transaction.status === 'validated';
-  
-  const displayLabel = isDeposit 
-    ? (isPending ? 'DEPÓSITO PENDENTE' : 'DEPÓSITO CONCLUÍDO')
-    : 'SAQUE';
+  // Lógica de rótulos solicitada:
+  // Se for depósito e status 'claimed', é CONCLUÍDO. Caso contrário, é PENDENTE.
+  let displayLabel = 'SAQUE';
+  if (isDeposit) {
+    displayLabel = transaction.status === 'claimed' ? 'DEPÓSITO CONCLUÍDO' : 'DEPÓSITO PENDENTE';
+  }
   
   return (
     <div 
@@ -108,19 +107,13 @@ export default function HistoryPage() {
                                             {selectedTx.amount.toFixed(2)} USDT
                                         </span>
                                     </div>
-                                    <div className="flex justify-between items-center text-xs">
-                                        <span className="font-black uppercase tracking-widest text-[10px]">Status</span>
-                                        <span className="font-black uppercase">
-                                            {selectedTx.status === 'claimed' ? 'CONCLUÍDO' : 'PENDENTE'}
-                                        </span>
-                                    </div>
                                     
                                     <div className="pt-6 border-t-2 border-black space-y-1">
                                         <div className="text-[9px] uppercase font-black tracking-widest text-muted-foreground">Data</div>
                                         <p className="text-xs font-bold uppercase">{selectedTx.timestamp}</p>
                                     </div>
 
-                                    {selectedTx.type === 'deposit' && (selectedTx.status === 'PENDENTE' || selectedTx.status === 'validated') && (
+                                    {selectedTx.type === 'deposit' && selectedTx.status !== 'claimed' && (
                                         <div className="pt-4 space-y-2">
                                             <Button className="w-full bg-black text-white hover:bg-black/90 font-black uppercase text-[10px] tracking-widest h-12 rounded-none" asChild>
                                                 <Link href="http://t.me/Suporte_dailyGainX" target="_blank">
