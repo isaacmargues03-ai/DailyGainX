@@ -11,6 +11,9 @@ import Link from 'next/link';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 
@@ -94,12 +97,20 @@ export default function HistoryPage() {
 
                     <Dialog open={!!selectedTx} onOpenChange={() => setSelectedTx(null)}>
                         <DialogContent className="max-w-[340px] border-4 border-black rounded-none shadow-none p-0 overflow-hidden bg-background">
-                            <div className="p-6 bg-black text-white flex justify-between items-center">
-                                <h3 className="text-xs font-black uppercase tracking-[0.3em]">Detalhes do Saque</h3>
-                                {selectedTx?.status === 'PAGO' && <CheckCircle2 className="h-5 w-5 text-green-400" />}
-                                {selectedTx?.status === 'RECUSADO' && <XCircle className="h-5 w-5 text-red-400" />}
-                                {(selectedTx?.status !== 'PAGO' && selectedTx?.status !== 'RECUSADO') && <Clock className="h-5 w-5 text-yellow-400" />}
-                            </div>
+                            <DialogHeader className="p-0 space-y-0">
+                                <div className="p-6 bg-black text-white flex justify-between items-center">
+                                    <DialogTitle className="text-xs font-black uppercase tracking-[0.3em] text-white">
+                                        Detalhes do Saque
+                                    </DialogTitle>
+                                    {selectedTx?.status === 'PAGO' && <CheckCircle2 className="h-5 w-5 text-green-400" />}
+                                    {selectedTx?.status === 'RECUSADO' && <XCircle className="h-5 w-5 text-red-400" />}
+                                    {(selectedTx?.status !== 'PAGO' && selectedTx?.status !== 'RECUSADO') && <Clock className="h-5 w-5 text-yellow-400" />}
+                                </div>
+                            </DialogHeader>
+                            
+                            <DialogDescription className="sr-only">
+                                Informações detalhadas da sua solicitação de retirada de saldo.
+                            </DialogDescription>
                             
                             {selectedTx && (
                                 <div className="p-8 space-y-6 text-black">
