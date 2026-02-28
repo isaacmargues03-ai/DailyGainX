@@ -28,7 +28,7 @@ import { Card } from '@/components/ui/card';
 import { useAppContext } from '@/context/AppContext';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { doc, runTransaction, setDoc, serverTimestamp, collection, query, orderBy, limit, increment } from 'firebase/firestore';
+import { doc, runTransaction, setDoc, serverTimestamp, collection, query, orderBy, limit, increment, getDoc, getDocs, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -151,6 +151,35 @@ export default function ProfilePage() {
     setIsRedeeming(true);
 
     try {
+      // Pré-busca para encontrar a transação de histórico vinculada de forma robusta
+      let linkedHistoryTxRef = null;
+      const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
+      const tokenSnap = await getDoc(tokenRef);
+
+      if (tokenSnap.exists()) {
+        const tData = tokenSnap.data();
+        if (tData.transactionId && tData.transactionId !== "Manual-Site") {
+          // 1. Tenta encontrar por ID de documento direto
+          const directRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', tData.transactionId);
+          const directSnap = await getDoc(directRef);
+          
+          if (directSnap.exists()) {
+            linkedHistoryTxRef = directRef;
+          } else {
+            // 2. Tenta encontrar por externalId (ID da PixUp)
+            const q = query(
+              collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions'),
+              where('externalId', '==', tData.transactionId),
+              limit(1)
+            );
+            const qSnap = await getDocs(q);
+            if (!qSnap.empty) {
+              linkedHistoryTxRef = qSnap.docs[0].ref;
+            }
+          }
+        }
+      }
+
       await runTransaction(firestore, async (transaction) => {
         const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
         const userRef = doc(firestore, 'users', user.uid);
@@ -168,13 +197,6 @@ export default function ProfilePage() {
         if (tokenData.usado) throw new Error('Este código já foi utilizado.');
 
         const userData = userDoc.data();
-
-        // Tenta encontrar a transação de histórico vinculada
-        let historyTxDoc = null;
-        if (tokenData.transactionId && tokenData.transactionId !== "Manual-Site") {
-            const historyTxRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', tokenData.transactionId);
-            historyTxDoc = await transaction.get(historyTxRef);
-        }
 
         let referralDoc = null;
         if (userData && !userData.hasMadeFirstDeposit && userData.referralId) {
@@ -203,12 +225,12 @@ export default function ProfilePage() {
           usedBy: user.uid
         });
 
-        // 3. ATUALIZA STATUS NO HISTÓRICO PARA CONCLUÍDO (claimed -> DEPÓSITO CONCLUÍDO)
-        if (historyTxDoc && historyTxDoc.exists()) {
-            transaction.update(historyTxDoc.ref, {
-                status: 'claimed',
-                claimedAt: new Date().toISOString()
-            });
+        // 3. Atualiza histórico para CONCLUÍDO (claimed)
+        if (linkedHistoryTxRef) {
+          transaction.update(linkedHistoryTxRef, {
+            status: 'claimed',
+            claimedAt: new Date().toISOString()
+          });
         }
 
         // 4. Recompensa de indicação no primeiro resgate de token

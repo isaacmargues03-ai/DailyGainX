@@ -23,8 +23,8 @@ function TransactionItem({
 }) {
   const isDeposit = transaction.type === 'deposit';
   
-  // Lógica de rótulos solicitada:
-  // Se for depósito e status 'claimed', é CONCLUÍDO. Caso contrário, é PENDENTE.
+  // Lógica de rótulos ultra-limpa:
+  // Depósito só é CONCLUÍDO se tiver o status 'claimed'. Caso contrário, é PENDENTE.
   let displayLabel = 'SAQUE';
   if (isDeposit) {
     displayLabel = transaction.status === 'claimed' ? 'DEPÓSITO CONCLUÍDO' : 'DEPÓSITO PENDENTE';
@@ -32,12 +32,12 @@ function TransactionItem({
   
   return (
     <div 
-        className="flex flex-col py-8 border-b-2 border-black last:border-b-0 cursor-pointer hover:bg-muted/5 transition-colors" 
+        className="flex flex-col py-6 border-b border-black/5 last:border-b-0 cursor-pointer hover:bg-muted/5 transition-colors" 
         onClick={() => onViewDetails(transaction)}
     >
         <div className="flex items-center justify-between">
-            <p className="font-black text-xl tracking-tighter uppercase">{displayLabel}</p>
-            <p className={cn("text-xl font-black tracking-tighter", isDeposit ? 'text-green-600' : 'text-red-600')}>
+            <p className="font-black text-lg tracking-tighter uppercase">{displayLabel}</p>
+            <p className={cn("text-lg font-black tracking-tighter", isDeposit ? 'text-green-600' : 'text-red-600')}>
                 {isDeposit ? '+' : '-'}{transaction.amount.toFixed(2)} USDT
             </p>
         </div>
@@ -62,14 +62,14 @@ export default function HistoryPage() {
                         </Button>
                     </div>
 
-                    <div className="space-y-8">
-                        <div className="pb-6 border-b-4 border-black">
-                            <h2 className="text-5xl font-black uppercase tracking-tighter leading-none">Histórico</h2>
+                    <div className="space-y-6">
+                        <div className="pb-4 border-b-2 border-black">
+                            <h2 className="text-4xl font-black uppercase tracking-tighter">Histórico</h2>
                         </div>
 
                         <div className="space-y-0">
                              {transactions.length > 0 ? (
-                                <div className="divide-y divide-black">
+                                <div className="divide-y divide-black/5">
                                     {transactions.map((tx) => (
                                         <TransactionItem 
                                             key={tx.id} 
