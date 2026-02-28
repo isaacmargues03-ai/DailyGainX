@@ -2,58 +2,51 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Função para verificar se o usuário está logado
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // Função de Admin - Identifica você pelo UID ou E-mail
+    // Função central para identificar o administrador
     function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == 'isaacmargues03@gmail.com' || 
-        request.auth.uid == 'skTsvEKxywUKcBKPHzG9h7WkK7K2'
+      return request.auth != null && (
+        request.auth.uid == 'skTsvEKxywUKcBKPHzG9h7WkK7K2' || 
+        request.auth.token.email == 'isaacmargues03@gmail.com'
       );
     }
 
-    // REGRA MESTRA: Administrador tem acesso total e irrestrito a TUDO
-    // O uso de {document=**} permite que o Admin faça qualquer consulta, incluindo Collection Groups
+    // REGRA MESTRA: Administrador tem acesso total a qualquer documento em qualquer caminho
     match /{document=**} {
       allow read, write: if isAdmin();
     }
 
-    // Regras para Usuários Comuns (Segurança para dados próprios)
+    // Regras específicas para usuários comuns (segurança de dados próprios)
     match /users/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
 
-      match /accounts/{userAccountId} {
-        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      match /accounts/{accountId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
 
         match /depositTransactions/{txId} {
-          allow read, write: if isSignedIn() && request.auth.uid == userId;
+          allow read, write: if request.auth != null && request.auth.uid == userId;
         }
       }
     }
 
-    // Regras para Resgate de Tokens
+    // Regras para Resgate de Tokens (Abertas para verificação e uso)
     match /tokens_resgate/{tokenId} {
-      allow get, update: if isSignedIn();
+      allow get, update: if request.auth != null;
     }
 
-    // Regras para Indicações
+    // Sistema de indicações
     match /referralCodes/{code} {
       allow get: if true;
-      allow create: if isSignedIn();
+      allow create: if request.auth != null;
     }
 
     match /referrals/{referralId} {
-      allow read: if isSignedIn() && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
-      allow create: if isSignedIn();
+      allow read: if request.auth != null && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
+      allow create: if request.auth != null;
     }
     
-    // Suporte explícito para Collection Group de transações (Saques Globais Admin)
+    // Suporte explícito para consultas de grupo (Collection Group)
     match /{path=**}/depositTransactions/{id} {
       allow read, list: if isAdmin();
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
   }
 }

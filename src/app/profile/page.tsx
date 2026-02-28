@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -91,7 +90,8 @@ export default function ProfilePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [processingWithdrawId, setProcessingWithdrawId] = useState<string | null>(null);
 
-  const isAdmin = user?.email === 'isaacmargues03@gmail.com';
+  // Verificação de administrador consistente com as regras de segurança
+  const isAdmin = user?.email === 'isaacmargues03@gmail.com' || user?.uid === 'skTsvEKxywUKcBKPHzG9h7WkK7K2';
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -114,6 +114,7 @@ export default function ProfilePage() {
 
   const withdrawsQuery = useMemoFirebase(() => {
     if (!isAdmin || !firestore) return null;
+    // Query de grupo para buscar saques de todos os usuários
     return query(
         collectionGroup(firestore, 'depositTransactions'), 
         where('type', '==', 'withdrawal'),
