@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Header } from '@/components/header';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAppContext } from '@/context/AppContext';
@@ -18,6 +17,9 @@ import {
   DialogContent,
 } from '@/components/ui/dialog';
 
+/**
+ * Item de transação ultra-minimalista.
+ */
 function TransactionItem({ 
   transaction, 
   onClaim,
@@ -36,32 +38,32 @@ function TransactionItem({
 
   return (
     <div 
-        className="flex flex-col p-4 border-b last:border-b-0 gap-2 hover:bg-muted/30 transition-colors cursor-pointer" 
+        className="flex flex-col py-6 px-2 border-b last:border-b-0 gap-3 hover:bg-muted/10 transition-colors cursor-pointer" 
         onClick={() => onViewDetails(transaction)}
     >
         <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
                 <div className={cn(
-                    "flex h-9 w-9 items-center justify-center rounded-full border", 
-                    isDeposit ? 'bg-green-50 border-green-100 text-green-600' : 'bg-red-50 border-red-100 text-red-600'
+                    "flex h-10 w-10 items-center justify-center rounded-full border-2", 
+                    isDeposit ? 'bg-green-50 border-green-200 text-green-600' : 'bg-red-50 border-red-200 text-red-600'
                 )}>
-                    {isDeposit ? <ArrowDownToLine className="h-4 w-4" /> : <ArrowUpFromLine className="h-4 w-4" />}
+                    {isDeposit ? <ArrowDownToLine className="h-5 w-5" /> : <ArrowUpFromLine className="h-5 w-5" />}
                 </div>
                 <div>
-                    <p className="font-bold text-sm">{isDeposit ? 'Depósito' : 'Saque'}</p>
-                    <p className="text-[10px] text-muted-foreground font-medium">{transaction.timestamp}</p>
+                    <p className="font-black text-sm uppercase tracking-tight">{isDeposit ? 'Depósito' : 'Saque'}</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{transaction.timestamp}</p>
                 </div>
             </div>
             <div className="text-right">
-                <p className={cn("text-sm font-black", isDeposit ? 'text-green-600' : 'text-red-600')}>
+                <p className={cn("text-lg font-black tracking-tighter", isDeposit ? 'text-green-600' : 'text-red-600')}>
                     {isDeposit ? '+' : '-'}{transaction.amount.toFixed(2)} USDT
                 </p>
-                <div className="flex items-center justify-end">
+                <div className="flex items-center justify-end mt-1">
                     <span className={cn(
-                        "text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-tighter",
-                        isPending && "bg-yellow-100 text-yellow-700",
-                        isValidated && "bg-blue-100 text-blue-700",
-                        isClaimed && "bg-green-100 text-green-700",
+                        "text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest",
+                        isPending && "bg-yellow-100 text-yellow-800",
+                        isValidated && "bg-blue-100 text-blue-800",
+                        isClaimed && "bg-green-100 text-green-800",
                     )}>
                         {transaction.status === 'validated' ? 'Validado' : 
                          isClaimed ? 'Concluído' : 
@@ -74,7 +76,7 @@ function TransactionItem({
 
         <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
             {isPending && isDeposit && (
-                <Button variant="outline" size="sm" className="w-full h-7 text-[10px] font-bold uppercase gap-2 border-primary/20 text-primary" asChild>
+                <Button variant="outline" size="sm" className="w-full h-8 text-[10px] font-black uppercase gap-2 border-primary/40 text-primary hover:bg-primary/5" asChild>
                     <Link href={telegramBotUrl} target="_blank">
                         <Send className="h-3 w-3" /> Validar no Telegram
                     </Link>
@@ -85,7 +87,7 @@ function TransactionItem({
                 <Button 
                     variant="default" 
                     size="sm" 
-                    className="w-full h-7 text-[10px] font-bold uppercase gap-2 bg-blue-600 hover:bg-blue-700"
+                    className="w-full h-8 text-[10px] font-black uppercase gap-2 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200"
                     onClick={() => onClaim(transaction)}
                 >
                     <CheckCircle2 className="h-3 w-3" /> Resgatar Saldo
@@ -135,9 +137,9 @@ export default function HistoryPage() {
                     }
                 }
             });
-            toast({ title: "Saldo Resgatado!", description: `${transaction.amount.toFixed(2)} USDT adicionados.` });
+            toast({ title: "SALDO RESGATADO!", description: `${transaction.amount.toFixed(2)} USDT ADICIONADOS.` });
         } catch (error: any) {
-            toast({ variant: "destructive", title: "Falha", description: error.message });
+            toast({ variant: "destructive", title: "FALHA", description: error.message.toUpperCase() });
         } finally {
             setClaimingId(null);
         }
@@ -146,24 +148,25 @@ export default function HistoryPage() {
     return (
         <div className="flex min-h-screen w-full flex-col bg-background">
             <Header />
-            <main className="flex-1 p-4">
+            <main className="flex-1 p-6">
                 <div className="container mx-auto max-w-lg">
-                    <div className="flex items-center justify-between mb-4">
-                        <Button variant="ghost" size="sm" asChild className="pl-0">
-                            <Link href="/profile" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-bold uppercase tracking-widest">
-                                <ArrowLeft className="h-3 w-3" /> Voltar
+                    <div className="flex items-center justify-between mb-8">
+                        <Button variant="ghost" size="sm" asChild className="pl-0 hover:bg-transparent">
+                            <Link href="/profile" className="flex items-center gap-2 text-[11px] text-muted-foreground hover:text-foreground font-black uppercase tracking-widest transition-all">
+                                <ArrowLeft className="h-4 w-4" /> Voltar
                             </Link>
                         </Button>
                     </div>
 
-                    <Card className="border-none shadow-none rounded-none bg-transparent">
-                        <CardHeader className="p-0 pb-4 border-b">
-                            <CardTitle className="text-xl font-black uppercase tracking-tighter">Histórico</CardTitle>
-                            <CardDescription className="text-[10px] uppercase font-bold text-muted-foreground/60">Extrato de USDT</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                             {transactions.length > 0 ? (
-                                <div className="divide-y">
+                    <div className="space-y-8">
+                        <div className="pb-6 border-b-2 border-black">
+                            <h2 className="text-3xl font-black uppercase tracking-tighter leading-none">Histórico</h2>
+                            <p className="text-[11px] uppercase font-bold text-muted-foreground/60 mt-2 tracking-[0.2em]">Extrato de USDT</p>
+                        </div>
+
+                        <div className="space-y-2">
+                             {transactions.length > 0 && (
+                                <div className="divide-y divide-muted/30">
                                     {transactions.map((tx) => (
                                         <TransactionItem 
                                             key={tx.id} 
@@ -173,68 +176,67 @@ export default function HistoryPage() {
                                         />
                                     ))}
                                 </div>
-                            ) : (
-                                <div className="py-20">
-                                    {/* Histórico em branco quando não há transações */}
-                                </div>
                             )}
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                     
                     {claimingId && (
-                        <div className="fixed inset-0 bg-background/50 backdrop-blur-sm z-50 flex items-center justify-center">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center">
+                            <div className="flex flex-col items-center gap-4">
+                                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                                <p className="text-[10px] font-black uppercase tracking-widest">Processando...</p>
+                            </div>
                         </div>
                     )}
 
                     <Dialog open={!!selectedTx} onOpenChange={() => setSelectedTx(null)}>
-                        <DialogContent className="max-w-[320px] rounded-2xl border-none shadow-2xl p-0 overflow-hidden">
-                            <div className="p-4 bg-primary text-primary-foreground">
-                                <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest">
+                        <DialogContent className="max-w-[340px] rounded-3xl border-none shadow-2xl p-0 overflow-hidden bg-background">
+                            <div className="p-6 bg-black text-white">
+                                <h3 className="flex items-center gap-3 text-xs font-black uppercase tracking-[0.3em]">
                                     <Info className="h-4 w-4" /> Detalhes
                                 </h3>
                             </div>
                             {selectedTx && (
-                                <div className="p-5 space-y-4">
+                                <div className="p-8 space-y-6">
                                     <div className="flex justify-between items-center text-xs">
                                         <span className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Operação</span>
                                         <span className="font-black uppercase">{selectedTx.type === 'deposit' ? 'Depósito' : 'Saque'}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-xs">
                                         <span className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Status</span>
-                                        <Badge variant={(selectedTx.status === 'claimed' || selectedTx.status === 'Completed') ? "default" : "secondary"} className="font-black text-[9px] uppercase">
+                                        <Badge variant={(selectedTx.status === 'claimed' || selectedTx.status === 'Completed') ? "default" : "secondary"} className="font-black text-[9px] uppercase px-3 rounded-full">
                                             {selectedTx.status === 'claimed' || selectedTx.status === 'Completed' ? 'Concluído' : selectedTx.status === 'Pending' ? 'Pendente' : selectedTx.status === 'validated' ? 'Validado' : selectedTx.status}
                                         </Badge>
                                     </div>
                                     <div className="flex justify-between items-center text-xs">
                                         <span className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Valor</span>
-                                        <span className={cn("text-lg font-black tracking-tighter", selectedTx.type === 'deposit' ? "text-green-600" : "text-red-600")}>
+                                        <span className={cn("text-xl font-black tracking-tighter", selectedTx.type === 'deposit' ? "text-green-600" : "text-red-600")}>
                                             {selectedTx.amount.toFixed(2)} USDT
                                         </span>
                                     </div>
                                     
                                     {selectedTx.type === 'withdrawal' && (
-                                        <div className="pt-3 border-t space-y-3">
+                                        <div className="pt-6 border-t border-muted/50 space-y-4">
                                             <div className="space-y-1">
                                                 <div className="flex items-center gap-1 text-[9px] text-muted-foreground uppercase font-black tracking-widest">
-                                                    <User className="h-2.5 w-2.5" /> Beneficiário
+                                                    <User className="h-3 w-3" /> Beneficiário
                                                 </div>
-                                                <p className="text-xs font-bold truncate">{selectedTx.fullName || 'N/A'}</p>
+                                                <p className="text-xs font-black uppercase">{selectedTx.fullName || 'N/A'}</p>
                                             </div>
                                             <div className="space-y-1">
                                                 <div className="flex items-center gap-1 text-[9px] text-muted-foreground uppercase font-black tracking-widest">
-                                                    <Key className="h-2.5 w-2.5" /> Chave Pix
+                                                    <Key className="h-3 w-3" /> Chave Pix
                                                 </div>
-                                                <p className="text-xs font-mono bg-muted p-1.5 rounded-md break-all">{selectedTx.pixKey || 'N/A'}</p>
+                                                <p className="text-xs font-mono bg-muted/50 p-2 rounded-lg break-all font-bold">{selectedTx.pixKey || 'N/A'}</p>
                                             </div>
                                         </div>
                                     )}
 
-                                    <div className="pt-3 border-t space-y-1">
+                                    <div className="pt-6 border-t border-muted/50 space-y-1">
                                         <div className="flex items-center gap-1 text-[9px] text-muted-foreground uppercase font-black tracking-widest">
-                                            <Calendar className="h-2.5 w-2.5" /> Data
+                                            <Calendar className="h-3 w-3" /> Data
                                         </div>
-                                        <p className="text-xs font-medium">{selectedTx.timestamp}</p>
+                                        <p className="text-xs font-bold uppercase">{selectedTx.timestamp}</p>
                                     </div>
                                 </div>
                             )}
