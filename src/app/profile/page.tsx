@@ -21,16 +21,13 @@ import {
   ShieldCheck,
   PlusCircle,
   Plus,
-  WalletCards,
-  CheckCircle2,
-  XCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { useAppContext } from '@/context/AppContext';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { doc, runTransaction, setDoc, serverTimestamp, collection, query, orderBy, limit, increment, getDoc, getDocs, where, updateDoc, collectionGroup } from 'firebase/firestore';
+import { doc, runTransaction, setDoc, serverTimestamp, collection, query, orderBy, limit, increment, getDoc, getDocs, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -45,7 +42,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Transaction } from '@/lib/types';
 
 function MenuItem({ href, icon, text }: { href: string; icon: React.ReactNode; text: string }) {
   return (
@@ -86,14 +82,11 @@ export default function ProfilePage() {
 
   const [isTokenDialogOpen, setIsTokenDialogOpen] = useState(false);
   const [isAdminDialogOpen, setIsAdminDialogOpen] = useState(false);
-  const [isWithdrawAdminOpen, setIsWithdrawAdminOpen] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
   const [adminTokenValue, setAdminTokenValue] = useState('100.00');
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [processingWithdrawId, setProcessingWithdrawId] = useState<string | null>(null);
 
-  // Verificação de administrador consistente
   const isAdmin = useMemo(() => {
     if (isUserLoading || !user) return false;
     return user.email === ADMIN_EMAIL || user.uid === ADMIN_UID;
@@ -111,25 +104,12 @@ export default function ProfilePage() {
     return doc(firestore, 'users', user.uid, 'accounts', user.uid);
   }, [user, firestore]);
 
-  // Consultas administrativas protegidas - Só iniciam se isAdmin for TRUE
   const tokensQuery = useMemoFirebase(() => {
     if (!isAdmin || !firestore || isUserLoading) return null;
     return query(collection(firestore, 'tokens_resgate'), orderBy('dataCriacao', 'desc'), limit(20));
   }, [isAdmin, firestore, isUserLoading]);
 
   const { data: allTokens } = useCollection<{token: string, valor: number, usado: boolean, transactionId?: string}>(tokensQuery);
-
-  const withdrawsQuery = useMemoFirebase(() => {
-    if (!isAdmin || !firestore || isUserLoading) return null;
-    return query(
-        collectionGroup(firestore, 'depositTransactions'), 
-        where('type', '==', 'withdrawal'),
-        orderBy('depositDate', 'desc'),
-        limit(50)
-    );
-  }, [isAdmin, firestore, isUserLoading]);
-
-  const { data: adminWithdraws } = useCollection<Transaction>(withdrawsQuery);
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -171,20 +151,6 @@ export default function ProfilePage() {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } finally {
       setIsGenerating(false);
-    }
-  };
-
-  const updateWithdrawStatus = async (tx: Transaction, newStatus: 'PAGO' | 'RECUSADO') => {
-    if (!firestore || !tx.userId) return;
-    setProcessingWithdrawId(tx.id);
-    try {
-        const txRef = doc(firestore, 'users', tx.userId, 'accounts', tx.userId, 'depositTransactions', tx.id);
-        await updateDoc(txRef, { status: newStatus });
-        toast({ title: `Saque ${newStatus}`, description: `O status da transação foi atualizado para ${newStatus}.` });
-    } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Erro', description: error.message });
-    } finally {
-        setProcessingWithdrawId(null);
     }
   };
 
@@ -332,14 +298,6 @@ export default function ProfilePage() {
                       <Plus className="h-6 w-6" />
                       GERAR NOVO TOKEN
                     </Button>
-                    <Button 
-                      onClick={() => setIsWithdrawAdminOpen(true)} 
-                      variant="outline"
-                      className="w-full h-14 border-purple-600 text-purple-600 font-black text-lg rounded-xl gap-3"
-                    >
-                      <WalletCards className="h-6 w-6" />
-                      GERENCIAR SAQUES
-                    </Button>
                   </div>
                 )}
 
@@ -361,7 +319,6 @@ export default function ProfilePage() {
             </div>
         </main>
 
-        {/* DIALOG RESGATAR TOKEN */}
         <Dialog open={isTokenDialogOpen} onOpenChange={setIsTokenDialogOpen}>
           <DialogContent className="rounded-2xl bg-background border-2">
             <DialogHeader>
@@ -379,7 +336,6 @@ export default function ProfilePage() {
           </DialogContent>
         </Dialog>
 
-        {/* DIALOG ADMIN GERAR TOKEN */}
         <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
           <DialogContent className="sm:max-w-md rounded-2xl bg-background border-2">
             <DialogHeader>
@@ -418,83 +374,6 @@ export default function ProfilePage() {
                   </div>
                 </ScrollArea>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* DIALOG ADMIN GERENCIAR SAQUES */}
-        <Dialog open={isWithdrawAdminOpen} onOpenChange={setIsWithdrawAdminOpen}>
-          <DialogContent className="sm:max-w-2xl rounded-2xl p-0 overflow-hidden bg-background border-2">
-            <DialogHeader className="p-6 bg-purple-600 text-white">
-              <DialogTitle className="text-2xl font-black flex items-center gap-2 uppercase tracking-tighter">
-                <WalletCards className="h-7 w-7" /> Solicitações de Saque
-              </DialogTitle>
-              <DialogDescription className="text-white/80">Conferir e processar os pedidos de retirada dos usuários.</DialogDescription>
-            </DialogHeader>
-            <div className="p-4">
-              <ScrollArea className="h-[500px] pr-4">
-                <div className="space-y-4">
-                  {adminWithdraws?.map((tx) => (
-                    <Card key={tx.id} className="p-4 space-y-3 border-2">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-black text-sm uppercase tracking-tight">{tx.fullName || 'Usuário Desconhecido'}</p>
-                          <p className="text-[10px] text-muted-foreground font-bold">{tx.timestamp}</p>
-                        </div>
-                        <Badge variant={tx.status === 'PAGO' ? 'default' : tx.status === 'RECUSADO' ? 'destructive' : 'outline'}>
-                          {tx.status || 'PENDENTE'}
-                        </Badge>
-                      </div>
-                      
-                      <div className="bg-muted/30 p-3 rounded text-[11px] space-y-2">
-                        <div className="flex justify-between">
-                            <span className="font-bold text-muted-foreground uppercase">Chave Pix:</span>
-                            <span className="font-black">{tx.pixKey}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="font-bold text-muted-foreground uppercase">Valor:</span>
-                            <span className="font-black text-red-600">{tx.amount.toFixed(2)} USDT</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="font-bold text-muted-foreground uppercase">Código WD:</span>
-                            <span className="font-black flex items-center gap-1">
-                                {tx.withdrawCode || tx.id}
-                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyToClipboard(tx.withdrawCode || tx.id, 'Código')}>
-                                    <Copy className="h-3 w-3" />
-                                </Button>
-                            </span>
-                        </div>
-                      </div>
-
-                      {(!tx.status || (tx.status !== 'PAGO' && tx.status !== 'RECUSADO')) && (
-                        <div className="grid grid-cols-2 gap-2 pt-2">
-                          <Button 
-                            variant="outline" 
-                            className="border-red-500 text-red-500 hover:bg-red-50 h-10 font-bold uppercase text-xs gap-2"
-                            onClick={() => updateWithdrawStatus(tx, 'RECUSADO')}
-                            disabled={processingWithdrawId === tx.id}
-                          >
-                            <XCircle className="h-4 w-4" /> Recusar
-                          </Button>
-                          <Button 
-                            className="bg-green-600 hover:bg-green-700 text-white h-10 font-bold uppercase text-xs gap-2"
-                            onClick={() => updateWithdrawStatus(tx, 'PAGO')}
-                            disabled={processingWithdrawId === tx.id}
-                          >
-                            <CheckCircle2 className="h-4 w-4" /> Pago
-                          </Button>
-                        </div>
-                      )}
-                    </Card>
-                  ))}
-                  {(!adminWithdraws || adminWithdraws.length === 0) && (
-                    <div className="text-center py-20 text-muted-foreground">
-                        <WalletCards className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                        <p className="font-bold uppercase tracking-widest text-sm">Nenhuma solicitação encontrada</p>
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
             </div>
           </DialogContent>
         </Dialog>
