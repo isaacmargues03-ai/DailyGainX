@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -162,7 +161,7 @@ export default function ProfilePage() {
     setIsRedeeming(true);
 
     try {
-      // Pré-busca: Identificar referências fora da transação para não poluir o fluxo de leitura
+      // 1. Identificar transação vinculada (fora da transaction para evitar queries lentas dentro)
       let linkedHistoryTxRef = null;
       const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
       const tokenSnap = await getDoc(tokenRef);
@@ -179,56 +178,58 @@ export default function ProfilePage() {
           if (!qSnap.empty) {
             linkedHistoryTxRef = qSnap.docs[0].ref;
           } else {
-            const q2 = query(
+             const q2 = query(
               collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions'),
               where('externalId', '==', tData.transactionId),
               limit(1)
             );
             const q2Snap = await getDocs(q2);
             if (!q2Snap.empty) {
-              linkedHistoryTxRef = q2Snap.docs[0].ref;
+                linkedHistoryTxRef = q2Snap.docs[0].ref;
             }
           }
         }
       }
 
       await runTransaction(firestore, async (transaction) => {
-        // --- ETAPA 1: TODAS AS LEITURAS (Regra de Ouro do Firestore) ---
+        // --- ETAPA 1: TODAS AS LEITURAS (OBRIGATÓRIO VIR ANTES) ---
         const tDoc = await transaction.get(tokenRef);
         const userRef = doc(firestore, 'users', user.uid);
         const uDoc = await transaction.get(userRef);
         const aDoc = await transaction.get(accountDocRef);
 
-        let rDoc = null;
-        if (uDoc.exists()) {
-          const userData = uDoc.data();
-          if (!userData.hasMadeFirstDeposit && userData.referralId) {
-              rDoc = await transaction.get(doc(firestore, 'referrals', userData.referralId));
-          }
-        }
-
-        // Se houver uma transação de histórico vinculada, lemos ela também antes das escritas
-        if (linkedHistoryTxRef) {
-          await transaction.get(linkedHistoryTxRef);
-        }
-
-        // --- ETAPA 2: VALIDAÇÕES (Após leituras, antes das escritas) ---
+        // Validação inicial do token
         if (!tDoc.exists()) throw new Error('Código inválido ou inexistente.');
         const tokenData = tDoc.data();
         if (tokenData.usado) throw new Error('Este código já foi utilizado.');
         if (!uDoc.exists()) throw new Error('Perfil de usuário não encontrado.');
         const userData = uDoc.data();
 
-        // --- ETAPA 3: TODAS AS ESCRITAS ---
+        // Leitura da indicação (se houver)
+        let rDoc = null;
+        if (!userData.hasMadeFirstDeposit && userData.referralId) {
+            rDoc = await transaction.get(doc(firestore, 'referrals', userData.referralId));
+        }
+
+        // Leitura da transação de histórico (se houver)
+        if (linkedHistoryTxRef) {
+          await transaction.get(linkedHistoryTxRef);
+        }
+
+        // --- ETAPA 2: TODAS AS ESCRITAS (OBRIGATÓRIO VIR DEPOIS) ---
         const currentBalance = aDoc.exists() ? (aDoc.data().balance || 0) : 0;
+        
+        // 1. Creditar saldo do usuário
         transaction.set(accountDocRef, { balance: currentBalance + tokenData.valor }, { merge: true });
 
+        // 2. Marcar token como usado
         transaction.update(tokenRef, {
           usado: true,
           usedAt: new Date().toISOString(),
           usedBy: user.uid
         });
 
+        // 3. Atualizar histórico se houver vínculo
         if (linkedHistoryTxRef) {
           transaction.update(linkedHistoryTxRef, {
             status: 'claimed',
@@ -236,6 +237,7 @@ export default function ProfilePage() {
           });
         }
 
+        // 4. Lógica de Indicação (Pagar bônus ao padrinho no 1º depósito)
         if (!userData.hasMadeFirstDeposit) {
             transaction.update(userRef, { hasMadeFirstDeposit: true });
             
@@ -243,15 +245,17 @@ export default function ProfilePage() {
                 const referralData = rDoc.data();
                 const referrerId = referralData.referrerId;
                 
+                // Marcar indicação como recompensada
                 transaction.update(rDoc.ref, { status: 'rewarded' });
                 
+                // Creditar 1 USDT para o padrinho
                 const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
                 transaction.set(referrerAccountRef, { balance: increment(1) }, { merge: true });
             }
         }
       });
 
-      toast({ title: 'Sucesso!', description: 'Saldo creditado!' });
+      toast({ title: 'Sucesso!', description: 'Saldo creditado e bônus de indicação processado!' });
       setIsTokenDialogOpen(false);
       setTokenInput('');
     } catch (error: any) {

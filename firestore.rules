@@ -10,12 +10,12 @@ service cloud.firestore {
       );
     }
 
-    // REGRA DE OURO: Admin tem acesso total a TUDO, incluindo Collection Groups e Raiz
+    // REGRA DE OURO: Admin tem acesso total a TUDO
     match /{allPaths=**} {
       allow read, write: if isAdmin();
     }
 
-    // Suporte explícito para Collection Group (Necessário para a lista global de saques)
+    // Suporte explícito para Collection Group
     match /{path=**}/depositTransactions/{docId} {
       allow read, write: if isAdmin() || (request.auth != null && request.auth.uid == resource.data.userId);
     }
@@ -26,6 +26,10 @@ service cloud.firestore {
 
       match /accounts/{accountId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
+        
+        // Permite que o usuário indicado incremente o saldo do padrinho em exatamente 1 USDT (Bônus de Indicação)
+        allow update: if request.auth != null && 
+          request.resource.data.balance == resource.data.balance + 1;
 
         match /depositTransactions/{txId} {
           allow read, write: if request.auth != null && request.auth.uid == userId;
@@ -46,6 +50,8 @@ service cloud.firestore {
     match /referrals/{referralId} {
       allow read: if request.auth != null && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
       allow create: if request.auth != null;
+      // Permite que o indicado atualize o status para 'rewarded' ao fazer o primeiro depósito
+      allow update: if request.auth != null && request.auth.uid == resource.data.referredId;
     }
   }
 }
