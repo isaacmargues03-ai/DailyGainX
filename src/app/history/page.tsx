@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAppContext } from '@/context/AppContext';
 import { Transaction } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { ArrowDownToLine, ArrowUpFromLine, ArrowLeft, Send, CheckCircle2, Loader2, Info, User, Key, Calendar } from 'lucide-react';
+import { ArrowLeft, Send, CheckCircle2, Loader2, Info, User, Key, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { doc, runTransaction, increment } from 'firebase/firestore';
@@ -30,9 +30,9 @@ function TransactionItem({
   onViewDetails: (tx: Transaction) => void;
 }) {
   const isDeposit = transaction.type === 'deposit';
-  const isPending = transaction.status === 'Pending' || transaction.status === 'PENDING';
-  const isValidated = transaction.status === 'validated';
-  const isClaimed = transaction.status === 'claimed' || transaction.status === 'Completed';
+  const isPending = transaction.status === 'Pending' || transaction.status === 'PENDENTE';
+  const isValidated = transaction.status === 'validated' || transaction.status === 'VALIDADO';
+  const isClaimed = transaction.status === 'claimed' || transaction.status === 'Completed' || transaction.status === 'CONCLUÍDO';
   
   const telegramBotUrl = `https://t.me/DailyGainX_Bot?start=${transaction.id}`;
 
@@ -59,10 +59,10 @@ function TransactionItem({
                         isValidated && "bg-blue-100 text-blue-800",
                         isClaimed && "bg-green-100 text-green-800",
                     )}>
-                        {transaction.status === 'validated' ? 'Validado' : 
-                         isClaimed ? 'Concluído' : 
-                         isPending ? 'Pendente' :
-                         transaction.status}
+                        {isClaimed ? 'CONCLUÍDO' : 
+                         isValidated ? 'VALIDADO' : 
+                         isPending ? 'PENDENTE' :
+                         transaction.status.toUpperCase()}
                     </span>
                 </div>
             </div>
@@ -119,7 +119,7 @@ export default function HistoryPage() {
                 }
 
                 tx.update(accountRef, { balance: increment(transaction.amount) });
-                tx.update(transactionRef, { status: 'claimed', claimedAt: new Date().toISOString() });
+                tx.update(transactionRef, { status: 'CONCLUÍDO', claimedAt: new Date().toISOString() });
 
                 if (userData && !userData.hasMadeFirstDeposit) {
                     tx.update(userRef, { hasMadeFirstDeposit: true });
@@ -198,8 +198,11 @@ export default function HistoryPage() {
                                     </div>
                                     <div className="flex justify-between items-center text-xs">
                                         <span className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Status</span>
-                                        <Badge variant={(selectedTx.status === 'claimed' || selectedTx.status === 'Completed') ? "default" : "secondary"} className="font-black text-[9px] uppercase px-3 rounded-full">
-                                            {selectedTx.status === 'claimed' || selectedTx.status === 'Completed' ? 'Concluído' : selectedTx.status === 'Pending' ? 'Pendente' : selectedTx.status === 'validated' ? 'Validado' : selectedTx.status}
+                                        <Badge variant={(selectedTx.status === 'claimed' || selectedTx.status === 'Completed' || selectedTx.status === 'CONCLUÍDO') ? "default" : "secondary"} className="font-black text-[9px] uppercase px-3 rounded-full">
+                                            {(selectedTx.status === 'claimed' || selectedTx.status === 'Completed' || selectedTx.status === 'CONCLUÍDO') ? 'CONCLUÍDO' : 
+                                             (selectedTx.status === 'Pending' || selectedTx.status === 'PENDENTE') ? 'PENDENTE' : 
+                                             (selectedTx.status === 'validated' || selectedTx.status === 'VALIDADO') ? 'VALIDADO' : 
+                                             selectedTx.status.toUpperCase()}
                                         </Badge>
                                     </div>
                                     <div className="flex justify-between items-center text-xs">

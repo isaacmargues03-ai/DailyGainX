@@ -74,11 +74,12 @@ export default function DepositPage() {
                 userId: user.uid,
                 accountId: user.uid,
                 amount: amountInBrl * BRL_MULTIPLIER_TO_USDT, 
-                status: 'Pending',
+                status: 'PENDENTE',
                 method: 'Pix',
-                type: 'deposit', // Campo crucial para identificar no histórico
+                type: 'deposit',
                 externalId: response.transactionId,
                 pixCopyPaste: response.pixCopyPaste,
+                timestamp: new Date().toLocaleString('pt-BR'),
                 depositDate: new Date().toISOString()
             });
 

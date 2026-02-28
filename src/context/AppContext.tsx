@@ -97,12 +97,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const txRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', txId);
 
       if (transaction.type === 'withdrawal') {
-          // 1. Persistir no Firestore para o Histórico
+          // 1. Persistir no Firestore para o Histórico como Saque Pendente
           setDoc(txRef, {
               ...transaction,
               id: txId,
+              status: 'PENDENTE',
               timestamp: new Date().toLocaleString('pt-BR'),
-              depositDate: new Date().toISOString(), // Usado para ordenação no histórico
+              depositDate: new Date().toISOString(),
           });
 
           // 2. Deduzir saldo
