@@ -20,7 +20,7 @@ import {
 
 /**
  * Item de transação ultra-minimalista.
- * Exibe apenas o tipo da operação e o valor.
+ * Exibe exclusivamente o tipo da operação e o valor em negrito extra.
  */
 function TransactionItem({ 
   transaction, 
@@ -33,16 +33,15 @@ function TransactionItem({
   
   return (
     <div 
-        className="flex flex-col py-6 border-b last:border-b-0 gap-1 cursor-pointer hover:bg-muted/5 transition-colors" 
+        className="flex flex-col py-8 border-b last:border-b-0 cursor-pointer hover:bg-muted/5 transition-colors" 
         onClick={() => onViewDetails(transaction)}
     >
         <div className="flex items-center justify-between">
-            <p className="font-black text-sm tracking-tight">{isDeposit ? 'DEPÓSITO' : 'SAQUE'}</p>
-            <p className={cn("text-lg font-black tracking-tighter", isDeposit ? 'text-green-600' : 'text-red-600')}>
+            <p className="font-black text-base tracking-tighter uppercase">{isDeposit ? 'DEPÓSITO' : 'SAQUE'}</p>
+            <p className={cn("text-xl font-black tracking-tighter", isDeposit ? 'text-green-600' : 'text-red-600')}>
                 {isDeposit ? '+' : '-'}{transaction.amount.toFixed(2)} USDT
             </p>
         </div>
-        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{transaction.timestamp}</p>
     </div>
   );
 }
@@ -110,10 +109,10 @@ export default function HistoryPage() {
 
                     <div className="space-y-8">
                         <div className="pb-6 border-b-2 border-black">
-                            <h2 className="text-3xl font-black uppercase tracking-tighter leading-none">Histórico</h2>
+                            <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">Histórico</h2>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-0">
                              {transactions.length > 0 ? (
                                 <div className="divide-y divide-muted/30">
                                     {transactions.map((tx) => (
@@ -126,7 +125,7 @@ export default function HistoryPage() {
                                 </div>
                             ) : (
                                 <div className="text-center py-20">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">Sem transações registradas</p>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/20">Sem transações</p>
                                 </div>
                             )}
                         </div>
@@ -170,7 +169,6 @@ export default function HistoryPage() {
                                         </span>
                                     </div>
                                     
-                                    {/* Ações disponíveis dentro do detalhe */}
                                     <div className="pt-4 space-y-3">
                                         {(selectedTx.status === 'Pending' || selectedTx.status === 'PENDENTE') && selectedTx.type === 'deposit' && (
                                             <Button variant="outline" className="w-full h-10 text-[10px] font-black uppercase gap-2 border-primary/40 text-primary hover:bg-primary/5" asChild>
