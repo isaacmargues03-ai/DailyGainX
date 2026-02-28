@@ -22,13 +22,18 @@ function TransactionItem({
 }) {
   const isDeposit = transaction.type === 'deposit';
   
+  // Lógica de rótulo solicitada pelo usuário
+  const displayLabel = isDeposit 
+    ? (transaction.status === 'PENDENTE' ? 'DEPÓSITO PENDENTE' : 'DEPÓSITO')
+    : 'SAQUE';
+  
   return (
     <div 
         className="flex flex-col py-8 border-b-2 border-black last:border-b-0 cursor-pointer hover:bg-muted/5 transition-colors" 
         onClick={() => onViewDetails(transaction)}
     >
         <div className="flex items-center justify-between">
-            <p className="font-black text-xl tracking-tighter uppercase">{isDeposit ? 'DEPÓSITO' : 'SAQUE'}</p>
+            <p className="font-black text-xl tracking-tighter uppercase">{displayLabel}</p>
             <p className={cn("text-xl font-black tracking-tighter", isDeposit ? 'text-green-600' : 'text-red-600')}>
                 {isDeposit ? '+' : '-'}{transaction.amount.toFixed(2)} USDT
             </p>
@@ -95,11 +100,25 @@ export default function HistoryPage() {
                                             {selectedTx.amount.toFixed(2)} USDT
                                         </span>
                                     </div>
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="font-black uppercase tracking-widest text-[10px]">Status</span>
+                                        <span className="font-black uppercase">{selectedTx.status}</span>
+                                    </div>
                                     
                                     <div className="pt-6 border-t-2 border-black space-y-1">
                                         <div className="text-[9px] uppercase font-black tracking-widest text-muted-foreground">Data</div>
                                         <p className="text-xs font-bold uppercase">{selectedTx.timestamp}</p>
                                     </div>
+
+                                    {selectedTx.type === 'deposit' && selectedTx.status === 'PENDENTE' && (
+                                        <div className="pt-4 space-y-2">
+                                            <Button className="w-full bg-black text-white hover:bg-black/90 font-black uppercase text-[10px] tracking-widest h-12 rounded-none" asChild>
+                                                <Link href="http://t.me/Suporte_dailyGainX" target="_blank">
+                                                    Validar no Telegram
+                                                </Link>
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </DialogContent>
