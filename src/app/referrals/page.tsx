@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, collection, query, where } from 'firebase/firestore';
 import { Header } from '@/components/header';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -102,9 +102,6 @@ export default function ReferralsPage() {
                     <CreditCard className="h-6 w-6" />
                     Total de Recompensas
                 </CardTitle>
-                <CardDescription>
-                    Seus ganhos por indicar amigos. Este valor não é adicionado automaticamente ao seu saldo principal.
-                </CardDescription>
             </CardHeader>
             <CardContent>
                 {isReferralsLoading ? (
@@ -121,9 +118,6 @@ export default function ReferralsPage() {
                 <LinkIcon className="h-6 w-6 text-primary" />
                 Seu Link de Indicação
               </CardTitle>
-              <CardDescription>
-                Compartilhe este link. Ao clicar, o código será preenchido automaticamente para seu amigo.
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {isProfileLoading ? (
@@ -152,9 +146,6 @@ export default function ReferralsPage() {
                 <Gift className="h-6 w-6 text-primary" />
                 Seu Código de Indicação
               </CardTitle>
-              <CardDescription>
-                Se preferir, compartilhe apenas o código para inserção manual.
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {isProfileLoading ? (
@@ -188,9 +179,6 @@ export default function ReferralsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Amigos Convidados</CardTitle>
-              <CardDescription>
-                Acompanhe quem usou seu código e se você já ganhou sua recompensa.
-              </CardDescription>
             </CardHeader>
             <CardContent>
               {isReferralsLoading ? (
