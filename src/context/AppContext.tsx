@@ -4,7 +4,7 @@ import type { Operation, OpenPosition, ActiveInvestment, Transaction } from '@/l
 import type { Product } from '@/lib/products';
 import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo, useCallback } from 'react';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, increment, query, collection, orderBy, limit, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, query, collection, orderBy, limit, setDoc, getDocs, writeBatch } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 
 const generateData = (count: number, initialValue: number) => {
@@ -30,6 +30,7 @@ interface AppContextType {
   addInvestment: (product: Product, image: { imageUrl: string, imageHint: string }) => boolean;
   transactions: Transaction[];
   addTransaction: (transaction: Omit<Transaction, 'id' | 'timestamp'>) => void;
+  clearHistory: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -97,7 +98,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const txRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', txId);
 
       if (transaction.type === 'withdrawal') {
-          // 1. Persistir no Firestore para o Histórico como Saque Pendente
           setDoc(txRef, {
               ...transaction,
               id: txId,
@@ -106,11 +106,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
               depositDate: new Date().toISOString(),
           });
 
-          // 2. Deduzir saldo
           updateDoc(accountDocRef, { balance: increment(-transaction.amount) })
             .catch(() => toast({ variant: 'destructive', title: 'Erro', description: 'Falha no saque.' }));
       }
   }, [user, firestore, accountDocRef, toast]);
+
+  const clearHistory = useCallback(async () => {
+    if (!user || !firestore) return;
+    try {
+      const q = query(collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions'));
+      const snapshot = await getDocs(q);
+      const batch = writeBatch(firestore);
+      snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+    } catch (error) {
+      console.error("Erro ao zerar histórico:", error);
+      throw error;
+    }
+  }, [user, firestore]);
 
   const openPosition = useCallback((position: Omit<OpenPosition, 'id' | 'timestamp' | 'entryPrice'>) => {
     if (isBalanceLoading || !accountDocRef) return;
@@ -189,7 +204,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       activeInvestments,
       addInvestment,
       transactions: (firestoreTransactions || []) as Transaction[],
-      addTransaction
+      addTransaction,
+      clearHistory
   }), [
       balance, 
       isBalanceLoading,
@@ -203,7 +219,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       activeInvestments,
       addInvestment,
       firestoreTransactions,
-      addTransaction
+      addTransaction,
+      clearHistory
   ]);
 
   return (
