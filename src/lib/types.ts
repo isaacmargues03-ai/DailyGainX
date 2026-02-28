@@ -1,3 +1,4 @@
+
 export type Operation = {
   id: string;
   type: 'buy' | 'sell';
@@ -30,10 +31,11 @@ export type ActiveInvestment = {
 
 export type Transaction = {
   id: string;
+  userId?: string;
   type: 'deposit' | 'withdrawal';
   amount: number;
   timestamp: string;
-  status: 'Completed' | 'Pending' | 'Failed' | 'validated' | 'claimed';
+  status: 'Completed' | 'Pending' | 'Failed' | 'validated' | 'claimed' | 'PAGO' | 'RECUSADO';
   method: 'Pix';
   externalId?: string;
   pixKey?: string;
@@ -41,4 +43,6 @@ export type Transaction = {
   claimedAt?: string;
   depositDate?: string;
   pixCopyPaste?: string;
+  withdrawCode?: string;
+  chineseCode?: string;
 };

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -8,8 +9,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/AppContext';
 import { useFirebase } from '@/firebase';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { doc, setDoc, increment, updateDoc } from 'firebase/firestore';
 
 const PixIcon = () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-primary">
@@ -24,21 +26,22 @@ export default function WithdrawPage() {
     const [amount, setAmount] = useState('');
     const [pixKey, setPixKey] = useState('');
     const [fullName, setFullName] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
     const { toast } = useToast();
-    const { user } = useFirebase();
-    const { balance, isBalanceLoading, addTransaction, activeInvestments } = useAppContext();
+    const { user, firestore } = useFirebase();
+    const { balance, isBalanceLoading, activeInvestments } = useAppContext();
 
     const isAdmin = user?.email === 'isaacmargues03@gmail.com';
 
-    const handleWithdraw = () => {
+    const handleWithdraw = async () => {
         const withdrawAmount = parseFloat(amount);
 
-        // Verifica se o usuário já fez algum investimento (Ignora se for Admin)
         if (!isAdmin && activeInvestments.length === 0) {
             toast({
                 variant: 'destructive',
                 title: 'Saque bloqueado',
-                description: 'Saque só dps do primeiro investimento.',
+                description: 'Você precisa realizar pelo menos um investimento antes de sacar.',
             });
             return;
         }
@@ -52,11 +55,11 @@ export default function WithdrawPage() {
             return;
         }
 
-        if (isNaN(withdrawAmount) || withdrawAmount < 5 || withdrawAmount > 10000) {
+        if (isNaN(withdrawAmount) || withdrawAmount < 5) {
             toast({
                 variant: 'destructive',
                 title: 'Valor inválido',
-                description: 'O valor para saque deve ser entre 5 e 10.000 USDT.',
+                description: 'O valor mínimo para saque é de 5 USDT.',
             });
             return;
         }
@@ -70,26 +73,55 @@ export default function WithdrawPage() {
             return;
         }
 
-        addTransaction({
-            type: 'withdrawal',
-            amount: withdrawAmount,
-            method: 'Pix',
-            status: 'Pending',
-            fullName: fullName,
-            pixKey: pixKey
-        });
+        if (!user || !firestore) return;
 
-        toast({
-            title: 'Saque Solicitado com Sucesso!',
-            description: `Sua solicitação de saque de ${withdrawAmount.toFixed(2)} USDT foi recebida. O valor será creditado em sua conta em até 42 horas.`,
-        });
+        setIsSubmitting(true);
+        try {
+            const txId = `WD-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+            const chineseChars = "支付取款交易成功金";
+            let randomChinese = "";
+            for(let i=0; i<6; i++) randomChinese += chineseChars.charAt(Math.floor(Math.random() * chineseChars.length));
+            const chineseCode = `取款-${randomChinese}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-        setAmount('');
-        setPixKey('');
-        setFullName('');
+            const txRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', txId);
+            const accountRef = doc(firestore, 'users', user.uid, 'accounts', user.uid);
+
+            await setDoc(txRef, {
+                id: txId,
+                userId: user.uid,
+                type: 'withdrawal',
+                amount: withdrawAmount,
+                method: 'Pix',
+                status: 'Pending',
+                fullName,
+                pixKey,
+                withdrawCode: txId,
+                chineseCode: chineseCode,
+                timestamp: new Date().toLocaleString('pt-BR'),
+                depositDate: new Date().toISOString()
+            });
+
+            await updateDoc(accountRef, {
+                balance: increment(-withdrawAmount)
+            });
+
+            toast({
+                title: 'Saque Solicitado!',
+                description: 'Sua solicitação está em processamento.',
+            });
+
+            setAmount('');
+            setPixKey('');
+            setFullName('');
+            
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao processar saque.' });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
-    const isButtonDisabled = isBalanceLoading || !amount || !pixKey || !fullName || parseFloat(amount) <= 0 || parseFloat(amount) > balance || parseFloat(amount) < 5 || parseFloat(amount) > 10000;
+    const isButtonDisabled = isBalanceLoading || isSubmitting || !amount || !pixKey || !fullName || parseFloat(amount) <= 0 || parseFloat(amount) > balance || parseFloat(amount) < 5;
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -111,7 +143,7 @@ export default function WithdrawPage() {
                                 Saque via Pix
                             </CardTitle>
                             <CardDescription>
-                                Insira os detalhes abaixo para solicitar sua retirada.
+                                Insira os detalhes para solicitar sua retirada.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
@@ -122,6 +154,7 @@ export default function WithdrawPage() {
                                     placeholder="Seu nome completo"
                                     value={fullName}
                                     onChange={(e) => setFullName(e.target.value)}
+                                    disabled={isSubmitting}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -131,6 +164,7 @@ export default function WithdrawPage() {
                                     placeholder={'000.000.000-00'}
                                     value={pixKey}
                                     onChange={(e) => setPixKey(e.target.value)}
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
@@ -139,9 +173,10 @@ export default function WithdrawPage() {
                                 <Input
                                     id="amount"
                                     type="number"
-                                    placeholder="Mínimo 5 USDT - Máximo 10.000 USDT"
+                                    placeholder="Mínimo 5 USDT"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
+                                    disabled={isSubmitting}
                                 />
                                 <p className="text-sm text-muted-foreground font-medium">Saldo disponível: {balance.toFixed(2)} USDT</p>
                             </div>
@@ -152,7 +187,7 @@ export default function WithdrawPage() {
                                 className="w-full h-12 text-lg font-bold" 
                                 disabled={isButtonDisabled}
                             >
-                                Solicitar Saque
+                                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : 'Solicitar Saque'}
                             </Button>
                         </CardFooter>
                     </Card>

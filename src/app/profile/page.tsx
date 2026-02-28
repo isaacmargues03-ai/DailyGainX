@@ -22,13 +22,16 @@ import {
   ShieldCheck,
   PlusCircle,
   Plus,
+  WalletCards,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { useAppContext } from '@/context/AppContext';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { doc, runTransaction, setDoc, serverTimestamp, collection, query, orderBy, limit, increment, getDoc, getDocs, where } from 'firebase/firestore';
+import { doc, runTransaction, setDoc, serverTimestamp, collection, query, orderBy, limit, increment, getDoc, getDocs, where, updateDoc, collectionGroup } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -43,6 +46,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Transaction } from '@/lib/types';
 
 function MenuItem({ href, icon, text }: { href: string; icon: React.ReactNode; text: string }) {
   return (
@@ -80,10 +84,12 @@ export default function ProfilePage() {
 
   const [isTokenDialogOpen, setIsTokenDialogOpen] = useState(false);
   const [isAdminDialogOpen, setIsAdminDialogOpen] = useState(false);
+  const [isWithdrawAdminOpen, setIsWithdrawAdminOpen] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
   const [adminTokenValue, setAdminTokenValue] = useState('100.00');
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [processingWithdrawId, setProcessingWithdrawId] = useState<string | null>(null);
 
   const isAdmin = user?.email === 'isaacmargues03@gmail.com';
 
@@ -100,6 +106,19 @@ export default function ProfilePage() {
   }, [isAdmin, firestore]);
 
   const { data: allTokens } = useCollection<{token: string, valor: number, usado: boolean, transactionId?: string}>(tokensQuery);
+
+  // Consulta de Saques Pendentes para Admin (Usando collectionGroup para pegar de todos os usuários)
+  const withdrawsQuery = useMemoFirebase(() => {
+    if (!isAdmin || !firestore) return null;
+    return query(
+        collectionGroup(firestore, 'depositTransactions'), 
+        where('type', '==', 'withdrawal'),
+        orderBy('depositDate', 'desc'),
+        limit(50)
+    );
+  }, [isAdmin, firestore]);
+
+  const { data: adminWithdraws } = useCollection<Transaction>(withdrawsQuery);
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -144,6 +163,20 @@ export default function ProfilePage() {
     }
   };
 
+  const updateWithdrawStatus = async (tx: Transaction, newStatus: 'PAGO' | 'RECUSADO') => {
+    if (!firestore || !tx.userId) return;
+    setProcessingWithdrawId(tx.id);
+    try {
+        const txRef = doc(firestore, 'users', tx.userId, 'accounts', tx.userId, 'depositTransactions', tx.id);
+        await updateDoc(txRef, { status: newStatus });
+        toast({ title: `Saque ${newStatus}`, description: `O status da transação foi atualizado para ${newStatus}.` });
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Erro', description: error.message });
+    } finally {
+        setProcessingWithdrawId(null);
+    }
+  };
+
   const handleRedeemToken = async () => {
     const tokenClean = tokenInput.trim().toUpperCase();
     if (!tokenClean || !user || isRedeeming) return;
@@ -151,7 +184,6 @@ export default function ProfilePage() {
     setIsRedeeming(true);
 
     try {
-      // Pré-busca para encontrar a transação de histórico vinculada de forma robusta
       let linkedHistoryTxRef = null;
       const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
       const tokenSnap = await getDoc(tokenRef);
@@ -159,14 +191,12 @@ export default function ProfilePage() {
       if (tokenSnap.exists()) {
         const tData = tokenSnap.data();
         if (tData.transactionId && tData.transactionId !== "Manual-Site") {
-          // 1. Tenta encontrar por ID de documento direto
           const directRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', tData.transactionId);
           const directSnap = await getDoc(directRef);
           
           if (directSnap.exists()) {
             linkedHistoryTxRef = directRef;
           } else {
-            // 2. Tenta encontrar por externalId (ID da PixUp)
             const q = query(
               collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions'),
               where('externalId', '==', tData.transactionId),
@@ -188,7 +218,7 @@ export default function ProfilePage() {
         const [tokenDoc, userDoc, accountDoc] = await Promise.all([
           transaction.get(tokenRef),
           transaction.get(userRef),
-          transaction.get(accountRef)
+          transaction.get(accountDocRef!)
         ]);
 
         if (!tokenDoc.exists()) throw new Error('Código inválido ou inexistente.');
@@ -198,13 +228,6 @@ export default function ProfilePage() {
 
         const userData = userDoc.data();
 
-        let referralDoc = null;
-        if (userData && !userData.hasMadeFirstDeposit && userData.referralId) {
-            const referralRef = doc(firestore, 'referrals', userData.referralId);
-            referralDoc = await transaction.get(referralRef);
-        }
-
-        // 1. Atualização de Saldo
         if (!accountDoc.exists()) {
           transaction.set(accountRef, {
             id: user.uid,
@@ -218,14 +241,12 @@ export default function ProfilePage() {
           });
         }
 
-        // 2. Marca Token como usado
         transaction.update(tokenRef, {
           usado: true,
           usedAt: new Date().toISOString(),
           usedBy: user.uid
         });
 
-        // 3. Atualiza histórico para CONCLUÍDO (claimed)
         if (linkedHistoryTxRef) {
           transaction.update(linkedHistoryTxRef, {
             status: 'claimed',
@@ -233,31 +254,26 @@ export default function ProfilePage() {
           });
         }
 
-        // 4. Recompensa de indicação no primeiro resgate de token
         if (userData && !userData.hasMadeFirstDeposit) {
             transaction.update(userRef, { hasMadeFirstDeposit: true });
             
-            if (referralDoc && referralDoc.exists()) {
-                const referralData = referralDoc.data();
-                const referrerId = referralData.referrerId;
-                
-                transaction.update(referralDoc.ref, { status: 'rewarded' });
-                
-                const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
-                transaction.update(referrerAccountRef, {
-                    balance: increment(1)
-                });
+            if (userData.referralId) {
+                const referralRef = doc(firestore, 'referrals', userData.referralId);
+                const referralDoc = await transaction.get(referralRef);
+                if (referralDoc.exists()) {
+                    const referrerId = referralDoc.data().referrerId;
+                    transaction.update(referralRef, { status: 'rewarded' });
+                    const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
+                    transaction.update(referrerAccountRef, { balance: increment(1) });
+                }
             }
         }
-
-        return tokenData.valor;
       });
 
-      toast({ title: 'Sucesso!', description: 'Saldo creditado em sua conta!' });
+      toast({ title: 'Sucesso!', description: 'Saldo creditado!' });
       setIsTokenDialogOpen(false);
       setTokenInput('');
     } catch (error: any) {
-      console.error("Erro no resgate:", error);
       toast({ variant: 'destructive', title: 'Falha no Resgate', description: error.message });
     } finally {
       setIsRedeeming(false);
@@ -284,14 +300,6 @@ export default function ProfilePage() {
                             {isAdmin && <Badge className="bg-purple-600">Admin</Badge>}
                         </div>
                         <p className="text-sm text-muted-foreground">{user?.email}</p>
-                        {userProfile?.referralCode && (
-                            <div className="flex items-center gap-2 mt-2">
-                                <span className="text-xs font-mono bg-muted px-2 py-1 rounded">ID: {userProfile.referralCode}</span>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(userProfile.referralCode, 'Código')}>
-                                    <Copy className="h-3.5 w-3.5" />
-                                </Button>
-                            </div>
-                        )}
                     </div>
                 </div>
 
@@ -313,13 +321,21 @@ export default function ProfilePage() {
                 </Card>
 
                 {isAdmin && (
-                  <div className="mb-8">
+                  <div className="space-y-3 mb-8">
                     <Button 
                       onClick={() => setIsAdminDialogOpen(true)} 
                       className="w-full h-14 bg-purple-600 hover:bg-purple-700 text-white font-black text-lg rounded-xl shadow-lg gap-3"
                     >
                       <Plus className="h-6 w-6" />
                       GERAR NOVO TOKEN
+                    </Button>
+                    <Button 
+                      onClick={() => setIsWithdrawAdminOpen(true)} 
+                      variant="outline"
+                      className="w-full h-14 border-purple-600 text-purple-600 font-black text-lg rounded-xl gap-3"
+                    >
+                      <WalletCards className="h-6 w-6" />
+                      GERENCIAR SAQUES
                     </Button>
                   </div>
                 )}
@@ -328,7 +344,7 @@ export default function ProfilePage() {
                     <h3 className="text-[11px] font-black text-muted-foreground px-1 uppercase tracking-widest">Serviços</h3>
                     <ActionMenuItem onClick={() => setIsTokenDialogOpen(true)} icon={<Ticket className="h-5 w-5"/>} text="Resgatar Token" />
                     <MenuItem href="/investments" icon={<Briefcase className="h-5 w-5"/>} text="Meus Investimentos" />
-                    <MenuItem href="/history" icon={<History className="h-5 w-5"/>} text="Histórico de Transações" />
+                    <MenuItem href="/history" icon={<History className="h-5 w-5"/>} text="Histórico de Saques" />
                     <MenuItem href="/referrals" icon={<Gift className="h-5 w-5"/>} text="Indique e Ganhe" />
                     <MenuItem href="/feedback" icon={<MessageSquare className="h-5 w-5"/>} text="Feedback" />
                     <MenuItem href="http://t.me/Suporte_dailyGainX" icon={<Send className="h-5 w-5"/>} text="Suporte Oficial Telegram" />
@@ -342,6 +358,7 @@ export default function ProfilePage() {
             </div>
         </main>
 
+        {/* DIALOG RESGATAR TOKEN */}
         <Dialog open={isTokenDialogOpen} onOpenChange={setIsTokenDialogOpen}>
           <DialogContent className="rounded-2xl">
             <DialogHeader>
@@ -359,6 +376,7 @@ export default function ProfilePage() {
           </DialogContent>
         </Dialog>
 
+        {/* DIALOG ADMIN GERAR TOKEN */}
         <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
           <DialogContent className="sm:max-w-md rounded-2xl">
             <DialogHeader>
@@ -394,12 +412,86 @@ export default function ProfilePage() {
                         </div>
                       </div>
                     ))}
-                    {(!allTokens || allTokens.length === 0) && (
-                        <p className="text-center text-xs text-muted-foreground py-10">Nenhum token gerado ainda.</p>
-                    )}
                   </div>
                 </ScrollArea>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* DIALOG ADMIN GERENCIAR SAQUES */}
+        <Dialog open={isWithdrawAdminOpen} onOpenChange={setIsWithdrawAdminOpen}>
+          <DialogContent className="sm:max-w-2xl rounded-2xl p-0 overflow-hidden">
+            <DialogHeader className="p-6 bg-purple-600 text-white">
+              <DialogTitle className="text-2xl font-black flex items-center gap-2 uppercase tracking-tighter">
+                <WalletCards className="h-7 w-7" /> Solicitações de Saque
+              </DialogTitle>
+              <DialogDescription className="text-white/80">Conferir e processar os pedidos de retirada dos usuários.</DialogDescription>
+            </DialogHeader>
+            <div className="p-4">
+              <ScrollArea className="h-[500px] pr-4">
+                <div className="space-y-4">
+                  {adminWithdraws?.map((tx) => (
+                    <Card key={tx.id} className="p-4 space-y-3 border-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-black text-sm uppercase tracking-tight">{tx.fullName || 'Usuário Desconhecido'}</p>
+                          <p className="text-[10px] text-muted-foreground font-bold">{tx.timestamp}</p>
+                        </div>
+                        <Badge variant={tx.status === 'PAGO' ? 'default' : tx.status === 'RECUSADO' ? 'destructive' : 'outline'}>
+                          {tx.status || 'PENDENTE'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="bg-muted/30 p-3 rounded text-[11px] space-y-2">
+                        <div className="flex justify-between">
+                            <span className="font-bold text-muted-foreground uppercase">Chave Pix:</span>
+                            <span className="font-black">{tx.pixKey}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="font-bold text-muted-foreground uppercase">Valor:</span>
+                            <span className="font-black text-red-600">{tx.amount.toFixed(2)} USDT</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="font-bold text-muted-foreground uppercase">Código WD:</span>
+                            <span className="font-black flex items-center gap-1">
+                                {tx.withdrawCode || tx.id}
+                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => copyToClipboard(tx.withdrawCode || tx.id, 'Código')}>
+                                    <Copy className="h-3 w-3" />
+                                </Button>
+                            </span>
+                        </div>
+                      </div>
+
+                      {(!tx.status || (tx.status !== 'PAGO' && tx.status !== 'RECUSADO')) && (
+                        <div className="grid grid-cols-2 gap-2 pt-2">
+                          <Button 
+                            variant="outline" 
+                            className="border-red-500 text-red-500 hover:bg-red-50 h-10 font-bold uppercase text-xs gap-2"
+                            onClick={() => updateWithdrawStatus(tx, 'RECUSADO')}
+                            disabled={processingWithdrawId === tx.id}
+                          >
+                            <XCircle className="h-4 w-4" /> Recusar
+                          </Button>
+                          <Button 
+                            className="bg-green-600 hover:bg-green-700 text-white h-10 font-bold uppercase text-xs gap-2"
+                            onClick={() => updateWithdrawStatus(tx, 'PAGO')}
+                            disabled={processingWithdrawId === tx.id}
+                          >
+                            <CheckCircle2 className="h-4 w-4" /> Pago
+                          </Button>
+                        </div>
+                      )}
+                    </Card>
+                  ))}
+                  {(!adminWithdraws || adminWithdraws.length === 0) && (
+                    <div className="text-center py-20 text-muted-foreground">
+                        <WalletCards className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                        <p className="font-bold uppercase tracking-widest text-sm">Nenhuma solicitação encontrada</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
             </div>
           </DialogContent>
         </Dialog>
