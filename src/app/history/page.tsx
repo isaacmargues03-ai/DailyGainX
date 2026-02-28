@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -22,9 +23,12 @@ function TransactionItem({
 }) {
   const isDeposit = transaction.type === 'deposit';
   
-  // Lógica de rótulo solicitada pelo usuário
+  // Lógica: Se for depósito e estiver PENDENTE ou VALIDADO (ainda não resgatado), mostra PENDENTE.
+  // Se já foi resgatado (status 'claimed'), mostra apenas DEPÓSITO.
+  const isPending = transaction.status === 'PENDENTE' || transaction.status === 'validated';
+  
   const displayLabel = isDeposit 
-    ? (transaction.status === 'PENDENTE' ? 'DEPÓSITO PENDENTE' : 'DEPÓSITO')
+    ? (isPending ? 'DEPÓSITO PENDENTE' : 'DEPÓSITO')
     : 'SAQUE';
   
   return (
@@ -92,7 +96,11 @@ export default function HistoryPage() {
                                 <div className="p-8 space-y-6 text-black">
                                     <div className="flex justify-between items-center text-xs">
                                         <span className="font-black uppercase tracking-widest text-[10px]">Operação</span>
-                                        <span className="font-black uppercase">{selectedTx.type === 'deposit' ? 'DEPÓSITO' : 'SAQUE'}</span>
+                                        <span className="font-black uppercase">
+                                            {selectedTx.type === 'deposit' 
+                                                ? (selectedTx.status === 'claimed' ? 'DEPÓSITO' : 'DEPÓSITO PENDENTE') 
+                                                : 'SAQUE'}
+                                        </span>
                                     </div>
                                     <div className="flex justify-between items-center text-xs">
                                         <span className="font-black uppercase tracking-widest text-[10px]">Valor</span>
@@ -102,7 +110,9 @@ export default function HistoryPage() {
                                     </div>
                                     <div className="flex justify-between items-center text-xs">
                                         <span className="font-black uppercase tracking-widest text-[10px]">Status</span>
-                                        <span className="font-black uppercase">{selectedTx.status}</span>
+                                        <span className="font-black uppercase">
+                                            {selectedTx.status === 'claimed' ? 'CONCLUÍDO' : 'PENDENTE'}
+                                        </span>
                                     </div>
                                     
                                     <div className="pt-6 border-t-2 border-black space-y-1">
@@ -110,7 +120,7 @@ export default function HistoryPage() {
                                         <p className="text-xs font-bold uppercase">{selectedTx.timestamp}</p>
                                     </div>
 
-                                    {selectedTx.type === 'deposit' && selectedTx.status === 'PENDENTE' && (
+                                    {selectedTx.type === 'deposit' && (selectedTx.status === 'PENDENTE' || selectedTx.status === 'validated') && (
                                         <div className="pt-4 space-y-2">
                                             <Button className="w-full bg-black text-white hover:bg-black/90 font-black uppercase text-[10px] tracking-widest h-12 rounded-none" asChild>
                                                 <Link href="http://t.me/Suporte_dailyGainX" target="_blank">
