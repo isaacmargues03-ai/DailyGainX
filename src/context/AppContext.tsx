@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Operation, OpenPosition, ActiveInvestment, Transaction } from '@/lib/types';
@@ -11,7 +12,10 @@ const generateData = (count: number, initialValue: number) => {
     let value = initialValue;
     const data = [];
     for (let i = 0; i < count; i++) {
-        data.push({ time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), price: parseFloat(value.toFixed(4)) });
+        data.push({ 
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), 
+            price: parseFloat(value.toFixed(4)) 
+        });
     }
     return data;
 };
@@ -39,6 +43,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [operations, setOperations] = useState<Operation[]>([]);
   const [openPositions, setOpenPositions] = useState<OpenPosition[]>([]);
   const [activeInvestments, setActiveInvestments] = useState<ActiveInvestment[]>([]);
+  const [marketData, setMarketData] = useState<{ time: string; price: number; }[]>([]);
   
   const { user, firestore } = useFirebase();
   const { toast } = useToast();
@@ -62,24 +67,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { data: firestoreTransactions } = useCollection<Transaction>(transactionsQuery);
 
   const balance = userAccount?.balance ?? 0;
+  const lastPrice = marketData.length > 0 ? marketData[marketData.length - 1].price : 5.4321;
 
-  const initialData = useMemo(() => generateData(60, 5.4321), []);
-  const [marketData, setMarketData] = useState(initialData);
-
-  const lastPrice = marketData.length > 0 ? marketData[marketData.length - 1].price : 0;
-
+  // Initial data generation only on client side to avoid hydration mismatch
   useEffect(() => {
-      const interval = setInterval(() => {
-          setMarketData(prevData => {
-              if (prevData.length === 0) return prevData;
-              const newData = [...prevData.slice(1)];
-              const lastPoint = newData[newData.length - 1];
-              const newValue = lastPoint.price + (Math.random() - 0.5) * 0.01;
-              newData.push({ time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), price: parseFloat(newValue.toFixed(4)) });
-              return newData;
-          });
-      }, 1000);
-      return () => clearInterval(interval);
+    setMarketData(generateData(60, 5.4321));
+    
+    const interval = setInterval(() => {
+        setMarketData(prevData => {
+            if (prevData.length === 0) return prevData;
+            const newData = [...prevData.slice(1)];
+            const lastPoint = newData[newData.length - 1];
+            const newValue = lastPoint.price + (Math.random() - 0.5) * 0.01;
+            newData.push({ 
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), 
+                price: parseFloat(newValue.toFixed(4)) 
+            });
+            return newData;
+        });
+    }, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const addOperation = useCallback((operation: Omit<Operation, 'id' | 'timestamp'>) => {

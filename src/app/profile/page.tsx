@@ -100,6 +100,11 @@ export default function ProfilePage() {
 
   const { data: userProfile } = useDoc<{referralCode: string, referralId?: string, hasMadeFirstDeposit?: boolean}>(userDocRef);
 
+  const accountDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid, 'accounts', user.uid);
+  }, [user, firestore]);
+
   const tokensQuery = useMemoFirebase(() => {
     if (!isAdmin || !firestore) return null;
     return query(collection(firestore, 'tokens_resgate'), orderBy('dataCriacao', 'desc'), limit(20));
@@ -107,7 +112,6 @@ export default function ProfilePage() {
 
   const { data: allTokens } = useCollection<{token: string, valor: number, usado: boolean, transactionId?: string}>(tokensQuery);
 
-  // Consulta de Saques Pendentes para Admin (Usando collectionGroup para pegar de todos os usuários)
   const withdrawsQuery = useMemoFirebase(() => {
     if (!isAdmin || !firestore) return null;
     return query(
@@ -179,7 +183,7 @@ export default function ProfilePage() {
 
   const handleRedeemToken = async () => {
     const tokenClean = tokenInput.trim().toUpperCase();
-    if (!tokenClean || !user || isRedeeming) return;
+    if (!tokenClean || !user || !firestore || !accountDocRef || isRedeeming) return;
 
     setIsRedeeming(true);
 
@@ -213,12 +217,12 @@ export default function ProfilePage() {
       await runTransaction(firestore, async (transaction) => {
         const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
         const userRef = doc(firestore, 'users', user.uid);
-        const accountRef = doc(firestore, 'users', user.uid, 'accounts', user.uid);
+        const accountRef = accountDocRef;
 
         const [tokenDoc, userDoc, accountDoc] = await Promise.all([
           transaction.get(tokenRef),
           transaction.get(userRef),
-          transaction.get(accountDocRef!)
+          transaction.get(accountRef)
         ]);
 
         if (!tokenDoc.exists()) throw new Error('Código inválido ou inexistente.');
