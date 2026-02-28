@@ -162,6 +162,7 @@ export default function ProfilePage() {
     setIsRedeeming(true);
 
     try {
+      // Pré-busca: Identificar referências fora da transação para não poluir o fluxo de leitura
       let linkedHistoryTxRef = null;
       const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
       const tokenSnap = await getDoc(tokenRef);
@@ -169,47 +170,56 @@ export default function ProfilePage() {
       if (tokenSnap.exists()) {
         const tData = tokenSnap.data();
         if (tData.transactionId && tData.transactionId !== "Manual-Site") {
-          const directRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', tData.transactionId);
-          const directSnap = await getDoc(directRef);
-          
-          if (directSnap.exists()) {
-            linkedHistoryTxRef = directRef;
+          const q = query(
+            collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions'),
+            where('id', '==', tData.transactionId),
+            limit(1)
+          );
+          const qSnap = await getDocs(q);
+          if (!qSnap.empty) {
+            linkedHistoryTxRef = qSnap.docs[0].ref;
           } else {
-            const q = query(
+            const q2 = query(
               collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions'),
               where('externalId', '==', tData.transactionId),
               limit(1)
             );
-            const qSnap = await getDocs(q);
-            if (!qSnap.empty) {
-              linkedHistoryTxRef = qSnap.docs[0].ref;
+            const q2Snap = await getDocs(q2);
+            if (!q2Snap.empty) {
+              linkedHistoryTxRef = q2Snap.docs[0].ref;
             }
           }
         }
       }
 
       await runTransaction(firestore, async (transaction) => {
-        // --- 1. LEITURAS (Devem vir primeiro) ---
+        // --- ETAPA 1: TODAS AS LEITURAS (Regra de Ouro do Firestore) ---
         const tDoc = await transaction.get(tokenRef);
-        if (!tDoc.exists()) throw new Error('Código inválido ou inexistente.');
-        
-        const tokenData = tDoc.data();
-        if (tokenData.usado) throw new Error('Este código já foi utilizado.');
-
         const userRef = doc(firestore, 'users', user.uid);
         const uDoc = await transaction.get(userRef);
-        if (!uDoc.exists()) throw new Error('Perfil de usuário não encontrado.');
-        const userData = uDoc.data();
-
         const aDoc = await transaction.get(accountDocRef);
 
         let rDoc = null;
-        if (!userData.hasMadeFirstDeposit && userData.referralId) {
-            const referralRef = doc(firestore, 'referrals', userData.referralId);
-            rDoc = await transaction.get(referralRef);
+        if (uDoc.exists()) {
+          const userData = uDoc.data();
+          if (!userData.hasMadeFirstDeposit && userData.referralId) {
+              rDoc = await transaction.get(doc(firestore, 'referrals', userData.referralId));
+          }
         }
 
-        // --- 2. ESCRITAS (Após todas as leituras) ---
+        // Se houver uma transação de histórico vinculada, lemos ela também antes das escritas
+        if (linkedHistoryTxRef) {
+          await transaction.get(linkedHistoryTxRef);
+        }
+
+        // --- ETAPA 2: VALIDAÇÕES (Após leituras, antes das escritas) ---
+        if (!tDoc.exists()) throw new Error('Código inválido ou inexistente.');
+        const tokenData = tDoc.data();
+        if (tokenData.usado) throw new Error('Este código já foi utilizado.');
+        if (!uDoc.exists()) throw new Error('Perfil de usuário não encontrado.');
+        const userData = uDoc.data();
+
+        // --- ETAPA 3: TODAS AS ESCRITAS ---
         const currentBalance = aDoc.exists() ? (aDoc.data().balance || 0) : 0;
         transaction.set(accountDocRef, { balance: currentBalance + tokenData.valor }, { merge: true });
 
