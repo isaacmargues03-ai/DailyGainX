@@ -20,61 +20,29 @@ import {
 
 /**
  * Item de transação ultra-minimalista.
+ * Exibe apenas o tipo da operação e o valor.
  */
 function TransactionItem({ 
   transaction, 
-  onClaim,
   onViewDetails
 }: { 
   transaction: Transaction; 
-  onClaim: (tx: Transaction) => void;
   onViewDetails: (tx: Transaction) => void;
 }) {
   const isDeposit = transaction.type === 'deposit';
-  const isPending = transaction.status === 'Pending' || transaction.status === 'PENDENTE';
-  const isValidated = transaction.status === 'validated' || transaction.status === 'VALIDADO';
-  const isClaimed = transaction.status === 'claimed' || transaction.status === 'Completed' || transaction.status === 'CONCLUÍDO';
   
-  const telegramBotUrl = `https://t.me/DailyGainX_Bot?start=${transaction.id}`;
-
   return (
     <div 
-        className="flex flex-col py-6 border-b last:border-b-0 gap-3 cursor-pointer hover:bg-muted/5 transition-colors" 
+        className="flex flex-col py-6 border-b last:border-b-0 gap-1 cursor-pointer hover:bg-muted/5 transition-colors" 
         onClick={() => onViewDetails(transaction)}
     >
         <div className="flex items-center justify-between">
-            <div>
-                <p className="font-black text-sm tracking-tight">{isDeposit ? 'DEPÓSITO' : 'SAQUE'}</p>
-                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{transaction.timestamp}</p>
-            </div>
-            <div className="text-right">
-                <p className={cn("text-lg font-black tracking-tighter", isDeposit ? 'text-green-600' : 'text-red-600')}>
-                    {isDeposit ? '+' : '-'}{transaction.amount.toFixed(2)} USDT
-                </p>
-                {/* Status removido conforme solicitado para manter o histórico limpo */}
-            </div>
+            <p className="font-black text-sm tracking-tight">{isDeposit ? 'DEPÓSITO' : 'SAQUE'}</p>
+            <p className={cn("text-lg font-black tracking-tighter", isDeposit ? 'text-green-600' : 'text-red-600')}>
+                {isDeposit ? '+' : '-'}{transaction.amount.toFixed(2)} USDT
+            </p>
         </div>
-
-        <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-            {isPending && isDeposit && (
-                <Button variant="outline" size="sm" className="w-full h-8 text-[10px] font-black uppercase gap-2 border-primary/40 text-primary hover:bg-primary/5" asChild>
-                    <Link href={telegramBotUrl} target="_blank">
-                        <Send className="h-3 w-3" /> Validar no Telegram
-                    </Link>
-                </Button>
-            )}
-            
-            {isValidated && (
-                <Button 
-                    variant="default" 
-                    size="sm" 
-                    className="w-full h-8 text-[10px] font-black uppercase gap-2 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200"
-                    onClick={() => onClaim(transaction)}
-                >
-                    <CheckCircle2 className="h-3 w-3" /> Resgatar Saldo
-                </Button>
-            )}
-        </div>
+        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{transaction.timestamp}</p>
     </div>
   );
 }
@@ -89,6 +57,7 @@ export default function HistoryPage() {
     const handleClaim = async (transaction: Transaction) => {
         if (!user || !firestore || claimingId) return;
         setClaimingId(transaction.id);
+        setSelectedTx(null); // Fecha o modal ao iniciar
         
         try {
             await runTransaction(firestore, async (tx) => {
@@ -151,7 +120,6 @@ export default function HistoryPage() {
                                         <TransactionItem 
                                             key={tx.id} 
                                             transaction={tx} 
-                                            onClaim={handleClaim}
                                             onViewDetails={setSelectedTx}
                                         />
                                     ))}
@@ -202,6 +170,27 @@ export default function HistoryPage() {
                                         </span>
                                     </div>
                                     
+                                    {/* Ações disponíveis dentro do detalhe */}
+                                    <div className="pt-4 space-y-3">
+                                        {(selectedTx.status === 'Pending' || selectedTx.status === 'PENDENTE') && selectedTx.type === 'deposit' && (
+                                            <Button variant="outline" className="w-full h-10 text-[10px] font-black uppercase gap-2 border-primary/40 text-primary hover:bg-primary/5" asChild>
+                                                <Link href={`https://t.me/DailyGainX_Bot?start=${selectedTx.id}`} target="_blank">
+                                                    <Send className="h-3 w-3" /> Validar no Telegram
+                                                </Link>
+                                            </Button>
+                                        )}
+                                        
+                                        {(selectedTx.status === 'validated' || selectedTx.status === 'VALIDADO') && (
+                                            <Button 
+                                                variant="default" 
+                                                className="w-full h-12 text-[10px] font-black uppercase gap-2 bg-blue-600 hover:bg-blue-700 shadow-lg"
+                                                onClick={() => handleClaim(selectedTx)}
+                                            >
+                                                <CheckCircle2 className="h-3 w-3" /> Resgatar Saldo
+                                            </Button>
+                                        )}
+                                    </div>
+
                                     {selectedTx.type === 'withdrawal' && (
                                         <div className="pt-6 border-t border-muted/50 space-y-4">
                                             <div className="space-y-1">
