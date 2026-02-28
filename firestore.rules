@@ -10,16 +10,16 @@ service cloud.firestore {
       );
     }
 
-    // REGRA DE OURO: Administrador tem acesso TOTAL e IRRESTRITO a qualquer documento ou coleção
-    // Esta regra deve vir primeiro para garantir que nenhuma regra posterior a limite
-    match /{document=**} {
-      allow read, write, list: if isAdmin();
+    // ACESSO TOTAL ADMINISTRATIVO: Permite qualquer operação em qualquer lugar do banco
+    // O uso de {allPaths=**} é a forma mais robusta de garantir acesso recursivo
+    match /{allPaths=**} {
+      allow read, write: if isAdmin();
     }
 
-    // SUPORTE PARA CONSULTA DE GRUPO (COLLECTION GROUP)
-    // Essencial para o Admin listar saques de todos os usuários
+    // SUPORTE PARA CONSULTAS DE GRUPO (Collection Group)
+    // Necessário para que o Admin liste saques de todos os usuários simultaneamente
     match /{path=**}/depositTransactions/{docId} {
-      allow read, list, write: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
     // REGRAS PARA USUÁRIOS COMUNS (Segurança de dados próprios)
@@ -39,8 +39,6 @@ service cloud.firestore {
     match /tokens_resgate/{tokenId} {
       // Usuário logado pode ler (get) e atualizar (resgatar)
       allow get, update: if request.auth != null;
-      // Admin tem controle total (já coberto pela regra mestre, mas reforçado aqui)
-      allow read, write: if isAdmin();
     }
 
     // SISTEMA DE INDICAÇÕES
@@ -50,7 +48,7 @@ service cloud.firestore {
     }
 
     match /referrals/{referralId} {
-      allow read: if request.auth != null && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId || isAdmin());
+      allow read: if request.auth != null && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
       allow create: if request.auth != null;
     }
   }

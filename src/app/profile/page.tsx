@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/header';
@@ -94,7 +94,9 @@ export default function ProfilePage() {
   const [processingWithdrawId, setProcessingWithdrawId] = useState<string | null>(null);
 
   // Verificação de administrador consistente
-  const isAdmin = !isUserLoading && user && (user.email === ADMIN_EMAIL || user.uid === ADMIN_UID);
+  const isAdmin = useMemo(() => {
+    return !isUserLoading && user && (user.email === ADMIN_EMAIL || user.uid === ADMIN_UID);
+  }, [user, isUserLoading]);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -108,8 +110,8 @@ export default function ProfilePage() {
     return doc(firestore, 'users', user.uid, 'accounts', user.uid);
   }, [user, firestore]);
 
+  // Consultas administrativas protegidas
   const tokensQuery = useMemoFirebase(() => {
-    // Só cria a query se for Admin, evitando erros de permissão durante o carregamento
     if (!isAdmin || !firestore) return null;
     return query(collection(firestore, 'tokens_resgate'), orderBy('dataCriacao', 'desc'), limit(20));
   }, [isAdmin, firestore]);
@@ -117,7 +119,6 @@ export default function ProfilePage() {
   const { data: allTokens } = useCollection<{token: string, valor: number, usado: boolean, transactionId?: string}>(tokensQuery);
 
   const withdrawsQuery = useMemoFirebase(() => {
-    // Só cria a query se for Admin, evitando erros de permissão durante o carregamento
     if (!isAdmin || !firestore) return null;
     return query(
         collectionGroup(firestore, 'depositTransactions'), 
@@ -220,35 +221,18 @@ export default function ProfilePage() {
       }
 
       await runTransaction(firestore, async (transaction) => {
-        const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
-        const userRef = doc(firestore, 'users', user.uid);
-        const accountRef = accountDocRef;
-
-        const [tokenDoc, userDoc, accountDoc] = await Promise.all([
-          transaction.get(tokenRef),
-          transaction.get(userRef),
-          transaction.get(accountRef)
-        ]);
-
-        if (!tokenDoc.exists()) throw new Error('Código inválido ou inexistente.');
+        const tDoc = await transaction.get(tokenRef);
+        if (!tDoc.exists()) throw new Error('Código inválido ou inexistente.');
         
-        const tokenData = tokenDoc.data();
+        const tokenData = tDoc.data();
         if (tokenData.usado) throw new Error('Este código já foi utilizado.');
 
-        const userData = userDoc.data();
+        const userRef = doc(firestore, 'users', user.uid);
+        const uDoc = await transaction.get(userRef);
+        const aDoc = await transaction.get(accountDocRef);
 
-        if (!accountDoc.exists()) {
-          transaction.set(accountRef, {
-            id: user.uid,
-            userId: user.uid,
-            balance: tokenData.valor,
-            currency: 'USDT'
-          });
-        } else {
-          transaction.update(accountRef, {
-            balance: (accountDoc.data().balance || 0) + tokenData.valor
-          });
-        }
+        const currentBalance = aDoc.exists() ? (aDoc.data().balance || 0) : 0;
+        transaction.set(accountDocRef, { balance: currentBalance + tokenData.valor }, { merge: true });
 
         transaction.update(tokenRef, {
           usado: true,
@@ -263,17 +247,17 @@ export default function ProfilePage() {
           });
         }
 
-        if (userData && !userData.hasMadeFirstDeposit) {
+        if (uDoc.exists() && !uDoc.data().hasMadeFirstDeposit) {
             transaction.update(userRef, { hasMadeFirstDeposit: true });
-            
+            const userData = uDoc.data();
             if (userData.referralId) {
                 const referralRef = doc(firestore, 'referrals', userData.referralId);
-                const referralDoc = await transaction.get(referralRef);
-                if (referralDoc.exists()) {
-                    const referrerId = referralDoc.data().referrerId;
+                const rDoc = await transaction.get(referralRef);
+                if (rDoc.exists()) {
+                    const referrerId = rDoc.data().referrerId;
                     transaction.update(referralRef, { status: 'rewarded' });
                     const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
-                    transaction.update(referrerAccountRef, { balance: increment(1) });
+                    transaction.set(referrerAccountRef, { balance: increment(1) }, { merge: true });
                 }
             }
         }
@@ -302,7 +286,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+    <div className="flex min-h-screen w-full flex-col bg-muted/40 text-foreground">
         <Header />
         <main className="flex-1">
             <div className="container mx-auto max-lg py-6 px-4">
@@ -378,7 +362,7 @@ export default function ProfilePage() {
 
         {/* DIALOG RESGATAR TOKEN */}
         <Dialog open={isTokenDialogOpen} onOpenChange={setIsTokenDialogOpen}>
-          <DialogContent className="rounded-2xl">
+          <DialogContent className="rounded-2xl bg-background border-2">
             <DialogHeader>
               <DialogTitle>Resgatar Token</DialogTitle>
               <DialogDescription>Digite o código DGX-XXXXXX para creditar seu saldo.</DialogDescription>
@@ -396,7 +380,7 @@ export default function ProfilePage() {
 
         {/* DIALOG ADMIN GERAR TOKEN */}
         <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
-          <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogContent className="sm:max-w-md rounded-2xl bg-background border-2">
             <DialogHeader>
               <DialogTitle className="text-2xl font-black text-purple-600 flex items-center gap-2">
                 <ShieldCheck className="h-6 w-6" /> Gerar Código
@@ -439,7 +423,7 @@ export default function ProfilePage() {
 
         {/* DIALOG ADMIN GERENCIAR SAQUES */}
         <Dialog open={isWithdrawAdminOpen} onOpenChange={setIsWithdrawAdminOpen}>
-          <DialogContent className="sm:max-w-2xl rounded-2xl p-0 overflow-hidden">
+          <DialogContent className="sm:max-w-2xl rounded-2xl p-0 overflow-hidden bg-background border-2">
             <DialogHeader className="p-6 bg-purple-600 text-white">
               <DialogTitle className="text-2xl font-black flex items-center gap-2 uppercase tracking-tighter">
                 <WalletCards className="h-7 w-7" /> Solicitações de Saque
