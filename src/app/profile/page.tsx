@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -188,6 +189,7 @@ export default function ProfilePage() {
       }
 
       await runTransaction(firestore, async (transaction) => {
+        // --- 1. LEITURAS (Devem vir primeiro) ---
         const tDoc = await transaction.get(tokenRef);
         if (!tDoc.exists()) throw new Error('Código inválido ou inexistente.');
         
@@ -196,8 +198,18 @@ export default function ProfilePage() {
 
         const userRef = doc(firestore, 'users', user.uid);
         const uDoc = await transaction.get(userRef);
+        if (!uDoc.exists()) throw new Error('Perfil de usuário não encontrado.');
+        const userData = uDoc.data();
+
         const aDoc = await transaction.get(accountDocRef);
 
+        let rDoc = null;
+        if (!userData.hasMadeFirstDeposit && userData.referralId) {
+            const referralRef = doc(firestore, 'referrals', userData.referralId);
+            rDoc = await transaction.get(referralRef);
+        }
+
+        // --- 2. ESCRITAS (Após todas as leituras) ---
         const currentBalance = aDoc.exists() ? (aDoc.data().balance || 0) : 0;
         transaction.set(accountDocRef, { balance: currentBalance + tokenData.valor }, { merge: true });
 
@@ -214,18 +226,17 @@ export default function ProfilePage() {
           });
         }
 
-        if (uDoc.exists() && !uDoc.data().hasMadeFirstDeposit) {
+        if (!userData.hasMadeFirstDeposit) {
             transaction.update(userRef, { hasMadeFirstDeposit: true });
-            const userData = uDoc.data();
-            if (userData.referralId) {
-                const referralRef = doc(firestore, 'referrals', userData.referralId);
-                const rDoc = await transaction.get(referralRef);
-                if (rDoc.exists()) {
-                    const referrerId = rDoc.data().referrerId;
-                    transaction.update(referralRef, { status: 'rewarded' });
-                    const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
-                    transaction.set(referrerAccountRef, { balance: increment(1) }, { merge: true });
-                }
+            
+            if (rDoc && rDoc.exists()) {
+                const referralData = rDoc.data();
+                const referrerId = referralData.referrerId;
+                
+                transaction.update(rDoc.ref, { status: 'rewarded' });
+                
+                const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
+                transaction.set(referrerAccountRef, { balance: increment(1) }, { merge: true });
             }
         }
       });
@@ -234,6 +245,7 @@ export default function ProfilePage() {
       setIsTokenDialogOpen(false);
       setTokenInput('');
     } catch (error: any) {
+      console.error("Erro no resgate:", error);
       toast({ variant: 'destructive', title: 'Falha no Resgate', description: error.message });
     } finally {
       setIsRedeeming(false);
