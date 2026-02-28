@@ -95,7 +95,8 @@ export default function ProfilePage() {
 
   // Verificação de administrador consistente
   const isAdmin = useMemo(() => {
-    return !isUserLoading && user && (user.email === ADMIN_EMAIL || user.uid === ADMIN_UID);
+    if (isUserLoading || !user) return false;
+    return user.email === ADMIN_EMAIL || user.uid === ADMIN_UID;
   }, [user, isUserLoading]);
 
   const userDocRef = useMemoFirebase(() => {
@@ -110,23 +111,23 @@ export default function ProfilePage() {
     return doc(firestore, 'users', user.uid, 'accounts', user.uid);
   }, [user, firestore]);
 
-  // Consultas administrativas protegidas
+  // Consultas administrativas protegidas - Só iniciam se isAdmin for TRUE
   const tokensQuery = useMemoFirebase(() => {
-    if (!isAdmin || !firestore) return null;
+    if (!isAdmin || !firestore || isUserLoading) return null;
     return query(collection(firestore, 'tokens_resgate'), orderBy('dataCriacao', 'desc'), limit(20));
-  }, [isAdmin, firestore]);
+  }, [isAdmin, firestore, isUserLoading]);
 
   const { data: allTokens } = useCollection<{token: string, valor: number, usado: boolean, transactionId?: string}>(tokensQuery);
 
   const withdrawsQuery = useMemoFirebase(() => {
-    if (!isAdmin || !firestore) return null;
+    if (!isAdmin || !firestore || isUserLoading) return null;
     return query(
         collectionGroup(firestore, 'depositTransactions'), 
         where('type', '==', 'withdrawal'),
         orderBy('depositDate', 'desc'),
         limit(50)
     );
-  }, [isAdmin, firestore]);
+  }, [isAdmin, firestore, isUserLoading]);
 
   const { data: adminWithdraws } = useCollection<Transaction>(withdrawsQuery);
 
