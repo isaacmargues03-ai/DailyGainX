@@ -334,7 +334,7 @@ export default function ProfilePage() {
                     <MenuItem href="/history" icon={<History className="h-5 w-5"/>} text="Histórico de Saques" />
                     <MenuItem href="/referrals" icon={<Gift className="h-5 w-5"/>} text="Indique e Ganhe" />
                     <MenuItem href="/feedback" icon={<MessageSquare className="h-5 w-5"/>} text="Feedback" />
-                    <MenuItem href="http://t.me/Suporte_dailyGainX" icon={<Send className="h-5 w-5"/>} text="Suporte Oficial Telegram" />
+                    <MenuItem href="https://t.me/SuportedailygainX" icon={<Send className="h-5 w-5"/>} text="Suporte Oficial Telegram" />
                 </div>
 
                 <div className="mt-10">

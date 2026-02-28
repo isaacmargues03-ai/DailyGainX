@@ -191,7 +191,7 @@ export default function DepositPage() {
                                             className="w-full gap-2 h-12 font-bold uppercase" 
                                             asChild
                                         >
-                                            <Link href="http://t.me/Suporte_dailyGainX" target="_blank">
+                                            <Link href="https://t.me/SuportedailygainX" target="_blank">
                                                 <Send className="h-4 w-4" />
                                                 FALAR COM SUPORTE
                                             </Link>
