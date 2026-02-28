@@ -24,11 +24,11 @@ function TransactionItem({
   const isDeposit = transaction.type === 'deposit';
   
   // Lógica: Se for depósito e estiver PENDENTE ou VALIDADO (ainda não resgatado), mostra PENDENTE.
-  // Se já foi resgatado (status 'claimed'), mostra apenas DEPÓSITO.
+  // Se já foi resgatado (status 'claimed'), mostra DEPÓSITO CONCLUÍDO.
   const isPending = transaction.status === 'PENDENTE' || transaction.status === 'validated';
   
   const displayLabel = isDeposit 
-    ? (isPending ? 'DEPÓSITO PENDENTE' : 'DEPÓSITO')
+    ? (isPending ? 'DEPÓSITO PENDENTE' : 'DEPÓSITO CONCLUÍDO')
     : 'SAQUE';
   
   return (
@@ -98,7 +98,7 @@ export default function HistoryPage() {
                                         <span className="font-black uppercase tracking-widest text-[10px]">Operação</span>
                                         <span className="font-black uppercase">
                                             {selectedTx.type === 'deposit' 
-                                                ? (selectedTx.status === 'claimed' ? 'DEPÓSITO' : 'DEPÓSITO PENDENTE') 
+                                                ? (selectedTx.status === 'claimed' ? 'DEPÓSITO CONCLUÍDO' : 'DEPÓSITO PENDENTE') 
                                                 : 'SAQUE'}
                                         </span>
                                     </div>
