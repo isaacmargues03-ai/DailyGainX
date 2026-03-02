@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   PlusCircle,
   Plus,
+  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
@@ -161,7 +162,6 @@ export default function ProfilePage() {
     setIsRedeeming(true);
 
     try {
-      // 1. Identificar transação vinculada (fora da transaction para evitar queries lentas dentro)
       let linkedHistoryTxRef = null;
       const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
       const tokenSnap = await getDoc(tokenRef);
@@ -192,44 +192,36 @@ export default function ProfilePage() {
       }
 
       await runTransaction(firestore, async (transaction) => {
-        // --- ETAPA 1: TODAS AS LEITURAS (OBRIGATÓRIO VIR ANTES) ---
         const tDoc = await transaction.get(tokenRef);
         const userRef = doc(firestore, 'users', user.uid);
         const uDoc = await transaction.get(userRef);
         const aDoc = await transaction.get(accountDocRef);
 
-        // Validação inicial do token
         if (!tDoc.exists()) throw new Error('Código inválido ou inexistente.');
         const tokenData = tDoc.data();
         if (tokenData.usado) throw new Error('Este código já foi utilizado.');
         if (!uDoc.exists()) throw new Error('Perfil de usuário não encontrado.');
         const userData = uDoc.data();
 
-        // Leitura da indicação (se houver)
         let rDoc = null;
         if (!userData.hasMadeFirstDeposit && userData.referralId) {
             rDoc = await transaction.get(doc(firestore, 'referrals', userData.referralId));
         }
 
-        // Leitura da transação de histórico (se houver)
         if (linkedHistoryTxRef) {
           await transaction.get(linkedHistoryTxRef);
         }
 
-        // --- ETAPA 2: TODAS AS ESCRITAS (OBRIGATÓRIO VIR DEPOIS) ---
         const currentBalance = aDoc.exists() ? (aDoc.data().balance || 0) : 0;
         
-        // 1. Creditar saldo do usuário
         transaction.set(accountDocRef, { balance: currentBalance + tokenData.valor }, { merge: true });
 
-        // 2. Marcar token como usado
         transaction.update(tokenRef, {
           usado: true,
           usedAt: new Date().toISOString(),
           usedBy: user.uid
         });
 
-        // 3. Atualizar histórico se houver vínculo
         if (linkedHistoryTxRef) {
           transaction.update(linkedHistoryTxRef, {
             status: 'claimed',
@@ -237,7 +229,6 @@ export default function ProfilePage() {
           });
         }
 
-        // 4. Lógica de Indicação (Pagar bônus ao padrinho no 1º depósito)
         if (!userData.hasMadeFirstDeposit) {
             transaction.update(userRef, { hasMadeFirstDeposit: true });
             
@@ -245,10 +236,8 @@ export default function ProfilePage() {
                 const referralData = rDoc.data();
                 const referrerId = referralData.referrerId;
                 
-                // Marcar indicação como recompensada
                 transaction.update(rDoc.ref, { status: 'rewarded' });
                 
-                // Creditar 1 USDT para o padrinho
                 const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
                 transaction.set(referrerAccountRef, { balance: increment(1) }, { merge: true });
             }
@@ -335,6 +324,7 @@ export default function ProfilePage() {
                     <MenuItem href="/referrals" icon={<Gift className="h-5 w-5"/>} text="Indique e Ganhe" />
                     <MenuItem href="/feedback" icon={<MessageSquare className="h-5 w-5"/>} text="Feedback" />
                     <MenuItem href="https://t.me/SuportedailygainX" icon={<Send className="h-5 w-5"/>} text="Suporte Oficial Telegram" />
+                    <MenuItem href="https://t.me/+81BWkzCKgMdjMDcx" icon={<Users className="h-5 w-5"/>} text="Comunidade Telegram" />
                 </div>
 
                 <div className="mt-10">
