@@ -8,7 +8,7 @@ Este é um projeto Next.js criado no Firebase Studio com integração real da Pi
 Para atualizar e sincronizar com o GitHub:
 ```bash
 git add .
-git commit -m "Integração PixUp Produção - Saldo Automático"
+git commit -m "Sua mensagem de atualização aqui"
 git push
 ```
 
@@ -22,7 +22,9 @@ npm run dev
 Cadastre a URL abaixo no painel da PixUp para que o saldo atualize automaticamente:
 `https://dailygainx.netlify.app/api/webhook/pixup`
 
-**Regras de Negócio:**
-- Conversão: R$ 25,00 = 5 USDT (R$ 1,00 = 0.20 USDT).
-- Crédito: Automático via Webhook (Server-side) ou Resgate Manual via Token.
-- Recompensa: 1 USDT no primeiro depósito do indicado.
+**Regras de Negócio Atualizadas:**
+- **Conversão:** R$ 25,00 = 5 USDT (R$ 1,00 = 0.20 USDT).
+- **Crédito:** Automático via Webhook (Server-side) ou Resgate Manual via Token.
+- **Recompensa:** 1 USDT no primeiro depósito do indicado.
+- **Saque:** Taxa fixa de 3% sobre o valor solicitado.
+- **Suporte:** https://t.me/SuportedailygainX
