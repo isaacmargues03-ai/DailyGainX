@@ -147,9 +147,11 @@ export default function WithdrawPage() {
                                 <PixIcon />
                                 Saque via Pix
                             </CardTitle>
-                            <CardDescription>
-                                Insira os detalhes para solicitar sua retirada.
-                            </CardDescription>
+                            <CardHeader>
+                                <CardDescription>
+                                    Insira os detalhes para solicitar sua retirada.
+                                </CardDescription>
+                            </CardHeader>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="space-y-2">
@@ -187,7 +189,10 @@ export default function WithdrawPage() {
                                         disabled={isSubmitting}
                                         className="h-14 text-lg font-bold rounded-xl"
                                     />
-                                    <p className="text-xs text-muted-foreground font-medium px-1">Saldo disponível: {balance.toFixed(2)} USDT</p>
+                                    <div className="flex flex-col gap-1 px-1 mt-1">
+                                        <p className="text-xs text-muted-foreground font-medium">Saldo disponível: {balance.toFixed(2)} USDT</p>
+                                        <p className="text-xs text-primary font-bold">Taxa de saque: 3%</p>
+                                    </div>
                                 </div>
 
                                 {withdrawAmount > 0 && (
