@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -9,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/AppContext';
 import { useFirebase } from '@/firebase';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Info } from 'lucide-react';
 import Link from 'next/link';
 import { doc, setDoc, increment, updateDoc } from 'firebase/firestore';
 
@@ -22,6 +21,8 @@ const PixIcon = () => (
     </svg>
 );
 
+const WITHDRAW_FEE_PERCENT = 0.03; // Taxa de 3%
+
 export default function WithdrawPage() {
     const [amount, setAmount] = useState('');
     const [pixKey, setPixKey] = useState('');
@@ -32,11 +33,13 @@ export default function WithdrawPage() {
     const { user, firestore } = useFirebase();
     const { balance, isBalanceLoading, activeInvestments } = useAppContext();
 
+    const withdrawAmount = parseFloat(amount) || 0;
+    const feeAmount = withdrawAmount * WITHDRAW_FEE_PERCENT;
+    const netAmount = Math.max(0, withdrawAmount - feeAmount);
+
     const isAdmin = user?.email === 'isaacmargues03@gmail.com';
 
     const handleWithdraw = async () => {
-        const withdrawAmount = parseFloat(amount);
-
         if (!isAdmin && activeInvestments.length === 0) {
             toast({
                 variant: 'destructive',
@@ -90,7 +93,9 @@ export default function WithdrawPage() {
                 id: txId,
                 userId: user.uid,
                 type: 'withdrawal',
-                amount: withdrawAmount,
+                amount: withdrawAmount, // Valor bruto solicitado
+                feeAmount: feeAmount,    // Valor da taxa
+                netAmount: netAmount,    // Valor líquido a receber
                 method: 'Pix',
                 status: 'Pending',
                 fullName,
@@ -121,7 +126,7 @@ export default function WithdrawPage() {
         }
     };
 
-    const isButtonDisabled = isBalanceLoading || isSubmitting || !amount || !pixKey || !fullName || parseFloat(amount) <= 0 || parseFloat(amount) > balance || parseFloat(amount) < 5;
+    const isButtonDisabled = isBalanceLoading || isSubmitting || !amount || !pixKey || !fullName || withdrawAmount <= 0 || withdrawAmount > balance || withdrawAmount < 5;
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -136,7 +141,7 @@ export default function WithdrawPage() {
             </header>
             <main className="flex-1 p-4 sm:p-6">
                 <div className="container mx-auto max-w-md">
-                    <Card>
+                    <Card className="border-none shadow-xl">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <PixIcon />
@@ -155,6 +160,7 @@ export default function WithdrawPage() {
                                     value={fullName}
                                     onChange={(e) => setFullName(e.target.value)}
                                     disabled={isSubmitting}
+                                    className="h-12 rounded-xl"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -165,29 +171,50 @@ export default function WithdrawPage() {
                                     value={pixKey}
                                     onChange={(e) => setPixKey(e.target.value)}
                                     disabled={isSubmitting}
+                                    className="h-12 rounded-xl"
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="amount">Valor do Saque (USDT)</Label>
-                                <Input
-                                    id="amount"
-                                    type="number"
-                                    placeholder="Mínimo 5 USDT"
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    disabled={isSubmitting}
-                                />
-                                <p className="text-sm text-muted-foreground font-medium">Saldo disponível: {balance.toFixed(2)} USDT</p>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="amount">Valor do Saque (USDT)</Label>
+                                    <Input
+                                        id="amount"
+                                        type="number"
+                                        placeholder="Mínimo 5 USDT"
+                                        value={amount}
+                                        onChange={(e) => setAmount(e.target.value)}
+                                        disabled={isSubmitting}
+                                        className="h-14 text-lg font-bold rounded-xl"
+                                    />
+                                    <p className="text-xs text-muted-foreground font-medium px-1">Saldo disponível: {balance.toFixed(2)} USDT</p>
+                                </div>
+
+                                {withdrawAmount > 0 && (
+                                    <div className="bg-muted/50 rounded-2xl p-4 space-y-3 border border-border/50">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-muted-foreground">Taxa de Saque (3%)</span>
+                                            <span className="font-medium text-destructive">-{feeAmount.toFixed(2)} USDT</span>
+                                        </div>
+                                        <div className="border-t border-dashed pt-3 flex justify-between items-center">
+                                            <span className="font-bold text-sm uppercase tracking-tight">Valor a Receber</span>
+                                            <span className="text-xl font-black text-primary">{netAmount.toFixed(2)} USDT</span>
+                                        </div>
+                                        <div className="flex items-start gap-2 text-[10px] text-muted-foreground pt-1">
+                                            <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                                            <p>O valor líquido será enviado para sua chave Pix após a aprovação.</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                         <CardFooter>
                             <Button 
                                 onClick={handleWithdraw} 
-                                className="w-full h-12 text-lg font-bold" 
+                                className="w-full h-14 text-xl font-black rounded-2xl shadow-lg shadow-primary/20 uppercase tracking-tighter" 
                                 disabled={isButtonDisabled}
                             >
-                                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : 'Solicitar Saque'}
+                                {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : 'Solicitar Saque'}
                             </Button>
                         </CardFooter>
                     </Card>
