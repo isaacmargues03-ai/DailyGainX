@@ -27,6 +27,7 @@ export type ActiveInvestment = {
   imageUrl: string;
   imageHint: string;
   investmentTimestamp: number;
+  status?: 'active' | 'claimed';
 };
 
 export type Transaction = {

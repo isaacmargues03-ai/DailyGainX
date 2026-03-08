@@ -5,7 +5,7 @@ import type { Operation, OpenPosition, ActiveInvestment, Transaction } from '@/l
 import type { Product } from '@/lib/products';
 import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo, useCallback } from 'react';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, increment, query, collection, orderBy, limit, setDoc, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, increment, query, collection, orderBy, limit, setDoc, getDocs, writeBatch, runTransaction, where } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 
 const generateData = (count: number, initialValue: number) => {
@@ -32,6 +32,7 @@ interface AppContextType {
   lastPrice: number;
   activeInvestments: ActiveInvestment[];
   addInvestment: (product: Product, image: { imageUrl: string, imageHint: string }) => boolean;
+  claimInvestment: (investmentId: string) => Promise<void>;
   transactions: Transaction[];
   addTransaction: (transaction: Omit<Transaction, 'id' | 'timestamp'>) => void;
   clearHistory: () => Promise<void>;
@@ -42,7 +43,6 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [operations, setOperations] = useState<Operation[]>([]);
   const [openPositions, setOpenPositions] = useState<OpenPosition[]>([]);
-  const [activeInvestments, setActiveInvestments] = useState<ActiveInvestment[]>([]);
   const [marketData, setMarketData] = useState<{ time: string; price: number; }[]>([]);
   
   const { user, firestore } = useFirebase();
@@ -66,10 +66,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const { data: firestoreTransactions } = useCollection<Transaction>(transactionsQuery);
 
+  const investmentsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(
+        collection(firestore, 'users', user.uid, 'investments'),
+        where('status', '==', 'active')
+    );
+  }, [user, firestore]);
+
+  const { data: firestoreInvestments } = useCollection<ActiveInvestment>(investmentsQuery);
+
   const balance = userAccount?.balance ?? 0;
   const lastPrice = marketData.length > 0 ? marketData[marketData.length - 1].price : 5.4321;
 
-  // Initial data generation only on client side to avoid hydration mismatch
   useEffect(() => {
     setMarketData(generateData(60, 5.4321));
     
@@ -178,12 +187,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [openPositions, isBalanceLoading, accountDocRef, addOperation]);
   
   const addInvestment = useCallback((product: Product, image: { imageUrl: string, imageHint: string }): boolean => {
-    if (isBalanceLoading || !accountDocRef || balance < product.minInvestment) return false;
+    if (isBalanceLoading || !accountDocRef || balance < product.minInvestment || !user) return false;
     
+    const investmentId = new Date().getTime().toString();
+    const investmentRef = doc(firestore, 'users', user.uid, 'investments', investmentId);
+
     updateDoc(accountDocRef, { balance: increment(-product.minInvestment) });
 
-    const newInvestment: ActiveInvestment = {
-      id: new Date().getTime().toString(),
+    setDoc(investmentRef, {
+      id: investmentId,
       productId: product.id,
       companyName: product.companyName,
       instructorName: product.instructorName,
@@ -193,10 +205,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
       imageUrl: image.imageUrl,
       imageHint: image.imageHint,
       investmentTimestamp: Date.now(),
-    };
-    setActiveInvestments(prev => [newInvestment, ...prev]);
+      status: 'active'
+    });
+
     return true;
-  }, [isBalanceLoading, balance, accountDocRef]);
+  }, [isBalanceLoading, balance, accountDocRef, user, firestore]);
+
+  const claimInvestment = useCallback(async (investmentId: string) => {
+    if (!user || !firestore || !accountDocRef) return;
+
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        const investmentRef = doc(firestore, 'users', user.uid, 'investments', investmentId);
+        const invDoc = await transaction.get(investmentRef);
+        
+        if (!invDoc.exists()) throw new Error("Investimento não encontrado.");
+        const data = invDoc.data() as ActiveInvestment;
+        
+        if (data.status === 'claimed') throw new Error("Já resgatado.");
+
+        const totalReturn = data.investedAmount + data.profit;
+        
+        transaction.update(investmentRef, { status: 'claimed' });
+        transaction.set(accountDocRef, { balance: increment(totalReturn) }, { merge: true });
+      });
+
+      toast({ title: "Sucesso!", description: "Rendimento resgatado com sucesso!" });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro no resgate", description: e.message });
+    }
+  }, [user, firestore, accountDocRef, toast]);
 
   const value = useMemo(() => ({ 
       balance, 
@@ -208,8 +246,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       closePosition, 
       marketData, 
       lastPrice,
-      activeInvestments,
+      activeInvestments: (firestoreInvestments || []) as ActiveInvestment[],
       addInvestment,
+      claimInvestment,
       transactions: (firestoreTransactions || []) as Transaction[],
       addTransaction,
       clearHistory
@@ -223,8 +262,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       closePosition, 
       marketData, 
       lastPrice,
-      activeInvestments,
+      firestoreInvestments,
       addInvestment,
+      claimInvestment,
       firestoreTransactions,
       addTransaction,
       clearHistory

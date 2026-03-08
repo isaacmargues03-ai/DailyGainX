@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -28,13 +29,16 @@ service cloud.firestore {
         allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
         
         // Permite que qualquer usuário autenticado incremente o saldo de outro em exatamente 1 USDT (Bônus de Indicação)
-        // Usado durante o resgate do primeiro token do indicado
         allow update: if request.auth != null && 
           request.resource.data.balance == resource.data.balance + 1;
 
         match /depositTransactions/{txId} {
           allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
         }
+      }
+
+      match /investments/{invId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
@@ -51,7 +55,6 @@ service cloud.firestore {
     match /referrals/{referralId} {
       allow read: if request.auth != null && (isAdmin() || request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
       allow create: if request.auth != null;
-      // Permite que o indicado atualize o status para 'rewarded' ao fazer o primeiro depósito
       allow update: if request.auth != null && request.auth.uid == resource.data.referredId;
     }
   }

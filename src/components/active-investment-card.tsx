@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -5,9 +6,10 @@ import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Clock, Calendar, DollarSign } from 'lucide-react';
+import { Clock, Calendar, Loader2 } from 'lucide-react';
 import type { ActiveInvestment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useAppContext } from '@/context/AppContext';
 
 function formatTimeLeft(milliseconds: number): string {
     if (milliseconds <= 0) {
@@ -28,8 +30,10 @@ function formatTimeLeft(milliseconds: number): string {
 
 export function ActiveInvestmentCard({ investment }: { investment: ActiveInvestment }) {
   const { toast } = useToast();
+  const { claimInvestment } = useAppContext();
   const [progress, setProgress] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const startDate = investment.investmentTimestamp;
   const endDate = startDate + investment.period * 24 * 60 * 60 * 1000;
@@ -50,7 +54,7 @@ export function ActiveInvestmentCard({ investment }: { investment: ActiveInvestm
     return () => clearInterval(interval);
   }, [startDate, endDate]);
 
-  const handleClaim = () => {
+  const handleClaim = async () => {
       if (timeLeft > 0) {
           toast({
               variant: 'destructive',
@@ -59,11 +63,13 @@ export function ActiveInvestmentCard({ investment }: { investment: ActiveInvestm
           });
           return;
       }
-      // Future: Call claimInvestment(investment.id) from context
-      toast({
-          title: 'Resgate Solicitado',
-          description: 'Esta funcionalidade será implementada em breve.',
-      });
+      
+      setIsSubmitting(true);
+      try {
+        await claimInvestment(investment.id);
+      } finally {
+        setIsSubmitting(false);
+      }
   };
 
   const canClaim = timeLeft <= 0;
@@ -99,8 +105,8 @@ export function ActiveInvestmentCard({ investment }: { investment: ActiveInvestm
         </div>
       </CardContent>
       <CardFooter className="p-4 pt-0">
-        <Button className="w-full" onClick={handleClaim} disabled={!canClaim}>
-          {canClaim ? 'Resgatar' : 'Em Andamento'}
+        <Button className="w-full" onClick={handleClaim} disabled={!canClaim || isSubmitting}>
+          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : canClaim ? 'Resgatar' : 'Em Andamento'}
         </Button>
       </CardFooter>
     </Card>
