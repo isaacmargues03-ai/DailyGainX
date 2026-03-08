@@ -162,56 +162,41 @@ export default function ProfilePage() {
     setIsRedeeming(true);
 
     try {
-      let linkedHistoryTxRef = null;
       const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
-      const tokenSnap = await getDoc(tokenRef);
-
-      if (tokenSnap.exists()) {
-        const tData = tokenSnap.data();
-        if (tData.transactionId && tData.transactionId !== "Manual-Site") {
-          const q = query(
-            collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions'),
-            where('id', '==', tData.transactionId),
-            limit(1)
-          );
-          const qSnap = await getDocs(q);
-          if (!qSnap.empty) {
-            linkedHistoryTxRef = qSnap.docs[0].ref;
-          } else {
-             const q2 = query(
-              collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions'),
-              where('externalId', '==', tData.transactionId),
-              limit(1)
-            );
-            const q2Snap = await getDocs(q2);
-            if (!q2Snap.empty) {
-                linkedHistoryTxRef = q2Snap.docs[0].ref;
-            }
-          }
-        }
-      }
-
+      
       await runTransaction(firestore, async (transaction) => {
+        // --- TODAS AS LEITURAS DEVEM VIR PRIMEIRO ---
         const tDoc = await transaction.get(tokenRef);
-        const userRef = doc(firestore, 'users', user.uid);
-        const uDoc = await transaction.get(userRef);
-        const aDoc = await transaction.get(accountDocRef);
-
         if (!tDoc.exists()) throw new Error('Código inválido ou inexistente.');
+        
         const tokenData = tDoc.data();
         if (tokenData.usado) throw new Error('Este código já foi utilizado.');
+
+        const userRef = doc(firestore, 'users', user.uid);
+        const uDoc = await transaction.get(userRef);
         if (!uDoc.exists()) throw new Error('Perfil de usuário não encontrado.');
+        
         const userData = uDoc.data();
+        const aDoc = await transaction.get(accountDocRef);
 
         let rDoc = null;
         if (!userData.hasMadeFirstDeposit && userData.referralId) {
             rDoc = await transaction.get(doc(firestore, 'referrals', userData.referralId));
         }
 
-        if (linkedHistoryTxRef) {
-          await transaction.get(linkedHistoryTxRef);
+        let linkedHistoryTxRef = null;
+        if (tokenData.transactionId && tokenData.transactionId !== "Manual-Site") {
+            // No Web SDK, não podemos fazer queries complexas dentro de transações facilmente
+            // O ideal seria que o tokenRef já soubesse o caminho exato ou buscar antes
+            // Mas para garantir o fluxo, vamos tentar buscar o doc se for um ID direto
+            const txRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', tokenData.transactionId);
+            const txSnap = await transaction.get(txRef);
+            if (txSnap.exists()) {
+                linkedHistoryTxRef = txRef;
+            }
         }
 
+        // --- TODAS AS ESCRITAS DEVEM VIR DEPOIS ---
         const currentBalance = aDoc.exists() ? (aDoc.data().balance || 0) : 0;
         
         transaction.set(accountDocRef, { balance: currentBalance + tokenData.valor }, { merge: true });

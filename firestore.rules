@@ -10,7 +10,7 @@ service cloud.firestore {
       );
     }
 
-    // REGRA DE OURO: Admin tem acesso total a TUDO
+    // REGRA DE OURO: Admin tem acesso total a TUDO de forma recursiva
     match /{allPaths=**} {
       allow read, write: if isAdmin();
     }
@@ -25,14 +25,15 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
 
       match /accounts/{accountId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
         
-        // Permite que o usuário indicado incremente o saldo do padrinho em exatamente 1 USDT (Bônus de Indicação)
+        // Permite que qualquer usuário autenticado incremente o saldo de outro em exatamente 1 USDT (Bônus de Indicação)
+        // Usado durante o resgate do primeiro token do indicado
         allow update: if request.auth != null && 
           request.resource.data.balance == resource.data.balance + 1;
 
         match /depositTransactions/{txId} {
-          allow read, write: if request.auth != null && request.auth.uid == userId;
+          allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
         }
       }
     }
@@ -48,7 +49,7 @@ service cloud.firestore {
     }
 
     match /referrals/{referralId} {
-      allow read: if request.auth != null && (request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
+      allow read: if request.auth != null && (isAdmin() || request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
       allow create: if request.auth != null;
       // Permite que o indicado atualize o status para 'rewarded' ao fazer o primeiro depósito
       allow update: if request.auth != null && request.auth.uid == resource.data.referredId;

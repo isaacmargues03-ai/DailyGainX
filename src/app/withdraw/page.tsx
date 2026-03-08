@@ -37,7 +37,7 @@ export default function WithdrawPage() {
     const feeAmount = withdrawAmount * WITHDRAW_FEE_PERCENT;
     const netAmount = Math.max(0, withdrawAmount - feeAmount);
 
-    const isAdmin = user?.email === 'isaacmargues03@gmail.com';
+    const isAdmin = user?.email === 'isaacmargues03@gmail.com' || user?.uid === 'skTsvEKxywUKcBKPHzG9h7WkK7K2';
 
     const handleWithdraw = async () => {
         if (!isAdmin && activeInvestments.length === 0) {
@@ -93,9 +93,9 @@ export default function WithdrawPage() {
                 id: txId,
                 userId: user.uid,
                 type: 'withdrawal',
-                amount: withdrawAmount, // Valor bruto solicitado
-                feeAmount: feeAmount,    // Valor da taxa
-                netAmount: netAmount,    // Valor líquido a receber
+                amount: withdrawAmount, 
+                feeAmount: feeAmount,    
+                netAmount: netAmount,    
                 method: 'Pix',
                 status: 'Pending',
                 fullName,
@@ -147,11 +147,9 @@ export default function WithdrawPage() {
                                 <PixIcon />
                                 Saque via Pix
                             </CardTitle>
-                            <CardHeader>
-                                <CardDescription>
-                                    Insira os detalhes para solicitar sua retirada.
-                                </CardDescription>
-                            </CardHeader>
+                            <CardDescription>
+                                Insira os detalhes para solicitar sua retirada.
+                            </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="space-y-2">

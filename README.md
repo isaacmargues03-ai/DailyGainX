@@ -24,7 +24,9 @@ Cadastre a URL abaixo no painel da PixUp para que o saldo atualize automaticamen
 
 **Regras de Negócio Atualizadas:**
 - **Conversão:** R$ 25,00 = 5 USDT (R$ 1,00 = 0.20 USDT).
-- **Crédito:** Automático via Webhook (Server-side) ou Resgate Manual via Token.
-- **Recompensa:** 1 USDT no primeiro depósito do indicado.
+- **Resgate:** Manual via Token (DGX-XXXXXX).
+- **Recompensa:** 1 USDT no primeiro resgate do indicado (Padrinho recebe bônus).
 - **Saque:** Taxa fixa de 3% sobre o valor solicitado.
-- **Suporte:** https://t.me/SuportedailygainX
+- **Mínimo de Saque:** 5 USDT.
+- **Suporte Oficial:** https://t.me/SuportedailygainX
+- **Comunidade:** https://t.me/+81BWkzCKgMdjMDcx
