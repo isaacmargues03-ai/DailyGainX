@@ -25,14 +25,13 @@ const PixLogo = () => (
     </svg>
 );
 
-const BRL_MULTIPLIER_TO_USDT = 0.2; // R$ 25 = 5 USDT (1/5)
+const BRL_MULTIPLIER_TO_USDT = 0.2; // R$ 25 = 5 USDT
 const MIN_DEPOSIT_BRL = 25;
 
 export default function DepositPage() {
     const [brlAmount, setBrlAmount] = useState('');
     const [usdtAmount, setUsdtAmount] = useState(0);
     const [pixCopyPaste, setPixCopyPaste] = useState('');
-    const [transactionId, setTransactionId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isGenerated, setIsGenerated] = useState(false);
     
@@ -45,7 +44,7 @@ export default function DepositPage() {
             toast({
                 variant: 'destructive',
                 title: 'Valor inválido',
-                description: `Por favor, insira um valor de depósito válido (mínimo R$ ${MIN_DEPOSIT_BRL.toFixed(2)}).`,
+                description: `Depósito mínimo: R$ ${MIN_DEPOSIT_BRL.toFixed(2)}.`,
             });
             return;
         }
@@ -57,15 +56,12 @@ export default function DepositPage() {
             const depositRef = doc(collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions'));
             const depositId = depositRef.id;
 
-            const postbackUrl = `https://dailygainx.netlify.app/api/webhook/pixup`;
-
             const response = await generatePixQrCode({ 
                 amount: amountInBrl,
                 payerName: user.displayName || 'Cliente DailyGainX',
                 payerEmail: user.email || undefined,
                 payerDocument: "12345678909", 
-                externalId: depositId,
-                postbackUrl: postbackUrl
+                externalId: depositId
             });
 
             await setDoc(depositRef, {
@@ -83,32 +79,31 @@ export default function DepositPage() {
             });
 
             setPixCopyPaste(response.pixCopyPaste);
-            setTransactionId(depositId);
             setIsGenerated(true);
 
             toast({
-                title: 'Pagamento Gerado!',
-                description: 'Utilize o código abaixo para pagar.',
+                title: 'Pix Gerado!',
+                description: 'Copie o código para pagar.',
             });
 
         } catch (error: any) {
             console.error(error);
             toast({
                 variant: 'destructive',
-                title: 'Erro na integração',
-                description: error.message || 'Não foi possível gerar o Pix.',
+                title: 'Erro na API',
+                description: error.message || 'Falha ao gerar Pix.',
             });
         } finally {
             setIsLoading(false);
         }
     };
 
-    const copyToClipboard = (text: string, label: string) => {
-        if (!text) return;
-        navigator.clipboard.writeText(text);
+    const copyToClipboard = () => {
+        if (!pixCopyPaste) return;
+        navigator.clipboard.writeText(pixCopyPaste);
         toast({
             title: 'Copiado!',
-            description: `${label} copiado com sucesso.`,
+            description: `Código Pix copiado para a área de transferência.`,
         });
     };
     
@@ -116,7 +111,6 @@ export default function DepositPage() {
         setIsGenerated(false);
         setPixCopyPaste('');
         setBrlAmount('');
-        setTransactionId('');
     };
 
     if (isGenerated) {
@@ -126,7 +120,7 @@ export default function DepositPage() {
                     <Button variant="ghost" size="icon" onClick={resetDepositFlow}>
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <h1 className="text-lg font-semibold">Pagamento</h1>
+                    <h1 className="text-lg font-semibold">Copia e Cola</h1>
                     <div className="w-9 h-9" />
                 </header>
                 <main className="flex-1 p-4 sm:p-6">
@@ -135,7 +129,7 @@ export default function DepositPage() {
                             <CardHeader>
                                 <CardTitle>Pix Copia e Cola</CardTitle>
                                 <CardDescription>
-                                    Copie o código abaixo e cole no seu aplicativo bancário para finalizar o depósito.
+                                    Copie o código e cole no seu aplicativo bancário.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
@@ -148,44 +142,40 @@ export default function DepositPage() {
                                     
                                     <div className="w-full space-y-4 pt-4 text-left">
                                         <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <Label htmlFor="pix-copy-paste" className="font-bold">Código Pix</Label>
-                                                <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-black uppercase">Pronto para Copiar</span>
-                                            </div>
+                                            <Label htmlFor="pix-code" className="font-bold">Código Pix</Label>
                                             <div className="flex items-center space-x-2">
                                                 <Input
-                                                    id="pix-copy-paste"
+                                                    id="pix-code"
                                                     readOnly
                                                     value={pixCopyPaste}
-                                                    className="text-sm truncate bg-muted/30 h-14 font-mono border-2 focus:border-primary"
+                                                    className="text-xs truncate bg-muted h-12 font-mono"
                                                 />
-                                                <Button variant="default" className="h-14 w-14 shrink-0 shadow-lg" onClick={() => copyToClipboard(pixCopyPaste, 'Código Pix')}>
-                                                    <Copy className="h-6 w-6" />
+                                                <Button variant="default" className="h-12 w-12 shrink-0" onClick={copyToClipboard}>
+                                                    <Copy className="h-5 w-5" />
                                                 </Button>
                                             </div>
-                                            <p className="text-[10px] text-muted-foreground font-medium">Toque no botão ao lado para copiar o código e pagar no seu banco.</p>
                                         </div>
 
                                         <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-4 space-y-3">
                                             <div className="flex items-center gap-2 font-black text-primary mb-1 uppercase text-xs tracking-wider">
                                                 <Info className="h-4 w-4" />
-                                                <span>Como concluir o depósito:</span>
+                                                <span>Instruções:</span>
                                             </div>
                                             <div className="space-y-2 text-[11px] font-bold uppercase tracking-tight text-muted-foreground">
-                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 1. COPIE O CÓDIGO ACIMA</p>
-                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 2. PAGUE NO SEU APP DO BANCO</p>
-                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 3. MANDE O PRINT NO SUPORTE</p>
-                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 4. O SALDO CAI EM INSTANTES</p>
+                                                <p>1. Clique no botão de copiar acima</p>
+                                                <p>2. Abra o app do seu Banco</p>
+                                                <p>3. Escolha Pix > Copia e Cola</p>
+                                                <p>4. Cole o código e finalize o pagamento</p>
                                             </div>
                                         </div>
 
                                         <Button 
                                             variant="default" 
-                                            className="w-full gap-2 h-14 font-black uppercase text-lg rounded-xl shadow-xl shadow-primary/20" 
+                                            className="w-full h-14 font-black uppercase text-lg rounded-xl shadow-lg" 
                                             asChild
                                         >
                                             <Link href="https://t.me/SuportedailygainX" target="_blank">
-                                                <Send className="h-5 w-5" />
+                                                <Send className="h-5 w-5 mr-2" />
                                                 ENVIAR COMPROVANTE
                                             </Link>
                                         </Button>
@@ -226,14 +216,14 @@ export default function DepositPage() {
 
                 <div className="space-y-4">
                     <div className="flex justify-between items-center px-1">
-                        <h2 className="font-semibold text-lg">Quanto deseja depositar?</h2>
-                        <p className="text-xs text-muted-foreground">(R$ 25,00 = 5 USDT)</p>
+                        <h2 className="font-semibold text-lg">Valor do Depósito</h2>
+                        <p className="text-xs text-muted-foreground">(R$ 25 = 5 USDT)</p>
                     </div>
-                    <div className="relative group">
+                    <div className="relative">
                         <Input
                             id="brlAmount"
                             type="number"
-                            placeholder={`Mínimo R$ ${MIN_DEPOSIT_BRL.toFixed(2)}`}
+                            placeholder={`Mínimo R$ ${MIN_DEPOSIT_BRL}`}
                             value={brlAmount}
                             onChange={(e) => {
                                 const val = e.target.value;
@@ -245,7 +235,7 @@ export default function DepositPage() {
                                     setUsdtAmount(0);
                                 }
                             }}
-                            className="h-16 text-xl pl-6 pr-12 bg-muted/50 border-none rounded-2xl focus:ring-2 focus:ring-primary transition-all"
+                            className="h-14 text-lg pl-6 pr-12 bg-muted/50 border-none rounded-xl"
                         />
                         <span className="absolute right-6 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">R$</span>
                     </div>
@@ -254,7 +244,7 @@ export default function DepositPage() {
                             id="usdtAmount"
                             value={usdtAmount > 0 ? usdtAmount.toFixed(2) : ''}
                             readOnly
-                            className="h-16 text-xl pl-6 pr-20 bg-muted/30 border-none rounded-2xl text-primary font-bold"
+                            className="h-14 text-lg pl-6 pr-20 bg-muted/30 border-none rounded-xl text-primary font-bold"
                             placeholder="Valor em USDT"
                         />
                         <span className="absolute right-6 top-1/2 -translate-y-1/2 text-primary/70 font-bold">USDT</span>
@@ -264,13 +254,13 @@ export default function DepositPage() {
                 <div className="pt-4">
                     <Button 
                         onClick={handleGeneratePix} 
-                        className="w-full h-16 text-lg font-black rounded-2xl shadow-lg shadow-primary/20 uppercase tracking-tight gap-2" 
+                        className="w-full h-16 text-lg font-black rounded-2xl shadow-lg uppercase gap-2" 
                         disabled={!brlAmount || parseFloat(brlAmount) < MIN_DEPOSIT_BRL || isLoading}
                     >
                         {isLoading ? (
                             <>
                                 <Loader2 className="h-6 w-6 animate-spin" />
-                                Processando...
+                                Carregando...
                             </>
                         ) : (
                             <>

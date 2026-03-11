@@ -1,9 +1,6 @@
 'use server';
 
-import QRCode from 'qrcode';
-
 interface QrCodeResponse {
-    qrCodeImageUrl: string;
     pixCopyPaste: string;
     transactionId: string;
 }
@@ -18,22 +15,21 @@ interface GeneratePixOptions {
 }
 
 /**
- * Gera um QR Code Pix com tratamento rigoroso de dados para evitar Erro 400.
- * Utiliza as novas credenciais de produção e sanitização de campos obrigatórios.
+ * Gera um código Pix Copia e Cola com tratamento rigoroso de dados.
  */
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
     const { amount, externalId, postbackUrl, payerName, payerDocument, payerEmail } = options;
 
-    // 0. DIAGNÓSTICO DE IP (Logado no servidor para conferência com a Whitelist)
+    // DIAGNÓSTICO DE IP
     try {
         const ipResponse = await fetch('https://ifconfig.me/ip', { cache: 'no-store' });
         const currentIp = await ipResponse.text();
-        console.log('>>> [DIAGNOSTICO] IP DE SAÍDA DO SERVIDOR:', currentIp.trim());
+        console.log('>>> [DIAGNOSTICO] IP DE SAÍDA:', currentIp.trim());
     } catch (e) {
-        console.warn('>>> [DIAGNOSTICO] Falha ao determinar IP externo.');
+        console.warn('>>> [DIAGNOSTICO] Falha ao determinar IP.');
     }
 
-    // CREDENCIAIS DE PRODUÇÃO ATUALIZADAS
+    // CREDENCIAIS HARDCODED PARA DIAGNÓSTICO
     const clientId = 'Aducmartins_8700269788095411'.trim();
     const clientSecret = '6e7d949e6f87eaad1674807375749a9f21f6cf73769cfed1409bdfc0f7474fcd'.trim();
     
@@ -41,8 +37,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
     const pixUrl = "https://api.pixupbr.com/v2/pix/qrcode";
 
     try {
-        // 1. OBTENÇÃO DO TOKEN (OAuth2 Client Credentials)
-        console.log('>>> [AUTH] Iniciando autenticação OAuth2...');
+        // 1. AUTENTICAÇÃO
         const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
         
         const tokenResponse = await fetch(authUrl, {
@@ -57,25 +52,23 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!tokenResponse.ok) {
             const errorBody = await tokenResponse.text();
-            console.error('>>> [AUTH ERROR] Detalhes do erro 401:', tokenResponse.status, errorBody);
-            throw new Error(`Erro de Autenticação (401): Verifique se o IP está na Whitelist da PixUp.`);
+            console.error('>>> [AUTH ERROR] Detalhes:', tokenResponse.status, errorBody);
+            throw new Error(`Erro 401: Verifique se o IP está na Whitelist da PixUp.`);
         }
 
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
-        
-        if (!accessToken) {
-            throw new Error('Token de acesso não recebido.');
-        }
 
-        // 2. SANITIZAÇÃO RIGOROSA DOS DADOS (Padrão PixUp)
-        const amountFloat = parseFloat(Number(amount).toFixed(2));
+        // 2. SANITIZAÇÃO DE DADOS (ERRO 400 FIX)
+        // Convertendo para centavos conforme solicitado
+        const amountCents = Math.round(Number(amount) * 100);
         const documentCleaned = String(payerDocument || "12345678909").replace(/\D/g, '');
         
         const body = {
-             amount: amountFloat,
+             amount: amountCents, // Enviando como centavos (Ex: 2500)
              external_id: String(externalId).substring(0, 50),
              postbackUrl: postbackUrl || "https://dailygainx.netlify.app/api/webhook/pixup",
+             payerQuestion: "Depósito DailyGainX",
              payer: {
                 name: (payerName || "Cliente DailyGainX").substring(0, 100).trim(),
                 document: documentCleaned,
@@ -83,13 +76,13 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
              }
         };
 
-        console.log('>>> [PIX REQUEST] Enviando dados sanitizados:', JSON.stringify(body));
+        console.log('>>> [PIX REQUEST] Payload:', JSON.stringify(body));
 
-        // 3. GERAÇÃO DO QRCODE
+        // 3. GERAÇÃO DO PIX
         const qrResponse = await fetch(pixUrl, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${accessToken}`,
+                'Authorization': `Bearer ${accessToken}`, // Espaço garantido
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(body),
@@ -98,7 +91,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!qrResponse.ok) {
             const errorBody = await qrResponse.text();
-            console.error('>>> [PIX ERROR 400] Resposta Completa da PixUp:', errorBody);
+            console.error('>>> [PIX ERROR 400] Resposta completa da API:', errorBody);
             
             let errorMessage = `Erro ${qrResponse.status} na API PixUp.`;
             try {
@@ -110,11 +103,10 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         }
 
         const data = await qrResponse.json();
-        const qrCodeImageUrl = await QRCode.toDataURL(data.qrcode);
+        console.log('>>> [PIX SUCCESS] Código gerado com sucesso.');
 
         return {
-            qrCodeImageUrl,
-            pixCopyPaste: data.qrcode,
+            pixCopyPaste: data.qrcode || data.emv || "",
             transactionId: data.transactionId,
         };
 
