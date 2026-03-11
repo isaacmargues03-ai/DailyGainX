@@ -188,7 +188,7 @@ export default function ProfilePage() {
             rDoc = await transaction.get(doc(firestore, 'referrals', userData.referralId));
         }
 
-        // Lê a Transação de Depósito Vinculada (se existir)
+        // Lê o Documento de Transação vinculado
         let linkedHistoryTxRef = null;
         if (tokenData.transactionId && tokenData.transactionId !== "Manual-Site") {
             const txRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', tokenData.transactionId);
@@ -317,8 +317,8 @@ export default function ProfilePage() {
                     <MenuItem href="/history" icon={<History className="h-5 w-5"/>} text="Histórico de Saques" />
                     <MenuItem href="/referrals" icon={<Gift className="h-5 w-5"/>} text="Indique e Ganhe" />
                     <MenuItem href="/feedback" icon={<MessageSquare className="h-5 w-5"/>} text="Feedback" />
-                    <MenuItem href="https://t.me/SuportedailygainX" icon={<Send className="h-5 w-5"/>} text="Suporte Oficial Telegram" />
-                    <MenuItem href="https://t.me/+81BWkzCKgMdjMDcx" icon={<Users className="h-5 w-5"/>} text="Comunidade Telegram" />
+                    <MenuItem href="https://t.me/SuportedailygainX" icon={<Send className="h-5 w-5"/>} text="Suporte 1" />
+                    <MenuItem href="http://t.me/Aduacm" icon={<Send className="h-5 w-5"/>} text="Suporte 2" />
                 </div>
 
                 <div className="mt-10">
