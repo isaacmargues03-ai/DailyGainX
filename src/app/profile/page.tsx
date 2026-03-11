@@ -28,7 +28,7 @@ import { Card } from '@/components/ui/card';
 import { useAppContext } from '@/context/AppContext';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { doc, runTransaction, setDoc, serverTimestamp, collection, query, orderBy, limit, increment, getDoc, getDocs, where } from 'firebase/firestore';
+import { doc, runTransaction, setDoc, serverTimestamp, collection, query, orderBy, limit, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -165,7 +165,7 @@ export default function ProfilePage() {
       const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
       
       await runTransaction(firestore, async (transaction) => {
-        // --- TODAS AS LEITURAS DEVEM VIR PRIMEIRO ---
+        // --- ETAPA 1: TODAS AS LEITURAS ---
         const tDoc = await transaction.get(tokenRef);
         if (!tDoc.exists()) throw new Error('Código inválido ou inexistente.');
         
@@ -186,9 +186,6 @@ export default function ProfilePage() {
 
         let linkedHistoryTxRef = null;
         if (tokenData.transactionId && tokenData.transactionId !== "Manual-Site") {
-            // No Web SDK, não podemos fazer queries complexas dentro de transações facilmente
-            // O ideal seria que o tokenRef já soubesse o caminho exato ou buscar antes
-            // Mas para garantir o fluxo, vamos tentar buscar o doc se for um ID direto
             const txRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', tokenData.transactionId);
             const txSnap = await transaction.get(txRef);
             if (txSnap.exists()) {
@@ -196,17 +193,20 @@ export default function ProfilePage() {
             }
         }
 
-        // --- TODAS AS ESCRITAS DEVEM VIR DEPOIS ---
+        // --- ETAPA 2: TODAS AS ESCRITAS ---
         const currentBalance = aDoc.exists() ? (aDoc.data().balance || 0) : 0;
         
+        // Atualiza saldo do usuário
         transaction.set(accountDocRef, { balance: currentBalance + tokenData.valor }, { merge: true });
 
+        // Marca token como usado
         transaction.update(tokenRef, {
           usado: true,
           usedAt: new Date().toISOString(),
           usedBy: user.uid
         });
 
+        // Atualiza histórico se existir
         if (linkedHistoryTxRef) {
           transaction.update(linkedHistoryTxRef, {
             status: 'claimed',
@@ -214,6 +214,7 @@ export default function ProfilePage() {
           });
         }
 
+        // Processa indicação (Bônus de 1 USDT)
         if (!userData.hasMadeFirstDeposit) {
             transaction.update(userRef, { hasMadeFirstDeposit: true });
             
@@ -224,6 +225,7 @@ export default function ProfilePage() {
                 transaction.update(rDoc.ref, { status: 'rewarded' });
                 
                 const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
+                // O increment() é uma operação de escrita que o Firestore aceita em transações
                 transaction.set(referrerAccountRef, { balance: increment(1) }, { merge: true });
             }
         }

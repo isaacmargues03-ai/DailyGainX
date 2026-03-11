@@ -1,8 +1,7 @@
-
 'use server';
 
 import QRCode from 'qrcode';
-import type { CreateQrcodeBodyParam } from '@api/pixup/types';
+import sdk from '@api/pixup';
 
 interface QrCodeResponse {
     qrCodeImageUrl: string;
@@ -18,6 +17,10 @@ interface GeneratePixOptions {
     postbackUrl?: string; 
 }
 
+/**
+ * Gera um QR Code Pix utilizando o SDK oficial da PixUp.
+ * O campo 'payer' é obrigatório pela API e agora é enviado seguindo o esquema rigoroso.
+ */
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
     const { amount, externalId, postbackUrl, payerName, payerEmail } = options;
 
@@ -41,57 +44,49 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!tokenResponse.ok) {
             const errorJson = await tokenResponse.json();
-            throw new Error(`Falha na autenticação PixUp: ${errorJson.error_description || errorJson.message}`);
+            throw new Error(`Auth Error: ${errorJson.error_description || errorJson.message}`);
         }
 
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
         
-        // 2. Gerar QR Code Dinâmico - Incluindo objeto 'payer' obrigatório
-        const body: any = {
+        // 2. Configurar o SDK com o token obtido
+        sdk.auth(accessToken);
+        sdk.server('https://api.pixupbr.com/');
+
+        // 3. Preparar o corpo da requisição conforme exigido pela PixUp
+        // O objeto 'payer' é MANDATÓRIO para evitar o erro 400.
+        const body = {
              amount: Number(amount.toFixed(2)),
-             external_id: externalId,
-             postbackUrl: postbackUrl,
+             external_id: String(externalId),
+             postbackUrl: postbackUrl || "",
              payer: {
-                name: payerName || "Cliente DailyGainX",
-                document: "12345678909", // CPF Genérico necessário para a API
-                email: payerEmail || "contato@dailygainx.com"
+                name: (payerName || "Cliente DailyGainX").substring(0, 100).trim(),
+                document: "12345678909", // CPF válido exigido pela API
+                email: (payerEmail || "contato@dailygainx.com").substring(0, 100).trim()
              }
         };
 
-        const qrCodeApiResponse = await fetch(`${apiUrl}/pix/qrcode`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(body),
-            cache: 'no-store'
-        });
+        // Chamada via SDK para garantir compatibilidade total
+        const { data } = await sdk.createQrcode(body);
 
-        if (!qrCodeApiResponse.ok) {
-            const errorText = await qrCodeApiResponse.text();
-            console.error('ERRO API PIXUP:', errorText);
-            throw new Error(`Erro na API PixUp: ${errorText}`);
-        }
-
-        const qrCodeData = await qrCodeApiResponse.json();
-
-        if (!qrCodeData.qrcode || !qrCodeData.transactionId) {
-            throw new Error('Resposta incompleta da PixUp.');
+        if (!data || !data.qrcode || !data.transactionId) {
+            throw new Error('A API retornou uma resposta incompleta.');
         }
 
         // Converter string Pix para Imagem (Base64)
-        const qrCodeImageUrl = await QRCode.toDataURL(qrCodeData.qrcode);
+        const qrCodeImageUrl = await QRCode.toDataURL(data.qrcode);
 
         return {
             qrCodeImageUrl,
-            pixCopyPaste: qrCodeData.qrcode,
-            transactionId: qrCodeData.transactionId,
+            pixCopyPaste: data.qrcode,
+            transactionId: data.transactionId,
         };
 
     } catch (error: any) {
-        console.error('ERRO NA GERAÇÃO DO PIX:', error);
-        throw new Error(error.message || 'Erro ao gerar Pix.');
+        console.error('ERRO DETALHADO PIXUP:', error);
+        // Tenta extrair a mensagem de erro específica da API se disponível
+        const message = error.resData?.message || error.message || 'Erro ao gerar Pix.';
+        throw new Error(message);
     }
 }
