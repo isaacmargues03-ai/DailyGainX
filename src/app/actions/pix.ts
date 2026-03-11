@@ -20,14 +20,14 @@ interface GeneratePixOptions {
 
 /**
  * Gera um QR Code Pix utilizando chamadas REST diretas para a PixUp.
- * Ajustado conforme especificações técnicas de produção solicitadas.
+ * Ajustado com as novas credenciais e regras de sanitização de produção.
  */
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
     const { amount, externalId, postbackUrl, payerName, payerDocument } = options;
 
-    // Credenciais de Produção fornecidas
+    // Credenciais de Produção Atualizadas
     const clientId = "Aducmartins_4621537998005562";
-    const clientSecret = "c473cdb25c796b619fb302ed9a0a8ce039c1287499348ce477c5195851b143e9";
+    const clientSecret = "6e7d949e6f87eaad1674807375749a9f21f6cf73769cfed1409bdfc0f7474fcd";
     const apiUrl = "https://api.pixupbr.com/v2";
 
     try {
@@ -80,16 +80,9 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         });
 
         if (!qrResponse.ok) {
-            // Se a resposta não for OK, tentamos capturar o corpo do erro para o log detalhado
             const errorBody = await qrResponse.json().catch(() => ({ message: 'Corpo de erro não decodificável' }));
-            const errorInfo = {
-                status: qrResponse.status,
-                data: errorBody
-            };
-            // Lança um erro customizado que será capturado pelo catch abaixo
-            const customError = new Error('Erro na API PixUp (QRCode)');
-            (customError as any).response = errorInfo;
-            throw customError;
+            console.error('ERRO COMPLETO DA PIXUP:', errorBody);
+            throw new Error(errorBody.message || 'Erro na API PixUp (QRCode)');
         }
 
         const data = await qrResponse.json();
@@ -108,8 +101,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         };
 
     } catch (error: any) {
-        // Log detalhado: Exibe o motivo real no terminal
-        console.error('ERRO COMPLETO DA PIXUP:', error.response?.data || error.message);
-        throw new Error(error.response?.data?.message || error.message || 'Erro crítico ao processar transação Pix.');
+        console.error('ERRO NA GERAÇÃO DO PIX:', error.message);
+        throw new Error(error.message || 'Erro crítico ao processar transação Pix.');
     }
 }
