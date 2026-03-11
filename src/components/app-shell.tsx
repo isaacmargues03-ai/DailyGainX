@@ -10,7 +10,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const { user, isUserLoading } = useUser();
 
-    const isAuthPage = pathname === '/login' || pathname === '/register';
+    // Adicionada a rota /debug/ip como página permitida sem autenticação
+    const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/debug/ip';
 
     useEffect(() => {
         // Wait until the auth state is resolved
@@ -23,12 +24,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             router.push('/login');
         }
 
-        // If the user is logged in and tries to access an auth page, redirect to profile
-        if (user && isAuthPage) {
+        // If the user is logged in and tries to access an auth page (except debug), redirect to profile
+        if (user && (pathname === '/login' || pathname === '/register')) {
             router.push('/profile');
         }
 
-    }, [user, isUserLoading, isAuthPage, router]);
+    }, [user, isUserLoading, isAuthPage, router, pathname]);
 
 
     if (isUserLoading && !isAuthPage) {
@@ -56,5 +57,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // While redirecting or if in a state that shouldn't render, return null or a loader
     return null;
 }
-
-    
