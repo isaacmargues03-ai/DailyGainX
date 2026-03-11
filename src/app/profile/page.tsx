@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -99,8 +98,6 @@ export default function ProfilePage() {
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
 
-  const { data: userProfile } = useDoc<{referralCode: string, referralId?: string, hasMadeFirstDeposit?: boolean}>(userDocRef);
-
   const accountDocRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return doc(firestore, 'users', user.uid, 'accounts', user.uid);
@@ -166,7 +163,7 @@ export default function ProfilePage() {
       const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
       
       await runTransaction(firestore, async (transaction) => {
-        // --- 1. TODAS AS LEITURAS DEVEM OCORRER PRIMEIRO ---
+        // --- 1. TODAS AS LEITURAS DEVEM OCORRER PRIMEIRO (REGRAS DO FIRESTORE) ---
         
         // Lê o Token
         const tDoc = await transaction.get(tokenRef);
@@ -185,7 +182,7 @@ export default function ProfilePage() {
         if (!aDoc.exists()) throw new Error('Conta financeira não encontrada.');
         const currentBalance = aDoc.data().balance || 0;
 
-        // Lê o Documento de Indicação (se for o primeiro depósito)
+        // Lê o Documento de Indicação (se for o primeiro depósito/resgate)
         let rDoc = null;
         if (!userData.hasMadeFirstDeposit && userData.referralId) {
             rDoc = await transaction.get(doc(firestore, 'referrals', userData.referralId));
@@ -229,17 +226,19 @@ export default function ProfilePage() {
                 const referralData = rDoc.data();
                 const referrerId = referralData.referrerId;
                 
-                // Muda status da indicação
-                transaction.update(rDoc.ref, { status: 'rewarded' });
-                
-                // Dá o bônus de 1 USDT para o padrinho
-                const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
-                transaction.set(referrerAccountRef, { balance: increment(1) }, { merge: true });
+                // Se o bônus ainda não foi pago (idempotência básica)
+                if (referralData.status !== 'rewarded') {
+                    transaction.update(rDoc.ref, { status: 'rewarded' });
+                    
+                    // Dá o bônus de 1 USDT para o padrinho (incremento seguro)
+                    const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
+                    transaction.set(referrerAccountRef, { balance: increment(1) }, { merge: true });
+                }
             }
         }
       });
 
-      toast({ title: 'Sucesso!', description: 'Saldo creditado e bônus de indicação pago!' });
+      toast({ title: 'Sucesso!', description: 'Saldo creditado e bônus de indicação processado!' });
       setIsTokenDialogOpen(false);
       setTokenInput('');
     } catch (error: any) {
