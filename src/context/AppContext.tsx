@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Operation, OpenPosition, ActiveInvestment, Transaction } from '@/lib/types';
@@ -144,7 +143,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [user, firestore]);
 
   const openPosition = useCallback((position: Omit<OpenPosition, 'id' | 'timestamp' | 'entryPrice'>) => {
-    if (isBalanceLoading || !accountDocRef) return;
+    if (!accountDocRef) return;
     const newPosition: OpenPosition = {
       ...position,
       id: new Date().getTime().toString(),
@@ -153,11 +152,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setOpenPositions(prev => [newPosition, ...prev]);
     updateDoc(accountDocRef, { balance: increment(-position.amount) });
-  }, [isBalanceLoading, lastPrice, accountDocRef]);
+  }, [lastPrice, accountDocRef]);
 
   const closePosition = useCallback((positionId: string) => {
     const position = openPositions.find(p => p.id === positionId);
-    if (!position || isBalanceLoading || !accountDocRef) return;
+    if (!position || !accountDocRef) return;
 
     const winChance = 0.35;
     const isWin = Math.random() < winChance;
@@ -184,10 +183,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     setOpenPositions(prev => prev.filter(p => p.id !== positionId));
-  }, [openPositions, isBalanceLoading, accountDocRef, addOperation]);
+  }, [openPositions, accountDocRef, addOperation]);
   
   const addInvestment = useCallback((product: Product, image: { imageUrl: string, imageHint: string }): boolean => {
-    if (isBalanceLoading || !accountDocRef || balance < product.minInvestment || !user) return false;
+    if (!accountDocRef || balance < product.minInvestment || !user || !firestore) return false;
     
     const investmentId = new Date().getTime().toString();
     const investmentRef = doc(firestore, 'users', user.uid, 'investments', investmentId);
@@ -209,7 +208,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     return true;
-  }, [isBalanceLoading, balance, accountDocRef, user, firestore]);
+  }, [balance, accountDocRef, user, firestore]);
 
   const claimInvestment = useCallback(async (investmentId: string) => {
     if (!user || !firestore || !accountDocRef) return;

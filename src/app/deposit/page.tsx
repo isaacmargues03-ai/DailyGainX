@@ -6,13 +6,12 @@ import Link from 'next/link';
 
 /**
  * Página de Depósito simplificada para fluxo manual.
- * Conforme solicitado, removi o input de valor e o botão de geração automática.
- * Agora foca nas instruções de suporte e links diretos para atendimento.
+ * Foca exclusivamente nas instruções de suporte e links diretos para atendimento.
  */
 export default function DepositPage() {
     return (
         <div className="flex min-h-screen w-full flex-col bg-background">
-            <header className="flex items-center justify-between p-4 border-b">
+            <header className="flex items-center justify-between p-4 border-b bg-card">
                 <Button variant="ghost" size="icon" asChild>
                     <Link href="/profile">
                         <ArrowLeft className="h-5 w-5" />
@@ -23,7 +22,7 @@ export default function DepositPage() {
 
             <main className="flex-1 flex flex-col items-center justify-center p-6 pb-24">
                 <div className="w-full max-w-md space-y-12">
-                    {/* Seção de Instruções: Transformada em fluxo principal */}
+                    {/* Seção de Instruções: Fluxo Manual */}
                     <div className="space-y-8">
                         <div className="text-center space-y-2">
                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Manual de Procedimento</p>
@@ -52,7 +51,7 @@ export default function DepositPage() {
                         </div>
                     </div>
 
-                    {/* Botões de Suporte em Destaque */}
+                    {/* Botões de Suporte em Destaque (Lado a Lado) */}
                     <div className="grid grid-cols-2 gap-4">
                         <Button 
                             asChild 
