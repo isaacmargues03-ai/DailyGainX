@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Copy, Loader2, Send } from 'lucide-react';
+import { ArrowLeft, Copy, Loader2, Send, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { generatePixQrCode } from '@/app/actions/pix';
@@ -130,10 +129,16 @@ export default function DepositPage() {
                                 </div>
                             </div>
 
-                            <div className="pt-8 space-y-4">
+                            <div className="pt-8 space-y-4 text-center">
+                                <div className="text-[10px] space-y-2 text-muted-foreground uppercase font-bold tracking-tight opacity-70">
+                                    <p>1. Clique no botão de copiar acima</p>
+                                    <p>2. Abra o app do seu Banco</p>
+                                    <p>3. Escolha Pix &gt; Copia e Cola</p>
+                                    <p>4. Cole o código e finalize o pagamento</p>
+                                </div>
                                 <Button 
                                     variant="outline" 
-                                    className="w-full h-14 font-black uppercase text-xs tracking-widest rounded-2xl border-2" 
+                                    className="w-full h-14 font-black uppercase text-xs tracking-widest rounded-2xl border-2 mt-4" 
                                     asChild
                                 >
                                     <Link href="https://t.me/SuportedailygainX" target="_blank">
@@ -141,9 +146,6 @@ export default function DepositPage() {
                                         Enviar Comprovante
                                     </Link>
                                 </Button>
-                                <p className="text-[9px] text-center text-muted-foreground uppercase font-bold tracking-tighter opacity-50">
-                                    Pagamento via PIXUP • Processamento Instantâneo
-                                </p>
                             </div>
                         </div>
                     </div>
@@ -174,25 +176,23 @@ export default function DepositPage() {
                             placeholder="Mínimo 25"
                             value={brlAmount}
                             onChange={(e) => setBrlAmount(e.target.value)}
-                            className="h-20 text-4xl text-center border-none bg-muted/30 rounded-3xl font-black focus-visible:ring-0"
+                            className="h-24 text-6xl text-center border-none bg-muted/20 rounded-3xl font-black focus-visible:ring-0"
                         />
-                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-muted-foreground/30 font-black text-xl">R$</span>
                     </div>
                 </div>
 
                 <Button 
                     onClick={handleGeneratePix} 
-                    className="w-full h-20 text-xl font-black rounded-3xl shadow-2xl uppercase tracking-tighter gap-3" 
+                    className="w-full h-24 text-xl font-black rounded-3xl shadow-2xl uppercase tracking-tighter gap-3" 
                     disabled={!brlAmount || parseFloat(brlAmount) < MIN_DEPOSIT_BRL || isLoading}
                 >
                     {isLoading ? (
                         <>
-                            <Loader2 className="h-6 w-6 animate-spin" />
-                            Gerando...
+                            <Loader2 className="h-8 w-8 animate-spin" />
                         </>
                     ) : (
                         <>
-                            Continuar
+                            <ArrowRight className="h-8 w-8" />
                         </>
                     )}
                 </Button>
