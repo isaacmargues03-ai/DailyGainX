@@ -19,20 +19,22 @@ interface GeneratePixOptions {
 
 /**
  * Gera um QR Code Pix com telemetria avançada para diagnóstico de erros 401 e IP.
+ * Utiliza credenciais verificadas via painel PixUp.
  */
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
     const { amount, externalId, postbackUrl, payerName, payerDocument, payerEmail } = options;
 
-    // 0. DIAGNÓSTICO DE IP (Exibe no terminal do servidor o IP que a PixUp está vendo)
+    // 0. DIAGNÓSTICO DE IP (Confirme se este IP está na Whitelist da PixUp)
     try {
         const ipResponse = await fetch('https://ifconfig.me/ip', { cache: 'no-store' });
         const currentIp = await ipResponse.text();
-        console.log('>>> [DIAGNÓSTICO] IP ATUAL DO SERVIDOR:', currentIp.trim());
+        console.log('>>> [IP CHECK] IP ATUAL DO SERVIDOR:', currentIp.trim());
+        console.log('>>> [IP CHECK] IP NA WHITELIST (PAINEL): 34.30.115.137');
     } catch (e) {
-        console.warn('>>> [DIAGNÓSTICO] Não foi possível determinar o IP externo.');
+        console.warn('>>> [IP CHECK] Falha ao determinar IP externo.');
     }
 
-    // CREDENCIAIS (Atualizadas conforme solicitação do usuário)
+    // CREDENCIAIS VERIFICADAS (Extraídas do seu painel)
     const clientId = 'Aducmartins_8700269788095411'.trim();
     const clientSecret = '6e7d949e6f87eaad1674807375749a9f21f6cf73769cfed1409bdfc0f7474fcd'.trim();
     
@@ -40,11 +42,10 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
     const pixUrl = "https://api.pixupbr.com/v2/pix/qrcode";
 
     try {
-        // 1. OBTENÇÃO DO TOKEN
+        // 1. OBTENÇÃO DO TOKEN (OAuth2 Client Credentials)
         const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-        console.log('>>> [AUTH] Solicitando token com novo Client ID...');
         
-        let tokenResponse = await fetch(authUrl, {
+        const tokenResponse = await fetch(authUrl, {
             method: 'POST',
             headers: {
                 'Authorization': `Basic ${basicAuth}`,
@@ -56,21 +57,18 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!tokenResponse.ok) {
             const errorText = await tokenResponse.text();
-            console.error('>>> [AUTH ERROR] Falha na autenticação (401):', tokenResponse.status, errorText);
-            throw new Error(`Erro 401: Credenciais rejeitadas ou IP não autorizado pela PixUp.`);
+            console.error('>>> [AUTH ERROR] 401 Unauthorized:', tokenResponse.status, errorText);
+            throw new Error(`Erro 401: Credenciais ou IP rejeitados pela PixUp.`);
         }
 
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
         
         if (!accessToken) {
-            console.error('>>> [AUTH ERROR] Resposta sem access_token:', tokenData);
             throw new Error('Token de acesso não recebido.');
         }
 
-        console.log('>>> [AUTH SUCCESS] Token recebido com sucesso.');
-
-        // 2. PREPARAÇÃO DOS DADOS (Sanitização rigorosa)
+        // 2. PREPARAÇÃO DOS DADOS (Sanitização)
         const documentCleaned = String(payerDocument || "12345678909").replace(/\D/g, '');
         const body = {
              amount: Number(amount),
@@ -84,11 +82,10 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         };
 
         // 3. GERAÇÃO DO QRCODE
-        console.log('>>> [PIX] Solicitando geração de QR Code...');
         const qrResponse = await fetch(pixUrl, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${accessToken}`, // Espaço obrigatório após Bearer
+                'Authorization': `Bearer ${accessToken}`, // O espaço após Bearer é obrigatório
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(body),
@@ -97,13 +94,11 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!qrResponse.ok) {
             const errorBody = await qrResponse.text();
-            console.error('>>> [PIX ERROR] Falha na geração do QR Code:', qrResponse.status, errorBody);
-            throw new Error(`Erro ${qrResponse.status}: A API recusou a geração. Verifique se o IP está na Whitelist.`);
+            console.error('>>> [PIX ERROR] Falha na geração:', qrResponse.status, errorBody);
+            throw new Error(`Erro ${qrResponse.status}: A API recusou a geração. Verifique o IP na Whitelist.`);
         }
 
         const data = await qrResponse.json();
-        console.log('>>> [PIX SUCCESS] QR Code gerado. ID Transação:', data.transactionId);
-
         const qrCodeImageUrl = await QRCode.toDataURL(data.qrcode);
 
         return {
@@ -113,7 +108,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         };
 
     } catch (error: any) {
-        console.error('>>> [CRITICAL ERROR]:', error.message);
+        console.error('>>> [CRITICAL]:', error.message);
         throw new Error(error.message || 'Erro ao processar Pix.');
     }
 }
