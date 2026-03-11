@@ -66,7 +66,7 @@ export default function DepositPage() {
             setIsGenerated(true);
 
             toast({
-                title: 'Pix Gerado!',
+                title: 'Código Gerado!',
                 description: 'Copie o código para pagar.',
             });
 
@@ -110,8 +110,7 @@ export default function DepositPage() {
                 <main className="flex-1 p-6 flex flex-col items-center justify-center space-y-8">
                     <div className="w-full max-w-md space-y-8 text-center">
                         <div className="space-y-1">
-                            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.3em]">Valor Total</p>
-                            <p className="text-5xl font-black">R$ {parseFloat(brlAmount).toFixed(2)}</p>
+                            <p className="text-5xl font-black">{parseFloat(brlAmount).toFixed(2)}</p>
                         </div>
                         
                         <div className="space-y-4 pt-4 text-left">
@@ -127,25 +126,6 @@ export default function DepositPage() {
                                         Copiar Código
                                     </Button>
                                 </div>
-                            </div>
-
-                            <div className="pt-8 space-y-4 text-center">
-                                <div className="text-[10px] space-y-2 text-muted-foreground uppercase font-bold tracking-tight opacity-70">
-                                    <p>1. Clique no botão de copiar acima</p>
-                                    <p>2. Abra o app do seu Banco</p>
-                                    <p>3. Escolha Pix &gt; Copia e Cola</p>
-                                    <p>4. Cole o código e finalize o pagamento</p>
-                                </div>
-                                <Button 
-                                    variant="outline" 
-                                    className="w-full h-14 font-black uppercase text-xs tracking-widest rounded-2xl border-2 mt-4" 
-                                    asChild
-                                >
-                                    <Link href="https://t.me/SuportedailygainX" target="_blank">
-                                        <Send className="h-4 w-4 mr-2" />
-                                        Enviar Comprovante
-                                    </Link>
-                                </Button>
                             </div>
                         </div>
                     </div>
