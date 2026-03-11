@@ -162,7 +162,7 @@ export default function DepositPage() {
                         <ArrowLeft className="h-5 w-5" />
                     </Link>
                 </Button>
-                <h1 className="text-lg font-bold uppercase tracking-widest">Depósito</h1>
+                <h1 className="text-lg font-bold uppercase tracking-widest">DEPÓSITO</h1>
                 <div className="w-9 h-9" />
             </header>
 
@@ -170,7 +170,6 @@ export default function DepositPage() {
               <div className="w-full max-w-md space-y-10">
                 <div className="space-y-4">
                     <div className="relative text-center">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">Quanto deseja depositar? (Mínimo 25)</p>
                         <Input
                             id="brlAmount"
                             type="number"
