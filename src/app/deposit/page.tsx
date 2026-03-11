@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CheckCircle, Copy, Loader2, Send, Info } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Copy, Loader2, Send, Info, QrCode } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useFirebase } from '@/firebase';
@@ -19,7 +19,7 @@ const PixLogo = () => (
         <path d="M17 1.66699L25.2912 5.83366L29.7279 14.417L28.0006 15.3337L25.2912 11.167L18.6679 8.00033V25.5837L25.2912 28.8337L17 1.66699Z" fill="#32BCAD"/>
         <path d="M8.70879 5.83366L5.99945 11.167V22.417L8.70879 27.5003L15.3321 30.667L15.3321 2.83366L8.70879 5.83366Z" fill="#32BCAD"/>
         <path d="M25.2912 5.83366L28.0006 11.167V22.417L25.2912 27.5003L18.6679 30.667L18.6679 2.83366L25.2912 5.83366Z" fill="#32BCAD"/>
-        <path d="M31.3346 30.8337V2.50033H42.1321C45.1096 2.50033 47.2796 3.25033 48.6446 4.66699C49.9096 6.08366 50.5421 8.02533 50.5421 10.5003C50.5421 12.9753 49.9096 14.892 48.6446 16.2503C47.2796 17.7087 45.1096 18.417 42.1321 18.417H34.0012V30.8337H31.3346ZM41.7796 4.54199H34.0012V16.3753H41.7796C43.9046 16.3753 45.4188 15.8337 46.3238 14.7503C47.2288 13.667 47.6812 12.2087 47.6812 10.5003C47.6812 8.79199 47.2288 7.33366 46.3238 6.25033C45.4188 5.16699 43.9046 4.54199 41.7796 4.54199Z" fill="#32BCAD"/>
+        <path d="M31.3346 30.8337V2.50033H42.1321C45.1096 2.50033 47.2796 3.25033 48.6446 4.66699C49.9096 6.08366 50.5421 8.02533 50.5421 10.5003C50.5421 12.9753 49.9096 14.892 48.6446 16.2503C47.2796 17.7087 45.1096 18.417 42.1321 18.417H34.0012V30.8337H31.3346ZM41.7796 4.54199H34.0012V16.3753H41.7796C43.9046 16.3753 45.4188 15.8337 46.3238 14.7503C47.2288 13.667 47.6812 12.2087 47.6812 10.5003C47.2288 13.667 47.6812 12.2087 47.6812 10.5003C47.6812 8.79199 47.2288 7.33366 46.3238 6.25033C45.4188 5.16699 43.9046 4.54199 41.7796 4.54199Z" fill="#32BCAD"/>
         <path d="M62.6685 30.8337L54.4594 2.50033H57.4369L61.4394 16.6253L65.3419 2.50033H68.3194L58.6272 30.8337H62.6685Z" fill="#32BCAD"/>
         <path d="M75.1685 2.50033V30.8337H72.5018V2.50033H75.1685Z" fill="#32BCAD"/>
         <path d="M88.5018 2.50033L77.7043 30.8337H74.8055L70.5282 16.6253L66.2509 30.8337H63.3522L73.0443 2.50033H76.0218L80.0243 16.6253L84.2835 2.50033H88.5018Z" fill="#32BCAD"/>
@@ -64,7 +64,7 @@ export default function DepositPage() {
                 amount: amountInBrl,
                 payerName: user.displayName || 'Cliente DailyGainX',
                 payerEmail: user.email || undefined,
-                payerDocument: "12345678909", // CPF Genérico para teste ou pode ser solicitado ao usuário
+                payerDocument: "12345678909", 
                 externalId: depositId,
                 postbackUrl: postbackUrl
             });
@@ -88,8 +88,8 @@ export default function DepositPage() {
             setTransactionId(depositId);
 
             toast({
-                title: 'QR Code Gerado!',
-                description: 'Siga as instruções para resgatar seu saldo.',
+                title: 'Pagamento Gerado!',
+                description: 'Utilize o QR Code ou o código Copia e Cola para pagar.',
             });
 
         } catch (error: any) {
@@ -134,9 +134,9 @@ export default function DepositPage() {
                     <div className="container mx-auto max-w-md">
                         <Card>
                             <CardHeader>
-                                <CardTitle>QR Code Pix</CardTitle>
+                                <CardTitle>Pagamento Pix</CardTitle>
                                 <CardDescription>
-                                    Finalize seu depósito seguindo as etapas abaixo.
+                                    Escolha a forma mais fácil para você finalizar o depósito.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
@@ -158,41 +158,45 @@ export default function DepositPage() {
                                     
                                     <div className="w-full space-y-4 pt-4 text-left">
                                         <div className="space-y-2">
-                                            <Label htmlFor="pix-copy-paste">Pix Copia e Cola</Label>
+                                            <div className="flex items-center justify-between">
+                                                <Label htmlFor="pix-copy-paste">Pix Copia e Cola</Label>
+                                                <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase">Mais Prático</span>
+                                            </div>
                                             <div className="flex items-center space-x-2">
                                                 <Input
                                                     id="pix-copy-paste"
                                                     readOnly
                                                     value={pixCopyPaste}
-                                                    className="text-sm truncate bg-muted/30"
+                                                    className="text-sm truncate bg-muted/30 h-12"
                                                 />
-                                                <Button variant="outline" size="icon" onClick={() => copyToClipboard(pixCopyPaste, 'Código Pix')}>
-                                                    <Copy className="h-4 w-4" />
+                                                <Button variant="default" className="h-12 w-12 shrink-0" onClick={() => copyToClipboard(pixCopyPaste, 'Código Pix')}>
+                                                    <Copy className="h-5 w-5" />
                                                 </Button>
                                             </div>
+                                            <p className="text-[10px] text-muted-foreground">Copie o código acima e cole na opção "Pix Copia e Cola" do seu banco.</p>
                                         </div>
 
                                         <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
                                             <div className="flex items-center gap-2 font-bold text-primary mb-1">
                                                 <Info className="h-4 w-4" />
-                                                <span>Instruções de depósito</span>
+                                                <span>Passo a passo</span>
                                             </div>
-                                            <div className="space-y-2 text-sm font-semibold uppercase tracking-tight">
-                                                <p>1. EFETUAR O PAGAMENTO</p>
-                                                <p>2. ENVIAR COMPROVANTE NO SUPORTE</p>
-                                                <p>3. AGUARDAR VALIDAÇÃO AUTOMÁTICA</p>
-                                                <p>4. RESGATAR SEU SALDO NO PERFIL</p>
+                                            <div className="space-y-2 text-xs font-semibold uppercase tracking-tight text-muted-foreground">
+                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 1. PAGUE PELO APP DO SEU BANCO</p>
+                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 2. MANDE O PRINT NO SUPORTE</p>
+                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 3. AGUARDE A VALIDAÇÃO DO SALDO</p>
+                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 4. RESGATE SEU SALDO NO PERFIL</p>
                                             </div>
                                         </div>
 
                                         <Button 
                                             variant="default" 
-                                            className="w-full gap-2 h-12 font-bold uppercase" 
+                                            className="w-full gap-2 h-14 font-black uppercase text-lg" 
                                             asChild
                                         >
                                             <Link href="https://t.me/SuportedailygainX" target="_blank">
-                                                <Send className="h-4 w-4" />
-                                                FALAR COM SUPORTE
+                                                <Send className="h-5 w-5" />
+                                                ENVIAR COMPROVANTE
                                             </Link>
                                         </Button>
                                     </div>
@@ -223,7 +227,10 @@ export default function DepositPage() {
                     <Label className="text-sm font-normal text-muted-foreground">Método de Pagamento</Label>
                     <div className="mt-2 flex items-center justify-between rounded-xl border-2 border-primary bg-primary/5 p-4 shadow-sm">
                         <PixLogo />
-                        <CheckCircle className="h-6 w-6 text-primary" />
+                        <div className="flex items-center gap-2 text-primary font-bold text-xs">
+                            <span>PIX ATIVO</span>
+                            <CheckCircle className="h-5 w-5" />
+                        </div>
                     </div>
                 </div>
 
@@ -267,16 +274,19 @@ export default function DepositPage() {
                 <div className="pt-4">
                     <Button 
                         onClick={handleGenerateQrCode} 
-                        className="w-full h-14 text-xl rounded-2xl shadow-lg shadow-primary/20" 
+                        className="w-full h-16 text-lg font-black rounded-2xl shadow-lg shadow-primary/20 uppercase tracking-tight gap-2" 
                         disabled={!brlAmount || parseFloat(brlAmount) < MIN_DEPOSIT_BRL || isLoading}
                     >
                         {isLoading ? (
                             <>
-                                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                                <Loader2 className="h-6 w-6 animate-spin" />
                                 Processando...
                             </>
                         ) : (
-                            'Gerar QR Code Pix'
+                            <>
+                                <QrCode className="h-6 w-6" />
+                                Gerar Pix (QR ou Copia e Cola)
+                            </>
                         )}
                     </Button>
                 </div>
