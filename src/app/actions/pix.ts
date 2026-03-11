@@ -15,7 +15,7 @@ interface GeneratePixOptions {
 }
 
 /**
- * Gera um código Pix Copia e Cola com tratamento rigoroso de dados e telemetria total.
+ * Gera um código Pix Copia e Cola com telemetria avançada para suporte técnico.
  */
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
     const { amount, externalId, postbackUrl, payerName, payerDocument, payerEmail } = options;
@@ -29,7 +29,6 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         console.warn('>>> [DIAGNOSTICO] Falha ao determinar IP de saída.');
     }
 
-    // 2. CREDENCIAIS ATUALIZADAS (Conforme painel do usuário)
     const clientId = 'Aducmartins_8700269788095411'.trim();
     const clientSecret = '6e7d949e6f87eaad1674807375749a9f21f6cf73769cfed1409bdfc0f7474fcd'.trim();
     
@@ -37,7 +36,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
     const pixUrl = "https://api.pixupbr.com/v2/pix/qrcode";
 
     try {
-        // 3. AUTENTICAÇÃO OAUTH2
+        // 2. AUTENTICAÇÃO OAUTH2
         const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
         
         const tokenResponse = await fetch(authUrl, {
@@ -52,25 +51,23 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!tokenResponse.ok) {
             const errorBody = await tokenResponse.text();
-            console.log('ERRO DETALHADO DA PIXUP (AUTH):', errorBody);
-            throw new Error(`Erro de Autenticação (401). Verifique se o IP está na Whitelist.`);
+            console.log('>>> [PIXUP AUTH ERROR]:', errorBody);
+            throw new Error(`Erro de Autenticação (401). Verifique o IP Whitelist.`);
         }
 
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
-        console.log('>>> [PIXUP AUTH] Token obtido com sucesso.');
 
-        // 4. SANITIZAÇÃO DE DADOS PARA EVITAR ERRO 400
-        // Algumas APIs da PixUp pedem centavos (Inteiro), outras pedem Decimal. 
-        // Testando centavos conforme solicitado.
+        // 3. PREPARAÇÃO DO PAYLOAD (Sanitização rigorosa)
+        // Tentativa 1: Centavos conforme solicitado pelo usuário.
         const amountCents = Math.round(Number(amount) * 100);
         const documentCleaned = String(payerDocument || "12345678909").replace(/\D/g, '');
         
         const body = {
-             amount: amountCents, // Valor em centavos (Ex: 2500 para R$ 25,00)
+             amount: amountCents, 
              external_id: String(externalId).substring(0, 50),
              postbackUrl: postbackUrl || "https://dailygainx.netlify.app/api/webhook/pixup",
-             payerQuestion: "Depósito DailyGainX",
+             payerQuestion: "Deposito DailyGainX",
              payer: {
                 name: (payerName || "Cliente DailyGainX").substring(0, 100).trim(),
                 document: documentCleaned,
@@ -78,9 +75,9 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
              }
         };
 
-        console.log('>>> [PIX REQUEST] Enviando Payload:', JSON.stringify(body));
+        console.log('>>> [PIX REQUEST PAYLOAD]:', JSON.stringify(body, null, 2));
 
-        // 5. GERAÇÃO DO PIX COPIA E COLA
+        // 4. CHAMADA DA API DE QRCODE
         const qrResponse = await fetch(pixUrl, {
             method: 'POST',
             headers: {
@@ -93,29 +90,29 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!qrResponse.ok) {
             const errorBody = await qrResponse.text();
-            // LOG SOLICITADO PELO USUÁRIO PARA DIAGNÓSTICO
-            console.log('ERRO DETALHADO DA PIXUP:', errorBody);
+            // LOG CRÍTICO PARA O SUPORTE
+            console.log('>>> [ERRO DETALHADO DA PIXUP]:', errorBody);
             
             let errorMessage = `Erro ${qrResponse.status} na API PixUp.`;
             try {
                 const errorJson = JSON.parse(errorBody);
                 errorMessage = errorJson.message || errorJson.error || errorMessage;
+                if (errorJson.errors) errorMessage += ` Detalhes: ${JSON.stringify(errorJson.errors)}`;
             } catch (e) {}
 
             throw new Error(errorMessage);
         }
 
         const data = await qrResponse.json();
-        console.log('>>> [PIX SUCCESS] Transação criada:', data.transactionId);
+        console.log('>>> [PIX SUCCESS]:', data.transactionId);
 
         return {
-            // O código Copia e Cola costuma vir no campo 'qrcode' ou 'emv'
             pixCopyPaste: data.qrcode || data.emv || "",
             transactionId: data.transactionId,
         };
 
     } catch (error: any) {
-        console.error('>>> [CRITICAL ERROR]:', error.message);
-        throw new Error(error.message || 'Erro inesperado ao processar Pix.');
+        console.error('>>> [ACTION ERROR]:', error.message);
+        throw new Error(error.message || 'Erro ao processar Pix.');
     }
 }
