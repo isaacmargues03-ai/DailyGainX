@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -111,6 +112,7 @@ export default function DepositPage() {
         setIsGenerated(false);
         setPixCopyPaste('');
         setBrlAmount('');
+        setUsdtAmount(0);
     };
 
     if (isGenerated) {
@@ -235,20 +237,16 @@ export default function DepositPage() {
                                     setUsdtAmount(0);
                                 }
                             }}
-                            className="h-14 text-lg pl-6 pr-12 bg-muted/50 border-none rounded-xl"
+                            className="h-16 text-xl pl-6 pr-12 bg-muted/50 border-none rounded-xl font-bold"
                         />
-                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">R$</span>
+                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-muted-foreground font-black">R$</span>
                     </div>
-                    <div className="relative">
-                        <Input
-                            id="usdtAmount"
-                            value={usdtAmount > 0 ? usdtAmount.toFixed(2) : ''}
-                            readOnly
-                            className="h-14 text-lg pl-6 pr-20 bg-muted/30 border-none rounded-xl text-primary font-bold"
-                            placeholder="Valor em USDT"
-                        />
-                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-primary/70 font-bold">USDT</span>
-                    </div>
+                    {usdtAmount > 0 && (
+                        <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl flex justify-between items-center">
+                            <span className="text-sm font-bold text-muted-foreground uppercase">Você receberá:</span>
+                            <span className="text-xl font-black text-primary">{usdtAmount.toFixed(2)} USDT</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="pt-4">

@@ -1,3 +1,4 @@
+
 'use server';
 
 interface QrCodeResponse {
@@ -51,7 +52,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!tokenResponse.ok) {
             const errorBody = await tokenResponse.text();
-            console.log('>>> [PIXUP AUTH ERROR]:', errorBody);
+            console.error('>>> [PIXUP AUTH ERROR]:', errorBody);
             throw new Error(`Erro de Autenticação (401). Verifique o IP Whitelist.`);
         }
 
@@ -59,7 +60,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         const accessToken = tokenData.access_token;
 
         // 3. PREPARAÇÃO DO PAYLOAD (Sanitização rigorosa)
-        // Tentativa 1: Centavos conforme solicitado pelo usuário.
+        // Convertendo para centavos conforme solicitado pelo usuário.
         const amountCents = Math.round(Number(amount) * 100);
         const documentCleaned = String(payerDocument || "12345678909").replace(/\D/g, '');
         
@@ -90,15 +91,16 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!qrResponse.ok) {
             const errorBody = await qrResponse.text();
-            // LOG CRÍTICO PARA O SUPORTE
-            console.log('>>> [ERRO DETALHADO DA PIXUP]:', errorBody);
+            let errorJson = {};
+            try {
+                errorJson = JSON.parse(errorBody);
+            } catch (e) {}
+
+            // LOG CRÍTICO PARA O SUPORTE CONFORME SOLICITADO
+            console.error('ERRO DETALHADO DA PIXUP:', JSON.stringify(errorJson, null, 2));
             
             let errorMessage = `Erro ${qrResponse.status} na API PixUp.`;
-            try {
-                const errorJson = JSON.parse(errorBody);
-                errorMessage = errorJson.message || errorJson.error || errorMessage;
-                if (errorJson.errors) errorMessage += ` Detalhes: ${JSON.stringify(errorJson.errors)}`;
-            } catch (e) {}
+            if ((errorJson as any).message) errorMessage = (errorJson as any).message;
 
             throw new Error(errorMessage);
         }
