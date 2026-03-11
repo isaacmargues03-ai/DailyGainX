@@ -1,35 +1,34 @@
 
-# DailyGainX - Firebase Studio
+# DailyGainX - Instruções para Erro de Autenticação (Git Push)
 
-Este é um projeto Next.js criado no Firebase Studio com integração real da PixUp.
+Se você estiver recebendo o erro `Authentication failed` ao tentar dar push no terminal, siga estas instruções para configurar suas credenciais do GitHub.
 
-## Erro de Autenticação (Git Push)
-
-Se você receber o erro `Authentication failed` ao dar push, siga estes passos:
-1. Verifique se você tem permissão de escrita no repositório.
-2. No terminal, tente configurar seu usuário:
-   ```bash
-   git config --global user.email "seu-email@gmail.com"
-   git config --global user.name "Seu Nome"
-   ```
-3. Se o erro persistir, você pode precisar usar um **Personal Access Token (PAT)** do GitHub em vez da senha.
-
-## Comandos do Terminal
-
-Para atualizar e sincronizar com o GitHub:
+## Opção 1: Configurar Nome e Email
+No terminal, execute os comandos abaixo substituindo pelos seus dados reais:
 ```bash
-git add .
-git commit -m "Sua mensagem de atualização aqui"
+git config --global user.email "seu-email@exemplo.com"
+git config --global user.name "Seu Nome de Usuário GitHub"
+```
+
+## Opção 2: Usar Personal Access Token (PAT)
+O GitHub não aceita mais a sua senha normal no terminal. Se ele pedir senha, você deve usar um **token**.
+1. Vá em [GitHub Settings > Developer Settings > Personal access tokens > Tokens (classic)](https://github.com/settings/tokens).
+2. Gere um novo token com permissão de `repo`.
+3. No terminal, quando pedir senha, cole esse token.
+
+## Opção 3: Forçar URL com Token (Cuidado: Senha Exposta no Histórico)
+Se as opções acima falharem, você pode tentar:
+```bash
+git remote set-url origin https://SEU_USUARIO:SEU_TOKEN@github.com/isaacmargues03-ai/DailyGainX.git
 git push
 ```
 
-## Configuração do Webhook
+## Webhook PixUp
+URL para cadastro no painel: `https://dailygainx.netlify.app/api/webhook/pixup`
 
-Cadastre a URL abaixo no painel da PixUp para que o saldo atualize automaticamente:
-`https://dailygainx.netlify.app/api/webhook/pixup`
+---
 
-**Regras de Negócio Atualizadas:**
-- **Conversão:** R$ 25,00 = 5 USDT (R$ 1,00 = 0.20 USDT).
-- **Resgate:** Manual via Token (DGX-XXXXXX).
-- **Suporte Oficial:** https://t.me/SuportedailygainX
-- **Comunidade:** https://t.me/+81BWkzCKgMdjMDcx
+**Status Atual:**
+- Página de Depósito: Modo Manual (Instruções + Suporte).
+- Resgate: Via Token DGX.
+- Bônus: 1 USDT por indicação ativa.
