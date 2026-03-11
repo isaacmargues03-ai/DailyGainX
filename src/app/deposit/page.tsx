@@ -114,7 +114,7 @@ export default function DepositPage() {
                         </div>
                         
                         <div className="space-y-4 pt-4 text-left">
-                            <div className="space-y-3">
+                            <div className="space-y-6">
                                 <div className="flex flex-col gap-3">
                                     <Input
                                         readOnly
@@ -125,6 +125,28 @@ export default function DepositPage() {
                                         <Copy className="h-5 w-5 mr-2" />
                                         Copiar Código
                                     </Button>
+                                </div>
+
+                                <div className="space-y-3 pt-4 border-t border-dashed">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Instruções de Saque</p>
+                                    <ul className="space-y-3 text-sm font-bold uppercase tracking-tight">
+                                        <li className="flex items-center gap-3">
+                                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-white">1</span>
+                                            Chama um dos suportes
+                                        </li>
+                                        <li className="flex items-center gap-3">
+                                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-white">2</span>
+                                            Recarregar por lá
+                                        </li>
+                                        <li className="flex items-center gap-3">
+                                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-white">3</span>
+                                            Resgatar token
+                                        </li>
+                                        <li className="flex items-center gap-3">
+                                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-white">4</span>
+                                            Compra a máquina
+                                        </li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
