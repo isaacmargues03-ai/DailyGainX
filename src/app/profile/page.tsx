@@ -19,7 +19,6 @@ import {
   Ticket,
   Loader2,
   ShieldCheck,
-  PlusCircle,
   Plus,
   Users,
 } from 'lucide-react';
@@ -165,7 +164,7 @@ export default function ProfilePage() {
       const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
       
       await runTransaction(firestore, async (transaction) => {
-        // --- ETAPA 1: TODAS AS LEITURAS ---
+        // --- LEITURAS OBRIGATÓRIAS NO INÍCIO ---
         const tDoc = await transaction.get(tokenRef);
         if (!tDoc.exists()) throw new Error('Código inválido ou inexistente.');
         
@@ -176,7 +175,7 @@ export default function ProfilePage() {
         const uDoc = await transaction.get(userRef);
         if (!uDoc.exists()) throw new Error('Perfil de usuário não encontrado.');
         
-        const userData = uDoc.data();
+        const userData = uDoc.data() || {};
         const aDoc = await transaction.get(accountDocRef);
 
         let rDoc = null;
@@ -193,8 +192,8 @@ export default function ProfilePage() {
             }
         }
 
-        // --- ETAPA 2: TODAS AS ESCRITAS ---
-        const currentBalance = aDoc.exists() ? (aDoc.data().balance || 0) : 0;
+        // --- ESCRITAS APÓS TODAS AS LEITURAS ---
+        const currentBalance = aDoc.exists() ? (aDoc.data()?.balance || 0) : 0;
         
         // Atualiza saldo do usuário
         transaction.set(accountDocRef, { balance: currentBalance + tokenData.valor }, { merge: true });
@@ -225,13 +224,13 @@ export default function ProfilePage() {
                 transaction.update(rDoc.ref, { status: 'rewarded' });
                 
                 const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
-                // O increment() é uma operação de escrita que o Firestore aceita em transações
+                // Incrementa saldo do padrinho
                 transaction.set(referrerAccountRef, { balance: increment(1) }, { merge: true });
             }
         }
       });
 
-      toast({ title: 'Sucesso!', description: 'Saldo creditado e bônus de indicação processado!' });
+      toast({ title: 'Sucesso!', description: 'Saldo creditado e bônus processado!' });
       setIsTokenDialogOpen(false);
       setTokenInput('');
     } catch (error: any) {

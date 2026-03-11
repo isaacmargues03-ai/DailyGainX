@@ -1,7 +1,6 @@
 'use server';
 
 import QRCode from 'qrcode';
-import sdk from '@api/pixup';
 
 interface QrCodeResponse {
     qrCodeImageUrl: string;
@@ -18,13 +17,13 @@ interface GeneratePixOptions {
 }
 
 /**
- * Gera um QR Code Pix utilizando o SDK oficial da PixUp.
- * O campo 'payer' é obrigatório pela API e agora é enviado seguindo o esquema rigoroso.
+ * Gera um QR Code Pix utilizando chamadas REST diretas para a PixUp.
+ * Isso garante que o objeto 'payer' seja enviado corretamente e evita problemas de serialização do SDK.
  */
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
     const { amount, externalId, postbackUrl, payerName, payerEmail } = options;
 
-    // Credenciais de Produção Oficiais
+    // Credenciais de Produção
     const clientId = "Aducmartins_4621537998005562";
     const clientSecret = "c473cdb25c796b619fb302ed9a0a8ce039c1287499348ce477c5195851b143e9";
     const apiUrl = "https://api.pixupbr.com/v2";
@@ -43,35 +42,47 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         });
 
         if (!tokenResponse.ok) {
-            const errorJson = await tokenResponse.json();
-            throw new Error(`Auth Error: ${errorJson.error_description || errorJson.message}`);
+            const errorText = await tokenResponse.text();
+            console.error('Erro de Auth PixUp:', errorText);
+            throw new Error(`Falha na autenticação com a PixUp.`);
         }
 
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
         
-        // 2. Configurar o SDK com o token obtido
-        sdk.auth(accessToken);
-        sdk.server('https://api.pixupbr.com/');
-
-        // 3. Preparar o corpo da requisição conforme exigido pela PixUp
-        // O objeto 'payer' é MANDATÓRIO para evitar o erro 400.
+        // 2. Preparar o corpo da requisição (O 'payer' é MANDATÓRIO)
         const body = {
              amount: Number(amount.toFixed(2)),
              external_id: String(externalId),
              postbackUrl: postbackUrl || "",
              payer: {
                 name: (payerName || "Cliente DailyGainX").substring(0, 100).trim(),
-                document: "12345678909", // CPF válido exigido pela API
+                document: "12345678909", // CPF genérico para validação da API
                 email: (payerEmail || "contato@dailygainx.com").substring(0, 100).trim()
              }
         };
 
-        // Chamada via SDK para garantir compatibilidade total
-        const { data } = await sdk.createQrcode(body);
+        // 3. Gerar QR Code via POST direto
+        const qrResponse = await fetch(`${apiUrl}/pix/qrcode`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+            cache: 'no-store'
+        });
+
+        if (!qrResponse.ok) {
+            const errorJson = await qrResponse.json();
+            console.error('Erro 400 PixUp:', errorJson);
+            throw new Error(errorJson.message || 'Erro ao gerar QR Code (Bad Request).');
+        }
+
+        const data = await qrResponse.json();
 
         if (!data || !data.qrcode || !data.transactionId) {
-            throw new Error('A API retornou uma resposta incompleta.');
+            throw new Error('Resposta incompleta da API da PixUp.');
         }
 
         // Converter string Pix para Imagem (Base64)
@@ -84,9 +95,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         };
 
     } catch (error: any) {
-        console.error('ERRO DETALHADO PIXUP:', error);
-        // Tenta extrair a mensagem de erro específica da API se disponível
-        const message = error.resData?.message || error.message || 'Erro ao gerar Pix.';
-        throw new Error(message);
+        console.error('ERRO DETALHADO generatePixQrCode:', error);
+        throw new Error(error.message || 'Erro crítico ao processar Pix.');
     }
 }

@@ -28,17 +28,13 @@ service cloud.firestore {
         // Permite ler se for o dono ou admin
         allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
         
-        // Permite escrita total se for o dono ou admin
+        // Permite escrita se for o dono ou admin
         allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
         
         // REGRA DE INDICAÇÃO: Permite que QUALQUER usuário autenticado incremente o saldo de outro
-        // em exatamente 1 USDT. Isso é necessário para o fluxo de bônus de indicação.
+        // em exatamente 1 USDT. Isso é necessário para o fluxo de bônus de indicação automático.
         allow update: if request.auth != null && 
           request.resource.data.balance == resource.data.balance + 1;
-
-        match /depositTransactions/{txId} {
-          allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
-        }
       }
 
       match /investments/{invId} {
