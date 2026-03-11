@@ -104,7 +104,7 @@ export default function DepositPage() {
                     <Button variant="ghost" size="icon" onClick={resetDepositFlow}>
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <h1 className="text-lg font-bold uppercase tracking-widest">Copia e Cola</h1>
+                    <h1 className="text-lg font-bold uppercase tracking-widest">DEPÓSITO</h1>
                     <div className="w-9 h-9" />
                 </header>
                 <main className="flex-1 p-6 flex flex-col items-center justify-center space-y-8">
@@ -147,6 +147,27 @@ export default function DepositPage() {
                                             Compra a máquina
                                         </li>
                                     </ul>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4 pt-4">
+                                    <Button 
+                                        asChild 
+                                        className="bg-blue-600 hover:bg-blue-700 text-white font-black h-14 rounded-2xl shadow-lg gap-2"
+                                    >
+                                        <Link href="https://t.me/SuportedailygainX" target="_blank">
+                                            <Send className="h-4 w-4" />
+                                            SUPORTE 1
+                                        </Link>
+                                    </Button>
+                                    <Button 
+                                        asChild 
+                                        className="bg-blue-600 hover:bg-blue-700 text-white font-black h-14 rounded-2xl shadow-lg gap-2"
+                                    >
+                                        <Link href="http://t.me/Aduacm" target="_blank">
+                                            <Send className="h-4 w-4" />
+                                            SUPORTE 2
+                                        </Link>
+                                    </Button>
                                 </div>
                             </div>
                         </div>
