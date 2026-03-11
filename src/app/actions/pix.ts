@@ -13,18 +13,19 @@ interface GeneratePixOptions {
     amount: number;
     payerName?: string;
     payerEmail?: string;
+    payerDocument?: string; 
     externalId: string; 
     postbackUrl?: string; 
 }
 
 /**
  * Gera um QR Code Pix utilizando chamadas REST diretas para a PixUp.
- * Garante que o objeto 'payer' seja enviado com a estrutura correta exigida pela API.
+ * Ajustado conforme especificações técnicas de produção.
  */
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
-    const { amount, externalId, postbackUrl, payerName, payerEmail } = options;
+    const { amount, externalId, postbackUrl, payerName, payerDocument } = options;
 
-    // Credenciais de Produção
+    // Credenciais de Produção fornecidas
     const clientId = "Aducmartins_4621537998005562";
     const clientSecret = "c473cdb25c796b619fb302ed9a0a8ce039c1287499348ce477c5195851b143e9";
     const apiUrl = "https://api.pixupbr.com/v2";
@@ -44,27 +45,31 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!tokenResponse.ok) {
             const errorText = await tokenResponse.text();
-            console.error('Falha na Autenticação PixUp:', errorText);
+            console.error('FALHA NA AUTENTICAÇÃO PIXUP:', errorText);
             throw new Error(`Erro de autenticação com o provedor de pagamento.`);
         }
 
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
         
-        // 2. Preparar o corpo da requisição
-        // O campo 'payer' com 'document' (CPF/CNPJ) é MANDATÓRIO pela API PixUp
+        // 1) Valor (amount) enviado como número float
+        const amountFloat = parseFloat(amount.toFixed(2));
+
+        // 2) Objeto payer com name e document (CPF apenas números)
+        const rawDocument = payerDocument || "12345678909";
+        const documentCleaned = rawDocument.replace(/\D/g, '');
+
         const body = {
-             amount: Number(amount.toFixed(2)),
+             amount: amountFloat,
              external_id: String(externalId),
              postbackUrl: postbackUrl || "https://dailygainx.netlify.app/api/webhook/pixup",
              payer: {
                 name: (payerName || "Cliente DailyGainX").substring(0, 100).trim(),
-                document: "12345678909", // CPF genérico aceito para validação inicial
-                email: (payerEmail || "contato@dailygainx.com").substring(0, 100).trim()
+                document: documentCleaned
              }
         };
 
-        // 3. Gerar QR Code
+        // 3) URL da API: https://api.pixupbr.com/v2/pix/qrcode
         const qrResponse = await fetch(`${apiUrl}/pix/qrcode`, {
             method: 'POST',
             headers: {
@@ -76,9 +81,10 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         });
 
         if (!qrResponse.ok) {
-            const errorJson = await qrResponse.json();
-            console.error('Erro na API PixUp (400/500):', errorJson);
-            throw new Error(errorJson.message || 'Erro ao gerar QR Code na PixUp.');
+            // Melhore o log de erro no catch para exibir o erro completo no terminal
+            const errorData = await qrResponse.json();
+            console.error('ERRO DETALHADO API PIXUP (QRCODE):', JSON.stringify(errorData, null, 2));
+            throw new Error(errorData.message || 'Erro ao gerar QR Code na PixUp.');
         }
 
         const data = await qrResponse.json();
