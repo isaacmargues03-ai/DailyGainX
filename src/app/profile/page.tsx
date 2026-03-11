@@ -20,7 +20,6 @@ import {
   Loader2,
   ShieldCheck,
   Plus,
-  Users,
   PlusCircle,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -281,7 +280,7 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                <Card className="mb-8 border-none shadow-md bg-gradient-to-br from-card to-muted/30">
+                <Card className="mb-6 border-none shadow-md bg-gradient-to-br from-card to-muted/30">
                     <div className="p-6">
                         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Saldo Total</p>
                         <div className="text-4xl font-black my-2">
@@ -297,6 +296,28 @@ export default function ProfilePage() {
                         </div>
                     </div>
                 </Card>
+
+                {/* BOTÕES DE SUPORTE AZUIS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+                    <Button 
+                        asChild 
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-black h-14 rounded-xl shadow-lg gap-2"
+                    >
+                        <Link href="https://t.me/SuportedailygainX" target="_blank">
+                            <Send className="h-5 w-5" />
+                            SUPORTE 1
+                        </Link>
+                    </Button>
+                    <Button 
+                        asChild 
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-black h-14 rounded-xl shadow-lg gap-2"
+                    >
+                        <Link href="http://t.me/Aduacm" target="_blank">
+                            <Send className="h-5 w-5" />
+                            SUPORTE 2
+                        </Link>
+                    </Button>
+                </div>
 
                 {isAdmin && (
                   <div className="space-y-3 mb-8">
@@ -317,8 +338,6 @@ export default function ProfilePage() {
                     <MenuItem href="/history" icon={<History className="h-5 w-5"/>} text="Histórico de Saques" />
                     <MenuItem href="/referrals" icon={<Gift className="h-5 w-5"/>} text="Indique e Ganhe" />
                     <MenuItem href="/feedback" icon={<MessageSquare className="h-5 w-5"/>} text="Feedback" />
-                    <MenuItem href="https://t.me/SuportedailygainX" icon={<Send className="h-5 w-5"/>} text="Suporte 1" />
-                    <MenuItem href="http://t.me/Aduacm" icon={<Send className="h-5 w-5"/>} text="Suporte 2" />
                 </div>
 
                 <div className="mt-10">
