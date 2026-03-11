@@ -19,14 +19,14 @@ interface GeneratePixOptions {
 
 /**
  * Gera um QR Code Pix utilizando chamadas REST diretas para a PixUp.
- * Ajustado com as novas credenciais e regras de sanitização de produção.
+ * Credenciais inseridas diretamente no código para diagnóstico de erro 401.
  */
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
     const { amount, externalId, postbackUrl, payerName, payerDocument } = options;
 
-    // Credenciais de Produção (Prioriza .env, fallback para valores fixos limpos)
-    const clientId = process.env.PIXUP_CLIENT_ID || "Aducmartins_4621537998005562";
-    const clientSecret = process.env.PIXUP_CLIENT_SECRET || "6e7d949e6f87eaad1674807375749a9f21f6cf73769cfed1409bdfc0f7474fcd";
+    // CREDENCIAIS FIXAS PARA DIAGNÓSTICO (Removido process.env para teste)
+    const clientId = 'Aducmartins_4621537998005562';
+    const clientSecret = '6e7d949e6f87eaad1674807375749a9f21f6cf73769cfed1409bdfc0f7474fcd';
     
     // Endpoints Oficiais
     const authUrl = "https://api.pixupbr.com/v2/oauth/token";
@@ -34,7 +34,9 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
     try {
         // 1. Obter Token de Acesso (OAuth2) - Basic Auth
+        // Usamos trim() apenas por segurança adicional contra espaços no código
         const credentials = Buffer.from(`${clientId.trim()}:${clientSecret.trim()}`).toString('base64');
+        
         const tokenResponse = await fetch(authUrl, {
             method: 'POST',
             headers: {
@@ -47,14 +49,14 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!tokenResponse.ok) {
             const errorText = await tokenResponse.text();
-            console.error('FALHA NA AUTENTICAÇÃO PIXUP (401):', errorText);
-            throw new Error(`Erro de autorização (401). Verifique as credenciais.`);
+            console.error('FALHA NA AUTENTICAÇÃO PIXUP (401) - RESPOSTA COMPLETA:', errorText);
+            throw new Error(`Erro de autorização (401). Verifique se as credenciais estão ativas no painel PixUp.`);
         }
 
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
         
-        // 2. Preparação e Sanitização de Dados
+        // 2. Preparação e Sanitização de Dados (Conforme solicitado)
         const amountAsNumber = Number(amount);
         const documentCleaned = String(payerDocument || "12345678909").replace(/\D/g, '');
 
@@ -81,7 +83,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!qrResponse.ok) {
             const errorBody = await qrResponse.json().catch(() => ({ message: 'Erro na API de QRCode' }));
-            console.error('ERRO COMPLETO DA PIXUP:', errorBody);
+            console.error('ERRO COMPLETO DA PIXUP NO QRCODE:', errorBody);
             throw new Error(errorBody.message || 'Erro ao gerar QRCode na PixUp.');
         }
 
