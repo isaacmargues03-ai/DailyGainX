@@ -10,14 +10,9 @@ service cloud.firestore {
       );
     }
 
-    // REGRA DE OURO: Admin tem acesso total a TUDO de forma recursiva
+    // REGRA DE OURO: Admin tem acesso total a TUDO
     match /{allPaths=**} {
       allow read, write: if isAdmin();
-    }
-
-    // Suporte explícito para Collection Group
-    match /{path=**}/depositTransactions/{docId} {
-      allow read, write: if isAdmin() || (request.auth != null && request.auth.uid == resource.data.userId);
     }
 
     // REGRAS PARA USUÁRIOS COMUNS
@@ -25,16 +20,16 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
 
       match /accounts/{accountId} {
-        // Permite ler se for o dono ou admin
-        allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+        allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
         
-        // Permite escrita se for o dono ou admin
-        allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
-        
-        // REGRA DE INDICAÇÃO: Permite que QUALQUER usuário autenticado incremente o saldo de outro
-        // em exatamente 1 USDT. Isso é necessário para o fluxo de bônus de indicação automático.
+        // Permite o bônus de indicação
         allow update: if request.auth != null && 
           request.resource.data.balance == resource.data.balance + 1;
+
+        // Regra específica para a subcoleção de transações (Corrige o erro de permissão ao listar)
+        match /depositTransactions/{docId} {
+          allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+        }
       }
 
       match /investments/{invId} {
@@ -42,11 +37,14 @@ service cloud.firestore {
       }
     }
 
+    // Tokens de resgate
     match /tokens_resgate/{tokenId} {
       allow read, write: if isAdmin();
-      allow get, update: if request.auth != null;
+      allow get: if request.auth != null;
+      allow update: if request.auth != null && request.resource.data.usado == true;
     }
 
+    // Sistema de Indicação
     match /referralCodes/{code} {
       allow read: if true;
       allow write: if request.auth != null;
@@ -56,6 +54,12 @@ service cloud.firestore {
       allow read: if request.auth != null && (isAdmin() || request.auth.uid == resource.data.referrerId || request.auth.uid == resource.data.referredId);
       allow create: if request.auth != null;
       allow update: if request.auth != null && request.auth.uid == resource.data.referredId;
+    }
+
+    // Suporte para Collection Group (necessário para o Webhook e consultas globais)
+    match /{path=**}/depositTransactions/{docId} {
+      allow read: if request.auth != null && (isAdmin() || request.auth.uid == resource.data.userId);
+      allow write: if isAdmin() || (request.auth != null && request.auth.uid == request.resource.data.userId);
     }
   }
 }
