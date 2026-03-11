@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Copy, Loader2, Send, Info } from 'lucide-react';
+import { ArrowLeft, Copy, Loader2, Send } from 'lucide-react';
 import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { generatePixQrCode } from '@/app/actions/pix';
@@ -117,7 +117,6 @@ export default function DepositPage() {
                         
                         <div className="space-y-4 pt-4 text-left">
                             <div className="space-y-3">
-                                <Label className="font-black text-[10px] uppercase tracking-widest opacity-50 ml-1">Código Pix</Label>
                                 <div className="flex flex-col gap-3">
                                     <Input
                                         readOnly
@@ -168,7 +167,6 @@ export default function DepositPage() {
             <main className="flex-1 flex flex-col items-center justify-center p-6">
               <div className="w-full max-w-md space-y-10">
                 <div className="space-y-4">
-                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Quanto deseja depositar?</Label>
                     <div className="relative">
                         <Input
                             id="brlAmount"
@@ -198,12 +196,6 @@ export default function DepositPage() {
                         </>
                     )}
                 </Button>
-                
-                <div className="text-center">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-30">
-                        DailyGainX • Sistema de Pagamentos Seguro
-                    </p>
-                </div>
               </div>
             </main>
         </div>
