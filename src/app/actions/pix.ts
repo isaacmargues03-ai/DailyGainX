@@ -18,38 +18,38 @@ interface GeneratePixOptions {
 }
 
 /**
- * Gera um QR Code Pix utilizando chamadas REST diretas para a PixUp.
- * Implementação robusta com as novas credenciais hardcoded e diagnóstico de 401.
+ * Gera um QR Code Pix com telemetria avançada para diagnóstico de erros 401 e IP.
  */
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
     const { amount, externalId, postbackUrl, payerName, payerDocument, payerEmail } = options;
 
-    // CREDENCIAIS (Conforme fornecido pelo usuário)
-    const clientId = 'Aducmartins_4621537998005562'.trim();
-    // O usuário forneceu uma chave de 128 caracteres (provavelmente duplicada)
-    const rawSecret = '6e7d949e6f87eaad1674807375749a9f21f6cf73769cfed1409bdfc0f7474fcd6e7d949e6f87eaad1674807375749a9f21f6cf73769cfed1409bdfc0f7474fcd'.trim();
-    
-    // Diagnóstico de chave duplicada (SHA-256 tem 64 chars)
-    let clientSecret = rawSecret;
-    if (rawSecret.length === 128) {
-        const firstHalf = rawSecret.substring(0, 64);
-        const secondHalf = rawSecret.substring(64);
-        if (firstHalf === secondHalf) {
-            console.log('DIAGNÓSTICO: Chave duplicada detectada. Usando versão de 64 caracteres.');
-            clientSecret = firstHalf;
-        }
+    // 0. DIAGNÓSTICO DE IP (Exibe no terminal do servidor o IP que a PixUp está vendo)
+    try {
+        const ipResponse = await fetch('https://ifconfig.me/ip', { cache: 'no-store' });
+        const currentIp = await ipResponse.text();
+        console.log('>>> [DIAGNÓSTICO] IP ATUAL DO SERVIDOR:', currentIp.trim());
+    } catch (e) {
+        console.warn('>>> [DIAGNÓSTICO] Não foi possível determinar o IP externo.');
     }
 
-    // Endpoints de Produção
+    // CREDENCIAIS
+    const clientId = 'Aducmartins_4621537998005562'.trim();
+    const rawSecret = '6e7d949e6f87eaad1674807375749a9f21f6cf73769cfed1409bdfc0f7474fcd6e7d949e6f87eaad1674807375749a9f21f6cf73769cfed1409bdfc0f7474fcd'.trim();
+    
+    // Limpeza de chave duplicada
+    let clientSecret = rawSecret;
+    if (rawSecret.length === 128) {
+        clientSecret = rawSecret.substring(0, 64);
+    }
+
     const authUrl = "https://api.pixupbr.com/v2/oauth/token";
     const pixUrl = "https://api.pixupbr.com/v2/pix/qrcode";
 
     try {
-        // 1. Obter Token de Acesso (OAuth2)
-        // Tentativa 1: Basic Auth (Padrão)
+        // 1. OBTENÇÃO DO TOKEN
         const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+        console.log('>>> [AUTH] Solicitando token via Basic Auth...');
         
-        console.log('Solicitando token PixUp...');
         let tokenResponse = await fetch(authUrl, {
             method: 'POST',
             headers: {
@@ -60,43 +60,26 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
             cache: 'no-store'
         });
 
-        // Tentativa 2: Se falhar com 401, tenta Body Auth
-        if (tokenResponse.status === 401) {
-            console.warn('Falha 401 com Basic Auth. Tentando autenticação via corpo...');
-            const authBody = new URLSearchParams();
-            authBody.append('grant_type', 'client_credentials');
-            authBody.append('client_id', clientId);
-            authBody.append('client_secret', clientSecret);
-
-            tokenResponse = await fetch(authUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: authBody.toString(),
-                cache: 'no-store'
-            });
-        }
-
         if (!tokenResponse.ok) {
             const errorText = await tokenResponse.text();
-            console.error('ERRO PIXUP AUTENTICAÇÃO:', errorText);
-            throw new Error(`Erro de autorização (401). Verifique se a chave nova foi ativada corretamente no painel da PixUp.`);
+            console.error('>>> [AUTH ERROR] Falha na autenticação:', tokenResponse.status, errorText);
+            throw new Error(`Erro 401: Credenciais rejeitadas ou IP não autorizado pela PixUp.`);
         }
 
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
         
         if (!accessToken) {
-            throw new Error('Token de acesso não recebido da PixUp.');
+            console.error('>>> [AUTH ERROR] Resposta sem access_token:', tokenData);
+            throw new Error('Token de acesso não recebido.');
         }
 
-        // 2. Preparação de Dados
-        const amountAsNumber = Number(amount);
-        const documentCleaned = String(payerDocument || "12345678909").replace(/\D/g, '');
+        console.log('>>> [AUTH SUCCESS] Token recebido com sucesso (Início):', accessToken.substring(0, 10) + '...');
 
+        // 2. PREPARAÇÃO DOS DADOS
+        const documentCleaned = String(payerDocument || "12345678909").replace(/\D/g, '');
         const body = {
-             amount: amountAsNumber,
+             amount: Number(amount),
              external_id: String(externalId),
              postbackUrl: postbackUrl || "https://dailygainx.netlify.app/api/webhook/pixup",
              payer: {
@@ -106,11 +89,12 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
              }
         };
 
-        // 3. Gerar QRCode
+        // 3. GERAÇÃO DO QRCODE
+        console.log('>>> [PIX] Solicitando geração de QR Code...');
         const qrResponse = await fetch(pixUrl, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${accessToken}`,
+                'Authorization': `Bearer ${accessToken}`, // Espaço obrigatório após Bearer
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(body),
@@ -118,16 +102,13 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         });
 
         if (!qrResponse.ok) {
-            const errorBody = await qrResponse.json().catch(() => ({ message: 'Erro na API de QRCode' }));
-            console.error('ERRO PIXUP GERAÇÃO:', errorBody);
-            throw new Error(errorBody.message || 'Erro ao gerar QRCode na PixUp.');
+            const errorBody = await qrResponse.text();
+            console.error('>>> [PIX ERROR] Falha na geração do QR Code:', qrResponse.status, errorBody);
+            throw new Error(`Erro ${qrResponse.status}: A API recusou a geração. Verifique os logs do servidor.`);
         }
 
         const data = await qrResponse.json();
-
-        if (!data || !data.qrcode || !data.transactionId) {
-            throw new Error('Resposta incompleta da API da PixUp.');
-        }
+        console.log('>>> [PIX SUCCESS] QR Code gerado. ID Transação:', data.transactionId);
 
         const qrCodeImageUrl = await QRCode.toDataURL(data.qrcode);
 
@@ -138,7 +119,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         };
 
     } catch (error: any) {
-        console.error('ERRO CRÍTICO NO PROCESSO PIX:', error.message);
+        console.error('>>> [CRITICAL ERROR]:', error.message);
         throw new Error(error.message || 'Erro ao processar Pix.');
     }
 }
