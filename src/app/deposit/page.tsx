@@ -8,6 +8,7 @@ import Link from 'next/link';
 /**
  * Página de Depósito simplificada para fluxo manual.
  * Foca exclusivamente nas instruções de suporte e links diretos para atendimento.
+ * Removido gerador automático e rótulos desnecessários conforme solicitado.
  */
 export default function DepositPage() {
     return (
