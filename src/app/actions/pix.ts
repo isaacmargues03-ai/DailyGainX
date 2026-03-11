@@ -1,4 +1,3 @@
-
 'use server';
 
 interface QrCodeResponse {
@@ -17,6 +16,7 @@ interface GeneratePixOptions {
 
 /**
  * Gera um código Pix Copia e Cola com telemetria avançada para suporte técnico.
+ * Agora ajustado para enviar o valor em centavos conforme solicitado.
  */
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
     const { amount, externalId, postbackUrl, payerName, payerDocument, payerEmail } = options;
@@ -60,7 +60,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         const accessToken = tokenData.access_token;
 
         // 3. PREPARAÇÃO DO PAYLOAD (Sanitização rigorosa)
-        // Convertendo para centavos conforme solicitado pelo usuário.
+        // Convertendo para centavos conforme solicitado.
         const amountCents = Math.round(Number(amount) * 100);
         const documentCleaned = String(payerDocument || "12345678909").replace(/\D/g, '');
         
@@ -96,7 +96,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
                 errorJson = JSON.parse(errorBody);
             } catch (e) {}
 
-            // LOG CRÍTICO PARA O SUPORTE CONFORME SOLICITADO
+            // LOG CRÍTICO PARA O SUPORTE: Exibe exatamente o erro retornado pela PixUp
             console.error('ERRO DETALHADO DA PIXUP:', JSON.stringify(errorJson, null, 2));
             
             let errorMessage = `Erro ${qrResponse.status} na API PixUp.`;
