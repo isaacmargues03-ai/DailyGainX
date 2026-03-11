@@ -32,23 +32,17 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         console.warn('>>> [DIAGNÓSTICO] Não foi possível determinar o IP externo.');
     }
 
-    // CREDENCIAIS
-    const clientId = 'Aducmartins_4621537998005562'.trim();
-    const rawSecret = '6e7d949e6f87eaad1674807375749a9f21f6cf73769cfed1409bdfc0f7474fcd6e7d949e6f87eaad1674807375749a9f21f6cf73769cfed1409bdfc0f7474fcd'.trim();
+    // CREDENCIAIS (Atualizadas conforme solicitação do usuário)
+    const clientId = 'Aducmartins_8700269788095411'.trim();
+    const clientSecret = '6e7d949e6f87eaad1674807375749a9f21f6cf73769cfed1409bdfc0f7474fcd'.trim();
     
-    // Limpeza de chave duplicada
-    let clientSecret = rawSecret;
-    if (rawSecret.length === 128) {
-        clientSecret = rawSecret.substring(0, 64);
-    }
-
     const authUrl = "https://api.pixupbr.com/v2/oauth/token";
     const pixUrl = "https://api.pixupbr.com/v2/pix/qrcode";
 
     try {
         // 1. OBTENÇÃO DO TOKEN
         const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-        console.log('>>> [AUTH] Solicitando token via Basic Auth...');
+        console.log('>>> [AUTH] Solicitando token com novo Client ID...');
         
         let tokenResponse = await fetch(authUrl, {
             method: 'POST',
@@ -62,7 +56,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!tokenResponse.ok) {
             const errorText = await tokenResponse.text();
-            console.error('>>> [AUTH ERROR] Falha na autenticação:', tokenResponse.status, errorText);
+            console.error('>>> [AUTH ERROR] Falha na autenticação (401):', tokenResponse.status, errorText);
             throw new Error(`Erro 401: Credenciais rejeitadas ou IP não autorizado pela PixUp.`);
         }
 
@@ -74,9 +68,9 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
             throw new Error('Token de acesso não recebido.');
         }
 
-        console.log('>>> [AUTH SUCCESS] Token recebido com sucesso (Início):', accessToken.substring(0, 10) + '...');
+        console.log('>>> [AUTH SUCCESS] Token recebido com sucesso.');
 
-        // 2. PREPARAÇÃO DOS DADOS
+        // 2. PREPARAÇÃO DOS DADOS (Sanitização rigorosa)
         const documentCleaned = String(payerDocument || "12345678909").replace(/\D/g, '');
         const body = {
              amount: Number(amount),
@@ -104,7 +98,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         if (!qrResponse.ok) {
             const errorBody = await qrResponse.text();
             console.error('>>> [PIX ERROR] Falha na geração do QR Code:', qrResponse.status, errorBody);
-            throw new Error(`Erro ${qrResponse.status}: A API recusou a geração. Verifique os logs do servidor.`);
+            throw new Error(`Erro ${qrResponse.status}: A API recusou a geração. Verifique se o IP está na Whitelist.`);
         }
 
         const data = await qrResponse.json();
