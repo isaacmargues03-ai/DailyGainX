@@ -164,7 +164,7 @@ export default function DepositPage() {
                                             <div className="space-y-2 text-[11px] font-bold uppercase tracking-tight text-muted-foreground">
                                                 <p>1. Clique no botão de copiar acima</p>
                                                 <p>2. Abra o app do seu Banco</p>
-                                                <p>3. Escolha Pix > Copia e Cola</p>
+                                                <p>3. Escolha Pix &gt; Copia e Cola</p>
                                                 <p>4. Cole o código e finalize o pagamento</p>
                                             </div>
                                         </div>
