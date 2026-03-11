@@ -19,7 +19,7 @@ interface GeneratePixOptions {
 }
 
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
-    const { amount, externalId, postbackUrl } = options;
+    const { amount, externalId, postbackUrl, payerName, payerEmail } = options;
 
     // Credenciais de Produção Oficiais
     const clientId = "Aducmartins_4621537998005562";
@@ -47,11 +47,16 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
         
-        // 2. Gerar QR Code Dinâmico - Payload simplificado para evitar erros de validação
+        // 2. Gerar QR Code Dinâmico - Incluindo objeto 'payer' obrigatório
         const body: any = {
              amount: Number(amount.toFixed(2)),
              external_id: externalId,
-             postbackUrl: postbackUrl
+             postbackUrl: postbackUrl,
+             payer: {
+                name: payerName || "Cliente DailyGainX",
+                document: "12345678909", // CPF Genérico necessário para a API
+                email: payerEmail || "contato@dailygainx.com"
+             }
         };
 
         const qrCodeApiResponse = await fetch(`${apiUrl}/pix/qrcode`, {
