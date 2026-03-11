@@ -166,14 +166,15 @@ export default function DepositPage() {
                 <div className="w-9 h-9" />
             </header>
 
-            <main className="flex-1 flex flex-col items-center justify-center p-6">
+            <main className="flex-1 flex flex-col items-center justify-center p-6 pb-24">
               <div className="w-full max-w-md space-y-10">
                 <div className="space-y-4">
-                    <div className="relative">
+                    <div className="relative text-center">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">Quanto deseja depositar? (Mínimo 25)</p>
                         <Input
                             id="brlAmount"
                             type="number"
-                            placeholder="Mínimo 25"
+                            placeholder="0.00"
                             value={brlAmount}
                             onChange={(e) => setBrlAmount(e.target.value)}
                             className="h-24 text-6xl text-center border-none bg-muted/20 rounded-3xl font-black focus-visible:ring-0"
@@ -181,21 +182,40 @@ export default function DepositPage() {
                     </div>
                 </div>
 
-                <Button 
-                    onClick={handleGeneratePix} 
-                    className="w-full h-24 text-xl font-black rounded-3xl shadow-2xl uppercase tracking-tighter gap-3" 
-                    disabled={!brlAmount || parseFloat(brlAmount) < MIN_DEPOSIT_BRL || isLoading}
-                >
-                    {isLoading ? (
-                        <>
+                <div className="space-y-4">
+                    <Button 
+                        onClick={handleGeneratePix} 
+                        className="w-full h-24 text-xl font-black rounded-3xl shadow-2xl uppercase tracking-tighter gap-3" 
+                        disabled={!brlAmount || parseFloat(brlAmount) < MIN_DEPOSIT_BRL || isLoading}
+                    >
+                        {isLoading ? (
                             <Loader2 className="h-8 w-8 animate-spin" />
-                        </>
-                    ) : (
-                        <>
+                        ) : (
                             <ArrowRight className="h-8 w-8" />
-                        </>
-                    )}
-                </Button>
+                        )}
+                    </Button>
+
+                    <div className="grid grid-cols-2 gap-4 pt-4">
+                        <Button 
+                            asChild 
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-black h-14 rounded-2xl shadow-lg gap-2"
+                        >
+                            <Link href="https://t.me/SuportedailygainX" target="_blank">
+                                <Send className="h-4 w-4" />
+                                SUPORTE 1
+                            </Link>
+                        </Button>
+                        <Button 
+                            asChild 
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-black h-14 rounded-2xl shadow-lg gap-2"
+                        >
+                            <Link href="http://t.me/Aduacm" target="_blank">
+                                <Send className="h-4 w-4" />
+                                SUPORTE 2
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
               </div>
             </main>
         </div>
