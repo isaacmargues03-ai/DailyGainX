@@ -14,12 +14,12 @@ interface GeneratePixOptions {
     amount: number;
     payerName?: string;
     payerEmail?: string;
-    externalId: string; // Formato userId:depositId
-    postbackUrl?: string; // URL do webhook configurado na PixUp
+    externalId: string; 
+    postbackUrl?: string; 
 }
 
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
-    const { amount, payerName, payerEmail, externalId, postbackUrl } = options;
+    const { amount, externalId, postbackUrl } = options;
 
     // Credenciais de Produção Oficiais
     const clientId = "Aducmartins_4621537998005562";
@@ -47,16 +47,11 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
         
-        // 2. Gerar QR Code Dinâmico
-        const body: CreateQrcodeBodyParam = {
-             amount,
+        // 2. Gerar QR Code Dinâmico - Payload simplificado para evitar erros de validação
+        const body: any = {
+             amount: Number(amount.toFixed(2)),
              external_id: externalId,
-             postbackUrl: postbackUrl,
-             payer: {
-                 name: payerName || 'Cliente DailyGainX',
-                 document: '00000000000', 
-                 email: payerEmail
-             }
+             postbackUrl: postbackUrl
         };
 
         const qrCodeApiResponse = await fetch(`${apiUrl}/pix/qrcode`, {
@@ -71,7 +66,8 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!qrCodeApiResponse.ok) {
             const errorText = await qrCodeApiResponse.text();
-            throw new Error(`Erro na API PixUp ao gerar QR Code: ${errorText}`);
+            console.error('ERRO API PIXUP:', errorText);
+            throw new Error(`Erro na API PixUp: ${errorText}`);
         }
 
         const qrCodeData = await qrCodeApiResponse.json();

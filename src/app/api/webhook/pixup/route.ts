@@ -1,11 +1,11 @@
+
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collectionGroup, query, where, getDocs, updateDoc } from 'firebase/firestore';
 
 /**
  * Endpoint de Webhook para Produção - Fluxo de Validação.
- * Apenas valida a transação. O resgate e a recompensa de indicação
- * ocorrem quando o usuário clica em "Resgatar Saldo" no histórico.
+ * Utiliza collectionGroup para encontrar a transação pelo external_id (depositId).
  */
 export async function POST(request: Request) {
     try {
@@ -31,34 +31,34 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'external_id ausente' }, { status: 400 });
         }
 
-        const [userId, depositId] = external_id.split(':');
-
-        if (!userId || !depositId) {
-            return NextResponse.json({ error: 'external_id inválido' }, { status: 400 });
-        }
-
         const { firestore } = initializeFirebase();
-        const transactionRef = doc(firestore, 'users', userId, 'accounts', userId, 'depositTransactions', depositId);
+        
+        // Buscamos a transação em todas as subcoleções 'depositTransactions'
+        const transactionsRef = collectionGroup(firestore, 'depositTransactions');
+        const q = query(transactionsRef, where('id', '==', external_id));
+        const querySnapshot = await getDocs(q);
 
-        const transactionDoc = await getDoc(transactionRef);
-
-        if (!transactionDoc.exists()) {
+        if (querySnapshot.empty) {
+            console.error(`WEBHOOK ERRO: Transação ${external_id} não encontrada no banco.`);
             return NextResponse.json({ error: 'Transação inexistente' }, { status: 404 });
         }
 
+        const transactionDoc = querySnapshot.docs[0];
+        const transactionData = transactionDoc.data();
+
         // Idempotência
-        if (transactionDoc.data().status === 'claimed' || transactionDoc.data().status === 'validated') {
+        if (transactionData.status === 'claimed' || transactionData.status === 'validated') {
             return NextResponse.json({ message: 'Transação já processada' }, { status: 200 });
         }
 
         // Muda status para 'validated' para habilitar o botão de Resgate na tela do usuário
-        await updateDoc(transactionRef, { 
+        await updateDoc(transactionDoc.ref, { 
             status: 'validated', 
             updatedAt: new Date().toISOString(),
             pixUpId: transactionId || payload.id || 'N/A'
         });
 
-        console.log(`WEBHOOK SUCESSO: Transação ${depositId} validada.`);
+        console.log(`WEBHOOK SUCESSO: Transação ${external_id} validada.`);
         return NextResponse.json({ success: true }, { status: 200 });
 
     } catch (error: any) {

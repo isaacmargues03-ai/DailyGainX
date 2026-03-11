@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -58,7 +59,8 @@ export default function DepositPage() {
             const depositRef = doc(collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions'));
             const depositId = depositRef.id;
 
-            const externalId = `${user.uid}:${depositId}`;
+            // Encurtamos o external_id para evitar limites de caracteres da API
+            const externalId = depositId;
             const postbackUrl = `https://dailygainx.netlify.app/api/webhook/pixup`;
 
             const response = await generatePixQrCode({ 
