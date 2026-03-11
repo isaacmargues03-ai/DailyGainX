@@ -1,4 +1,3 @@
-
 'use server';
 
 import QRCode from 'qrcode';
@@ -25,15 +24,18 @@ interface GeneratePixOptions {
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
     const { amount, externalId, postbackUrl, payerName, payerDocument } = options;
 
-    // Credenciais de Produção Atualizadas
-    const clientId = "Aducmartins_4621537998005562";
-    const clientSecret = "6e7d949e6f87eaad1674807375749a9f21f6cf73769cfed1409bdfc0f7474fcd";
-    const apiUrl = "https://api.pixupbr.com/v2";
+    // Credenciais de Produção (Prioriza .env, fallback para valores fixos limpos)
+    const clientId = process.env.PIXUP_CLIENT_ID || "Aducmartins_4621537998005562";
+    const clientSecret = process.env.PIXUP_CLIENT_SECRET || "6e7d949e6f87eaad1674807375749a9f21f6cf73769cfed1409bdfc0f7474fcd";
+    
+    // Endpoints Oficiais
+    const authUrl = "https://api.pixupbr.com/v2/oauth/token";
+    const pixUrl = "https://api.pixupbr.com/v2/pix/qrcode";
 
     try {
-        // 1. Obter Token de Acesso (OAuth2)
-        const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-        const tokenResponse = await fetch(`${apiUrl}/oauth/token`, {
+        // 1. Obter Token de Acesso (OAuth2) - Basic Auth
+        const credentials = Buffer.from(`${clientId.trim()}:${clientSecret.trim()}`).toString('base64');
+        const tokenResponse = await fetch(authUrl, {
             method: 'POST',
             headers: {
                 'Authorization': `Basic ${credentials}`,
@@ -45,17 +47,15 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!tokenResponse.ok) {
             const errorText = await tokenResponse.text();
-            console.error('FALHA NA AUTENTICAÇÃO PIXUP:', errorText);
-            throw new Error(`Erro de autenticação com o provedor de pagamento: ${errorText}`);
+            console.error('FALHA NA AUTENTICAÇÃO PIXUP (401):', errorText);
+            throw new Error(`Erro de autorização (401). Verifique as credenciais.`);
         }
 
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
         
-        // 1) Conversão de Valor: Garante que o amount seja enviado como Number
+        // 2. Preparação e Sanitização de Dados
         const amountAsNumber = Number(amount);
-
-        // 2) Sanitização de Dados: CPF apenas com números
         const documentCleaned = String(payerDocument || "12345678909").replace(/\D/g, '');
 
         const body = {
@@ -68,8 +68,8 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
              }
         };
 
-        // 3) Headers de Autenticação: Authorization: Bearer [TOKEN]
-        const qrResponse = await fetch(`${apiUrl}/pix/qrcode`, {
+        // 3. Gerar QRCode - Bearer Auth
+        const qrResponse = await fetch(pixUrl, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -80,9 +80,9 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         });
 
         if (!qrResponse.ok) {
-            const errorBody = await qrResponse.json().catch(() => ({ message: 'Corpo de erro não decodificável' }));
+            const errorBody = await qrResponse.json().catch(() => ({ message: 'Erro na API de QRCode' }));
             console.error('ERRO COMPLETO DA PIXUP:', errorBody);
-            throw new Error(errorBody.message || 'Erro na API PixUp (QRCode)');
+            throw new Error(errorBody.message || 'Erro ao gerar QRCode na PixUp.');
         }
 
         const data = await qrResponse.json();
