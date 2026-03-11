@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -59,15 +58,14 @@ export default function DepositPage() {
             const depositRef = doc(collection(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions'));
             const depositId = depositRef.id;
 
-            // Encurtamos o external_id para evitar limites de caracteres da API
-            const externalId = depositId;
             const postbackUrl = `https://dailygainx.netlify.app/api/webhook/pixup`;
 
             const response = await generatePixQrCode({ 
                 amount: amountInBrl,
                 payerName: user.displayName || 'Cliente DailyGainX',
                 payerEmail: user.email || undefined,
-                externalId: externalId,
+                payerDocument: "12345678909", // CPF Genérico para teste ou pode ser solicitado ao usuário
+                externalId: depositId,
                 postbackUrl: postbackUrl
             });
 
@@ -150,7 +148,6 @@ export default function DepositPage() {
                                             width={256} 
                                             height={256} 
                                             className="rounded-lg"
-                                            data-ai-hint="qr code"
                                         />
                                     </div>
                                     <div className="space-y-1">
@@ -182,9 +179,9 @@ export default function DepositPage() {
                                             </div>
                                             <div className="space-y-2 text-sm font-semibold uppercase tracking-tight">
                                                 <p>1. EFETUAR O PAGAMENTO</p>
-                                                <p>2. ACESSA LINK ABAIXO DO SUPORTE</p>
-                                                <p>3. ENVIAR COMPROVANTE</p>
-                                                <p>4. RESGATAR SEU DEPOSITO</p>
+                                                <p>2. ENVIAR COMPROVANTE NO SUPORTE</p>
+                                                <p>3. AGUARDAR VALIDAÇÃO AUTOMÁTICA</p>
+                                                <p>4. RESGATAR SEU SALDO NO PERFIL</p>
                                             </div>
                                         </div>
 
