@@ -31,7 +31,6 @@ const MIN_DEPOSIT_BRL = 25;
 
 export default function DepositPage() {
     const [brlAmount, setBrlAmount] = useState('');
-    const [usdtAmount, setUsdtAmount] = useState(0);
     const [pixCopyPaste, setPixCopyPaste] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isGenerated, setIsGenerated] = useState(false);
@@ -112,7 +111,6 @@ export default function DepositPage() {
         setIsGenerated(false);
         setPixCopyPaste('');
         setBrlAmount('');
-        setUsdtAmount(0);
     };
 
     if (isGenerated) {
@@ -204,12 +202,12 @@ export default function DepositPage() {
             </header>
 
             <main className="flex-1 p-4 sm:p-6">
-              <div className="container mx-auto max-w-md space-y-6">
+              <div className="container mx-auto max-w-md space-y-8">
                 <div>
-                    <Label className="text-sm font-normal text-muted-foreground">Método de Pagamento</Label>
-                    <div className="mt-2 flex items-center justify-between rounded-xl border-2 border-primary bg-primary/5 p-4 shadow-sm">
+                    <Label className="text-sm font-normal text-muted-foreground mb-2 block">Método de Pagamento</Label>
+                    <div className="flex items-center justify-between rounded-xl border-2 border-primary/20 bg-primary/5 p-4 shadow-sm h-16">
                         <PixLogo />
-                        <div className="flex items-center gap-2 text-primary font-bold text-xs">
+                        <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
                             <span>PIX ATIVO</span>
                             <CheckCircle className="h-5 w-5" />
                         </div>
@@ -218,38 +216,23 @@ export default function DepositPage() {
 
                 <div className="space-y-4">
                     <div className="flex justify-between items-center px-1">
-                        <h2 className="font-semibold text-lg">Valor do Depósito</h2>
-                        <p className="text-xs text-muted-foreground">(R$ 25 = 5 USDT)</p>
+                        <h2 className="font-bold text-base">Valor do Depósito</h2>
+                        <p className="text-[10px] text-muted-foreground font-medium">(R$ 25 = 5 USDT)</p>
                     </div>
                     <div className="relative">
                         <Input
                             id="brlAmount"
                             type="number"
-                            placeholder={`Mínimo R$ ${MIN_DEPOSIT_BRL}`}
+                            placeholder="Mínimo R$ 25"
                             value={brlAmount}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                setBrlAmount(val);
-                                const amountInBrl = parseFloat(val);
-                                if (!isNaN(amountInBrl) && amountInBrl > 0) {
-                                    setUsdtAmount(amountInBrl * BRL_MULTIPLIER_TO_USDT);
-                                } else {
-                                    setUsdtAmount(0);
-                                }
-                            }}
-                            className="h-16 text-xl pl-6 pr-12 bg-muted/50 border-none rounded-xl font-bold"
+                            onChange={(e) => setBrlAmount(e.target.value)}
+                            className="h-14 text-lg pl-6 pr-12 bg-muted/30 border-none rounded-xl font-bold"
                         />
                         <span className="absolute right-6 top-1/2 -translate-y-1/2 text-muted-foreground font-black">R$</span>
                     </div>
-                    {usdtAmount > 0 && (
-                        <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl flex justify-between items-center">
-                            <span className="text-sm font-bold text-muted-foreground uppercase">Você receberá:</span>
-                            <span className="text-xl font-black text-primary">{usdtAmount.toFixed(2)} USDT</span>
-                        </div>
-                    )}
                 </div>
 
-                <div className="pt-4">
+                <div className="pt-2">
                     <Button 
                         onClick={handleGeneratePix} 
                         className="w-full h-16 text-lg font-black rounded-2xl shadow-lg uppercase gap-2" 
