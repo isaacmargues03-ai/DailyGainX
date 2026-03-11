@@ -1,3 +1,4 @@
+
 'use server';
 
 import QRCode from 'qrcode';
@@ -18,7 +19,7 @@ interface GeneratePixOptions {
 
 /**
  * Gera um QR Code Pix utilizando chamadas REST diretas para a PixUp.
- * Isso garante que o objeto 'payer' seja enviado corretamente e evita problemas de serialização do SDK.
+ * Garante que o objeto 'payer' seja enviado com a estrutura correta exigida pela API.
  */
 export async function generatePixQrCode(options: GeneratePixOptions): Promise<QrCodeResponse> {
     const { amount, externalId, postbackUrl, payerName, payerEmail } = options;
@@ -43,26 +44,27 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!tokenResponse.ok) {
             const errorText = await tokenResponse.text();
-            console.error('Erro de Auth PixUp:', errorText);
-            throw new Error(`Falha na autenticação com a PixUp.`);
+            console.error('Falha na Autenticação PixUp:', errorText);
+            throw new Error(`Erro de autenticação com o provedor de pagamento.`);
         }
 
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
         
-        // 2. Preparar o corpo da requisição (O 'payer' é MANDATÓRIO)
+        // 2. Preparar o corpo da requisição
+        // O campo 'payer' com 'document' (CPF/CNPJ) é MANDATÓRIO pela API PixUp
         const body = {
              amount: Number(amount.toFixed(2)),
              external_id: String(externalId),
-             postbackUrl: postbackUrl || "",
+             postbackUrl: postbackUrl || "https://dailygainx.netlify.app/api/webhook/pixup",
              payer: {
                 name: (payerName || "Cliente DailyGainX").substring(0, 100).trim(),
-                document: "12345678909", // CPF genérico para validação da API
+                document: "12345678909", // CPF genérico aceito para validação inicial
                 email: (payerEmail || "contato@dailygainx.com").substring(0, 100).trim()
              }
         };
 
-        // 3. Gerar QR Code via POST direto
+        // 3. Gerar QR Code
         const qrResponse = await fetch(`${apiUrl}/pix/qrcode`, {
             method: 'POST',
             headers: {
@@ -75,8 +77,8 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
 
         if (!qrResponse.ok) {
             const errorJson = await qrResponse.json();
-            console.error('Erro 400 PixUp:', errorJson);
-            throw new Error(errorJson.message || 'Erro ao gerar QR Code (Bad Request).');
+            console.error('Erro na API PixUp (400/500):', errorJson);
+            throw new Error(errorJson.message || 'Erro ao gerar QR Code na PixUp.');
         }
 
         const data = await qrResponse.json();
@@ -95,7 +97,7 @@ export async function generatePixQrCode(options: GeneratePixOptions): Promise<Qr
         };
 
     } catch (error: any) {
-        console.error('ERRO DETALHADO generatePixQrCode:', error);
-        throw new Error(error.message || 'Erro crítico ao processar Pix.');
+        console.error('ERRO CRÍTICO generatePixQrCode:', error);
+        throw new Error(error.message || 'Erro crítico ao processar transação Pix.');
     }
 }

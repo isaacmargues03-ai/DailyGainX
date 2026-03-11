@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -21,6 +22,7 @@ import {
   ShieldCheck,
   Plus,
   Users,
+  PlusCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
@@ -164,25 +166,32 @@ export default function ProfilePage() {
       const tokenRef = doc(firestore, 'tokens_resgate', tokenClean);
       
       await runTransaction(firestore, async (transaction) => {
-        // --- LEITURAS OBRIGATÓRIAS NO INÍCIO ---
+        // --- 1. TODAS AS LEITURAS DEVEM OCORRER PRIMEIRO ---
+        
+        // Lê o Token
         const tDoc = await transaction.get(tokenRef);
         if (!tDoc.exists()) throw new Error('Código inválido ou inexistente.');
-        
         const tokenData = tDoc.data();
         if (tokenData.usado) throw new Error('Este código já foi utilizado.');
 
+        // Lê o Perfil do Usuário
         const userRef = doc(firestore, 'users', user.uid);
         const uDoc = await transaction.get(userRef);
         if (!uDoc.exists()) throw new Error('Perfil de usuário não encontrado.');
-        
-        const userData = uDoc.data() || {};
-        const aDoc = await transaction.get(accountDocRef);
+        const userData = uDoc.data();
 
+        // Lê a Conta do Usuário
+        const aDoc = await transaction.get(accountDocRef);
+        if (!aDoc.exists()) throw new Error('Conta financeira não encontrada.');
+        const currentBalance = aDoc.data().balance || 0;
+
+        // Lê o Documento de Indicação (se for o primeiro depósito)
         let rDoc = null;
         if (!userData.hasMadeFirstDeposit && userData.referralId) {
             rDoc = await transaction.get(doc(firestore, 'referrals', userData.referralId));
         }
 
+        // Lê a Transação de Depósito Vinculada (se existir)
         let linkedHistoryTxRef = null;
         if (tokenData.transactionId && tokenData.transactionId !== "Manual-Site") {
             const txRef = doc(firestore, 'users', user.uid, 'accounts', user.uid, 'depositTransactions', tokenData.transactionId);
@@ -192,11 +201,10 @@ export default function ProfilePage() {
             }
         }
 
-        // --- ESCRITAS APÓS TODAS AS LEITURAS ---
-        const currentBalance = aDoc.exists() ? (aDoc.data()?.balance || 0) : 0;
+        // --- 2. TODAS AS ESCRITAS APÓS AS LEITURAS ---
         
         // Atualiza saldo do usuário
-        transaction.set(accountDocRef, { balance: currentBalance + tokenData.valor }, { merge: true });
+        transaction.update(accountDocRef, { balance: currentBalance + tokenData.valor });
 
         // Marca token como usado
         transaction.update(tokenRef, {
@@ -213,7 +221,7 @@ export default function ProfilePage() {
           });
         }
 
-        // Processa indicação (Bônus de 1 USDT)
+        // Processa bônus de indicação
         if (!userData.hasMadeFirstDeposit) {
             transaction.update(userRef, { hasMadeFirstDeposit: true });
             
@@ -221,16 +229,17 @@ export default function ProfilePage() {
                 const referralData = rDoc.data();
                 const referrerId = referralData.referrerId;
                 
+                // Muda status da indicação
                 transaction.update(rDoc.ref, { status: 'rewarded' });
                 
+                // Dá o bônus de 1 USDT para o padrinho
                 const referrerAccountRef = doc(firestore, 'users', referrerId, 'accounts', referrerId);
-                // Incrementa saldo do padrinho
                 transaction.set(referrerAccountRef, { balance: increment(1) }, { merge: true });
             }
         }
       });
 
-      toast({ title: 'Sucesso!', description: 'Saldo creditado e bônus processado!' });
+      toast({ title: 'Sucesso!', description: 'Saldo creditado e bônus de indicação pago!' });
       setIsTokenDialogOpen(false);
       setTokenInput('');
     } catch (error: any) {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -140,7 +141,7 @@ export default function WithdrawPage() {
                 <div className="w-9 h-9" />
             </header>
             <main className="flex-1 p-4 sm:p-6">
-                <div className="container mx-auto max-w-md">
+                <div className="container mx-auto max-md">
                     <Card className="border-none shadow-xl">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
