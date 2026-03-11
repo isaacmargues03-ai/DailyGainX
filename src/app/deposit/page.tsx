@@ -31,15 +31,15 @@ const MIN_DEPOSIT_BRL = 25;
 export default function DepositPage() {
     const [brlAmount, setBrlAmount] = useState('');
     const [usdtAmount, setUsdtAmount] = useState(0);
-    const [qrCode, setQrCode] = useState('');
     const [pixCopyPaste, setPixCopyPaste] = useState('');
     const [transactionId, setTransactionId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isGenerated, setIsGenerated] = useState(false);
     
     const { toast } = useToast();
     const { user, firestore } = useFirebase();
 
-    const handleGenerateQrCode = async () => {
+    const handleGeneratePix = async () => {
         const amountInBrl = parseFloat(brlAmount);
         if (isNaN(amountInBrl) || amountInBrl < MIN_DEPOSIT_BRL) {
             toast({
@@ -82,13 +82,13 @@ export default function DepositPage() {
                 depositDate: new Date().toISOString()
             });
 
-            setQrCode(response.qrCodeImageUrl);
             setPixCopyPaste(response.pixCopyPaste);
             setTransactionId(depositId);
+            setIsGenerated(true);
 
             toast({
                 title: 'Pagamento Gerado!',
-                description: 'Utilize o código Copia e Cola para pagar.',
+                description: 'Utilize o código abaixo para pagar.',
             });
 
         } catch (error: any) {
@@ -113,13 +113,13 @@ export default function DepositPage() {
     };
     
     const resetDepositFlow = () => {
-        setQrCode('');
+        setIsGenerated(false);
         setPixCopyPaste('');
         setBrlAmount('');
         setTransactionId('');
     };
 
-    if (qrCode) {
+    if (isGenerated) {
         return (
              <div className="flex min-h-screen w-full flex-col bg-muted/40">
                 <header className="flex items-center justify-between p-4 border-b bg-background">
@@ -263,7 +263,7 @@ export default function DepositPage() {
 
                 <div className="pt-4">
                     <Button 
-                        onClick={handleGenerateQrCode} 
+                        onClick={handleGeneratePix} 
                         className="w-full h-16 text-lg font-black rounded-2xl shadow-lg shadow-primary/20 uppercase tracking-tight gap-2" 
                         disabled={!brlAmount || parseFloat(brlAmount) < MIN_DEPOSIT_BRL || isLoading}
                     >
