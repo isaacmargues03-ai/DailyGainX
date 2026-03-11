@@ -6,9 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CheckCircle, Copy, Loader2, Send, Info, QrCode } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Copy, Loader2, Send, Info } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useFirebase } from '@/firebase';
 import { generatePixQrCode } from '@/app/actions/pix';
 import { doc, collection, setDoc } from 'firebase/firestore';
@@ -89,7 +88,7 @@ export default function DepositPage() {
 
             toast({
                 title: 'Pagamento Gerado!',
-                description: 'Utilize o QR Code ou o código Copia e Cola para pagar.',
+                description: 'Utilize o código Copia e Cola para pagar.',
             });
 
         } catch (error: any) {
@@ -134,64 +133,55 @@ export default function DepositPage() {
                     <div className="container mx-auto max-w-md">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Pagamento Pix</CardTitle>
+                                <CardTitle>Pix Copia e Cola</CardTitle>
                                 <CardDescription>
-                                    Escolha a forma mais fácil para você finalizar o depósito.
+                                    Copie o código abaixo e cole no seu aplicativo bancário para finalizar o depósito.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <div className="flex flex-col items-center text-center gap-4">
-                                    <div className="relative p-2 bg-white rounded-lg border shadow-inner">
-                                        <Image 
-                                            src={qrCode} 
-                                            alt="Pix QR Code" 
-                                            width={256} 
-                                            height={256} 
-                                            className="rounded-lg"
-                                        />
-                                    </div>
+                                <div className="flex flex-col items-center text-center gap-6">
                                     <div className="space-y-1">
-                                        <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">Valor do Pagamento</p>
-                                        <p className="text-2xl font-bold">R$ {parseFloat(brlAmount).toFixed(2)}</p>
-                                        <p className="text-sm text-primary font-medium">({(parseFloat(brlAmount) * BRL_MULTIPLIER_TO_USDT).toFixed(2)} USDT)</p>
+                                        <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">Valor do Depósito</p>
+                                        <p className="text-3xl font-black">R$ {parseFloat(brlAmount).toFixed(2)}</p>
+                                        <p className="text-sm text-primary font-bold">({(parseFloat(brlAmount) * BRL_MULTIPLIER_TO_USDT).toFixed(2)} USDT)</p>
                                     </div>
                                     
                                     <div className="w-full space-y-4 pt-4 text-left">
                                         <div className="space-y-2">
                                             <div className="flex items-center justify-between">
-                                                <Label htmlFor="pix-copy-paste">Pix Copia e Cola</Label>
-                                                <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase">Mais Prático</span>
+                                                <Label htmlFor="pix-copy-paste" className="font-bold">Código Pix</Label>
+                                                <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-black uppercase">Pronto para Copiar</span>
                                             </div>
                                             <div className="flex items-center space-x-2">
                                                 <Input
                                                     id="pix-copy-paste"
                                                     readOnly
                                                     value={pixCopyPaste}
-                                                    className="text-sm truncate bg-muted/30 h-12"
+                                                    className="text-sm truncate bg-muted/30 h-14 font-mono border-2 focus:border-primary"
                                                 />
-                                                <Button variant="default" className="h-12 w-12 shrink-0" onClick={() => copyToClipboard(pixCopyPaste, 'Código Pix')}>
-                                                    <Copy className="h-5 w-5" />
+                                                <Button variant="default" className="h-14 w-14 shrink-0 shadow-lg" onClick={() => copyToClipboard(pixCopyPaste, 'Código Pix')}>
+                                                    <Copy className="h-6 w-6" />
                                                 </Button>
                                             </div>
-                                            <p className="text-[10px] text-muted-foreground">Copie o código acima e cole na opção "Pix Copia e Cola" do seu banco.</p>
+                                            <p className="text-[10px] text-muted-foreground font-medium">Toque no botão ao lado para copiar o código e pagar no seu banco.</p>
                                         </div>
 
-                                        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
-                                            <div className="flex items-center gap-2 font-bold text-primary mb-1">
+                                        <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-4 space-y-3">
+                                            <div className="flex items-center gap-2 font-black text-primary mb-1 uppercase text-xs tracking-wider">
                                                 <Info className="h-4 w-4" />
-                                                <span>Passo a passo</span>
+                                                <span>Como concluir o depósito:</span>
                                             </div>
-                                            <div className="space-y-2 text-xs font-semibold uppercase tracking-tight text-muted-foreground">
-                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 1. PAGUE PELO APP DO SEU BANCO</p>
-                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 2. MANDE O PRINT NO SUPORTE</p>
-                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 3. AGUARDE A VALIDAÇÃO DO SALDO</p>
-                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 4. RESGATE SEU SALDO NO PERFIL</p>
+                                            <div className="space-y-2 text-[11px] font-bold uppercase tracking-tight text-muted-foreground">
+                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 1. COPIE O CÓDIGO ACIMA</p>
+                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 2. PAGUE NO SEU APP DO BANCO</p>
+                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 3. MANDE O PRINT NO SUPORTE</p>
+                                                <p className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-primary" /> 4. O SALDO CAI EM INSTANTES</p>
                                             </div>
                                         </div>
 
                                         <Button 
                                             variant="default" 
-                                            className="w-full gap-2 h-14 font-black uppercase text-lg" 
+                                            className="w-full gap-2 h-14 font-black uppercase text-lg rounded-xl shadow-xl shadow-primary/20" 
                                             asChild
                                         >
                                             <Link href="https://t.me/SuportedailygainX" target="_blank">
@@ -284,8 +274,8 @@ export default function DepositPage() {
                             </>
                         ) : (
                             <>
-                                <QrCode className="h-6 w-6" />
-                                Gerar Pix (QR ou Copia e Cola)
+                                <Copy className="h-6 w-6" />
+                                Gerar Pix Copia e Cola
                             </>
                         )}
                     </Button>
